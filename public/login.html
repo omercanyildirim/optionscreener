@@ -6,35 +6,34 @@
 <title>Sign in · Options Screener</title>
 <meta name="description" content="Options flow, chains, a contract screener and saved filters. Sign in with your Google account.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#141518;--panel:#232428;--line:#33343a;--text:#ececee;--muted:#8c8e96;--accent:#f2b51d;--green:#22e07a;--red:#ff4b55}
+:root{--bg:#121417;--panel:#171a1e;--line:#23272d;--text:#e4e6e9;--muted:#878d96;--dim:#565c64;--accent:#9fb4ff;--green:#4fd1a1;--red:#f0716a}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:15px/1.5 Rubik,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:15px/1.5 "Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
 body{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr}
-.hero{position:relative;overflow:hidden;padding:56px;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(1200px 600px at 0% 0%,rgba(242,181,29,.16),transparent 60%),radial-gradient(900px 500px at 100% 100%,rgba(197,139,255,.14),transparent 60%),#18191c}
+.hero{position:relative;overflow:hidden;padding:56px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:12px;font-weight:600;font-size:18px}
-.brand svg{width:38px;height:38px}
-.hero h1{font-size:44px;line-height:1.1;margin:0 0 16px;font-weight:700;max-width:560px}
-.hero h1 span{color:var(--accent)}
+.brand svg{width:26px;height:26px}
+.hero h1{font-size:52px;line-height:1.02;margin:0 0 18px;font-weight:500;letter-spacing:-.025em;max-width:600px;font-variation-settings:"wdth" 125}
+.hero h1 span{color:inherit}
 .hero p{color:var(--muted);font-size:17px;max-width:520px;margin:0}
-.preview{margin-top:36px;background:var(--panel);border-radius:12px;overflow:hidden;max-width:560px;font-size:13px;font-variant-numeric:tabular-nums;box-shadow:0 30px 60px rgba(0,0,0,.35)}
-.preview div{display:grid;grid-template-columns:70px 64px 1fr 70px 70px;gap:8px;padding:10px 14px}
-.preview div:nth-child(even){background:#28292d}
-.preview .h{background:#111214!important;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
-.g{color:var(--green)} .r{color:var(--red)} .y{color:#f5c518} .p{color:#c58bff} .b{color:#4c8dff} .m{color:var(--muted)}
+.preview{margin-top:44px;max-width:560px;font-size:13px;font-variant-numeric:tabular-nums;border-top:1px solid var(--line)}
+.preview div{display:grid;grid-template-columns:70px 64px 1fr 70px 70px;gap:8px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.preview .h{color:var(--muted);font-size:12px}
+.g{color:var(--green)} .r{color:var(--red)} .y{color:#e3bf6b} .p{color:#b39cf0} .b{color:#7fb0ee} .m{color:var(--muted)}
 .feat{display:flex;flex-wrap:wrap;gap:8px 20px;color:var(--muted);font-size:13px;margin-top:28px}
 .feat b{color:var(--text);font-weight:500}
 .side{display:grid;place-items:center;padding:40px 24px}
 .card{width:100%;max-width:380px}
-.card h2{font-size:26px;margin:0 0 8px;font-weight:600}
+.card h2{font-size:24px;margin:0 0 8px;font-weight:600;letter-spacing:-.01em;font-variation-settings:"wdth" 112}
 .card .sub{color:var(--muted);margin:0 0 28px}
-.gbtn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;background:#fff;color:#1f1f1f;border:0;border-radius:10px;padding:14px 18px;font:500 16px Rubik,system-ui,sans-serif;text-decoration:none;cursor:pointer;transition:transform .1s,box-shadow .2s}
-.gbtn:hover{box-shadow:0 6px 22px rgba(255,255,255,.12)} .gbtn:active{transform:translateY(1px)}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;background:#fff;color:#1f1f1f;border:0;border-radius:6px;padding:13px 18px;font:500 15px "Archivo",system-ui,sans-serif;text-decoration:none;cursor:pointer;transition:transform .1s,box-shadow .2s}
+.gbtn:hover{background:#f1f3f4} .gbtn:active{transform:translateY(1px)}
 .gbtn svg{width:20px;height:20px}
 .note{margin-top:18px;font-size:12px;color:var(--muted)}
 .note a{color:var(--text)}
-.msg{background:var(--panel);border-left:3px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:20px}
+.msg{border-left:2px solid var(--accent);padding:10px 12px;font-size:13px;margin-bottom:20px}
 .msg:empty{display:none}
 footer{position:fixed;right:24px;bottom:16px;font-size:12px;color:var(--muted)}
 footer a{color:var(--muted);margin-left:14px}
@@ -51,18 +50,17 @@ footer a{color:var(--muted);margin-left:14px}
 </head>
 <body>
 <section class="hero">
-  <div class="brand"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="9" fill="#f2b51d"/><path d="M12 26 L18 18 L22 22 L29 12" stroke="#141518" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="29" cy="12" r="2.4" fill="#141518"/></svg>Options Screener</div>
+  <div class="brand"><svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>Options Screener</div>
   <div>
-    <h1>Track options flow <span>on one screen</span></h1>
+    <h1>Options flow, chains and your contracts in one place</h1>
     <p>Big trades, sweeps and blocks, option chains and a contract screener. Save your filters and watch your contracts.</p>
     <div class="preview" aria-hidden="true">
       <div class="h"><span>Ticker</span><span>C/P</span><span>Contract</span><span>Premium</span><span>Type</span></div>
-      <div><span class="g">NVDA</span><span>Call</span><span class="m">200C · 12/19</span><span class="g">$2.4M</span><span class="y">Sweep</span></div>
-      <div><span class="r">SPY</span><span>Put</span><span class="m">640P · 11/28</span><span class="r">$1.1M</span><span class="b">Block</span></div>
-      <div><span class="g">TSLA</span><span>Call</span><span class="m">450C · 12/5</span><span class="g">$860K</span><span class="p">Split</span></div>
-      <div><span class="g">QQQ</span><span>Call</span><span class="m">610C · 12/19</span><span class="g">$5.3M</span><span class="y">Sweep</span></div>
+      <div><span class="g">NVDA</span><span>Call</span><span class="m">200C 12/19</span><span class="g">$2.4M</span><span class="y">Sweep</span></div>
+      <div><span class="r">SPY</span><span>Put</span><span class="m">640P 11/28</span><span class="r">$1.1M</span><span class="b">Block</span></div>
+      <div><span class="g">TSLA</span><span>Call</span><span class="m">450C 12/5</span><span class="g">$860K</span><span class="p">Split</span></div>
+      <div><span class="g">QQQ</span><span>Call</span><span class="m">610C 12/19</span><span class="g">$5.3M</span><span class="y">Sweep</span></div>
     </div>
-    <div class="feat"><span><b>Flow</b> filters</span><span><b>Saved</b> filters</span><span><b>Contract</b> watchlist</span><span><b>Chains</b> and charts</span></div>
   </div>
   <span></span>
 </section>
