@@ -4,8 +4,12 @@ export function safeNext(n) {
   return typeof n === 'string' && n.startsWith('/') && !n.startsWith('//') && !n.startsWith('/\\') ? n : '/';
 }
 
+// Use the address the visitor actually opened (custom domain or vercel.app) so the
+// state cookie and Google's callback stay on the same host. Both callback URLs must be
+// registered in Google Cloud. APP_URL is only a fallback for non-HTTPS (local) runs.
 export function appOrigin(request) {
-  return (process.env.APP_URL || new URL(request.url).origin).replace(/\/$/, '');
+  const origin = new URL(request.url).origin;
+  return (origin.startsWith('https://') ? origin : (process.env.APP_URL || origin)).replace(/\/$/, '');
 }
 
 export async function GET(request) {
