@@ -8,5 +8,7 @@ export async function GET(request) {
     name: s.name,
     pollMs: Math.max(1000, +(process.env.POLL_MS || 2000)),
     keyConfigured: !!process.env.MASSIVE_API_KEY,
+    // DEMO_DATA=true shows simulated data (for previewing before a paid Massive plan).
+    demo: process.env.DEMO_DATA === 'true',
   });
 }

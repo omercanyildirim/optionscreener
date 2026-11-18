@@ -150,7 +150,7 @@ footer{color:var(--muted);font-size:11px;padding:28px 0;text-align:center}
 'use strict';
 const $ = s => document.querySelector(s);
 const MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-const DEMO = location.protocol==='file:' || new URLSearchParams(location.search).has('demo');
+let DEMO = location.protocol==='file:' || new URLSearchParams(location.search).has('demo');
 const CFG = { maxDte:60, strikePct:15, maxContracts:3000, pollMs:2000, fullMs:60000 };
 
 /* ---------- local preferences (no secrets) ---------- */
@@ -512,10 +512,12 @@ async function init(){
   if(!DEMO){
     try{ const c=await getJSON('/api/config'); CFG.pollMs=c.pollMs||CFG.pollMs;
       $('#who').innerHTML=`${c.email} · <a href="/api/auth/logout">Çıkış</a>`;
-      if(!c.keyConfigured){ setStatus('error'); note('Sunucuda MASSIVE_API_KEY tanımlı değil. Vercel proje ayarlarından eklenmeli.',true); return; } }
+      if(c.demo) DEMO=true;
+      else if(!c.keyConfigured){ setStatus('error'); note('Sunucuda MASSIVE_API_KEY tanımlı değil. Vercel proje ayarlarından eklenmeli.',true); return; } }
     catch(e){ setStatus('error'); note('Sunucu yapılandırması okunamadı: '+e.message,true); return; }
   }
   load(P.und);
+  if(DEMO) note('Örnek veri gösteriliyor: fiyatlar ve hacimler gerçek piyasa verisi değildir.');
 }
 init();
 })();
