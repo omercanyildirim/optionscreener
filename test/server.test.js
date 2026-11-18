@@ -37,10 +37,19 @@ test('allow-list enforced on every request', async () => {
   assert.equal(await getSession(req('https://x/', await sessionCookie('other@example.com'))), null);
 });
 
+test('ALLOWED_EMAILS="*" lets any signed-in Google account in', async () => {
+  process.env.ALLOWED_EMAILS = '*';
+  assert.ok(await getSession(req('https://x/', await sessionCookie('anyone@gmail.com'))));
+  process.env.ALLOWED_EMAILS = '';
+  assert.equal(await getSession(req('https://x/', await sessionCookie('anyone@gmail.com'))), null);
+});
+
 test('middleware redirects pages, 401s APIs, passes signed-in users', async () => {
+  const r0 = await middleware(req('https://os.example.com/'));
+  assert.equal(new URL(r0.headers.get('location')).pathname + new URL(r0.headers.get('location')).search, '/login');
   const r1 = await middleware(req('https://os.example.com/?a=1'));
   assert.equal(r1.status, 302);
-  assert.match(r1.headers.get('location'), /\/api\/auth\/login\?next=%2F%3Fa%3D1$/);
+  assert.match(r1.headers.get('location'), /\/login\?next=%2F%3Fa%3D1$/);
   const r2 = await middleware(req('https://os.example.com/api/massive?path=x'));
   assert.equal(r2.status, 401);
   assert.equal(await middleware(req('https://os.example.com/', await sessionCookie())), undefined);

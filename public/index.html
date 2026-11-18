@@ -355,7 +355,7 @@ function note(msg,err){ const e=$('#msg'); e.textContent=msg||''; e.className=er
 /* ---------- server API (Massive key stays on the server) ---------- */
 async function getJSON(u){
   let r; try{ r=await fetch(u,{credentials:'same-origin',cache:'no-store'}); }catch(e){ throw new Error('Sunucuya ulaşılamadı'); }
-  if(r.status===401){ location.href='/api/auth/login?next='+encodeURIComponent(location.pathname+location.search); throw new Error('Oturum süresi doldu'); }
+  if(r.status===401){ location.href='/login?next='+encodeURIComponent(location.pathname+location.search); throw new Error('Oturum süresi doldu'); }
   if(!r.ok){ let m=r.statusText; try{ const j=await r.json(); m=j.message||j.error||m; }catch(e){} if(r.status===403) m+=' (planın bu veriyi kapsamıyor olabilir)'; throw new Error(`${r.status}: ${m}`); }
   return r.json();
 }

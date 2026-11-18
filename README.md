@@ -43,7 +43,7 @@ Vercel → Project → Settings → Environment Variables (Production):
 | `GOOGLE_CLIENT_ID` | 1. adımdan |
 | `GOOGLE_CLIENT_SECRET` | 1. adımdan |
 | `SESSION_SECRET` | En az 32 karakter rastgele değer (`openssl rand -base64 48`) |
-| `ALLOWED_EMAILS` | Girebilecek Google hesapları, virgülle |
+| `ALLOWED_EMAILS` | Girebilecek Google hesapları, virgülle. `*` ise Google hesabı olan herkes girebilir |
 | `APP_URL` | Sitenin kalıcı adresi, Google'a girdiğin yönlendirme adresiyle aynı alan adı |
 | `POLL_MS` | İsteğe bağlı, yenileme aralığı (ms). Varsayılan 2000 |
 

@@ -1,9 +1,9 @@
-// Routing Middleware: every page and API call requires a Google sign-in session,
-// except the sign-in routes themselves.
+// Routing Middleware: every page and API call requires a Google sign-in session.
+// Public: the login page, privacy/terms pages and the sign-in routes themselves.
 import { getSession, json } from './lib/session.js';
 
 export const config = {
-  matcher: ['/((?!api/auth/|favicon\\.ico).*)'],
+  matcher: ['/((?!api/auth/|login|privacy|terms|favicon\\.ico).*)'],
 };
 
 export default async function middleware(request) {
@@ -13,5 +13,6 @@ export default async function middleware(request) {
   const url = new URL(request.url);
   if (url.pathname.startsWith('/api/')) return json({ error: 'unauthorized' }, 401);
   const next = url.pathname + url.search;
-  return Response.redirect(new URL(`/api/auth/login?next=${encodeURIComponent(next)}`, url), 302);
+  const to = next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`;
+  return Response.redirect(new URL(to, url), 302);
 }
