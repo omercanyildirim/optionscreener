@@ -143,6 +143,40 @@ tr.grp td b{color:var(--text);margin-right:10px}
 .dfoot select{min-width:200px}
 .dfoot input{width:200px}
 .savestate{font-size:12px;color:var(--muted)}
+.ins{width:min(560px,100vw)}
+.ins .dbody{display:block}
+.ins .sec{background:var(--panel);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.ins .sec h4{margin:0 0 10px;font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+.ins .hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ins .big{font-size:26px;font-weight:600}
+.ins .tag{font-size:12px;border-radius:5px;padding:2px 7px;background:var(--panel2);color:var(--muted)}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px;font-variant-numeric:tabular-nums}
+.kv .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+.kv .v{font-size:15px;font-weight:500}
+.ins ul.pts{margin:0;padding:0;list-style:none}
+.ins ul.pts li{position:relative;padding:6px 0 6px 18px;border-bottom:1px solid var(--line);font-size:13.5px}
+.ins ul.pts li:last-child{border-bottom:0}
+.ins ul.pts li::before{content:"";position:absolute;left:2px;top:13px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.ins ul.pts li.g::before{background:var(--green)} .ins ul.pts li.r::before{background:var(--red)}
+.ins .acts{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px}
+.mini{width:100%;font-size:13px}
+.mini td,.mini th{padding:7px 8px}
+.mini tbody tr{cursor:pointer}
+.news{display:flex;flex-direction:column;gap:10px}
+.nitem{display:block;text-decoration:none;background:var(--panel2);border-radius:8px;padding:11px 12px}
+.nitem:hover{background:#34353b}
+.nitem .src{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;margin-bottom:4px}
+.nitem .src img{width:14px;height:14px;border-radius:3px}
+.nitem .tt{font-weight:500;font-size:14px;margin-bottom:4px}
+.nitem .sm{color:#b9bbc2;font-size:13px}
+.brief{white-space:pre-wrap;font-size:13.5px;line-height:1.55}
+.cites{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.cites a{font-size:11.5px;color:var(--muted);background:var(--panel2);border-radius:5px;padding:3px 7px;text-decoration:none}
+.cites a:hover{color:var(--text)}
+.skel{height:12px;border-radius:5px;background:linear-gradient(90deg,#2a2b30,#34353b,#2a2b30);background-size:200% 100%;animation:sk 1.2s infinite;margin:8px 0}
+@keyframes sk{to{background-position:-200% 0}}
+.payoff{width:100%;height:150px}
+.clickable{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
 @media (max-width:1280px){ .app{grid-template-columns:64px 1fr} .feed{display:none} }
 @media (max-width:900px){ .stats{grid-template-columns:repeat(2,minmax(0,1fr))} .dbody{grid-template-columns:1fr} .charts{grid-template-columns:1fr} }
 @media (max-width:640px){
@@ -255,6 +289,11 @@ tr.grp td b{color:var(--text);margin-right:10px}
     <button class="btn gold" id="pNew">Yeni olarak kaydet</button>
     <span class="savestate" id="saveState" style="width:100%"></span>
   </div>
+</aside>
+
+<aside class="drawer ins" id="insight" aria-label="İçgörüler">
+  <div class="dhead"><h2 id="insTitle">İçgörü</h2><span class="spacer"></span><button class="iconbtn" id="insClose" aria-label="Kapat" style="background:var(--panel2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="dbody" id="insBody"></div>
 </aside>
 
 <script>
@@ -496,7 +535,7 @@ function renderFlow(){
     if(S.newIds.has(f.id)) tr.classList.add('new');
     for(const c of FCOLS){ const td=el('td',(c.n?'num ':'')+(c.cls?c.cls(f):''),c.r(f)); tr.appendChild(td); }
     const mt=el('td','num'); const mb=el('button','more','⋯'); mb.title='İşlemler'; mb.onclick=e=>{ e.stopPropagation(); flowMenu(e,f); }; mt.appendChild(mb); tr.appendChild(mt);
-    tr.ondblclick=()=>openInChain(f.sym,f.exp);
+    tr.style.cursor='pointer'; tr.onclick=()=>openInsight({kind:'contract',t:f.ticker,f}); tr.children[1].classList.add('clickable'); tr.children[1].onclick=e=>{ e.stopPropagation(); openInsight({kind:'stock',sym:f.sym}); };
     frag.appendChild(tr); }
   if(!list.length){ const tr=el('tr'); const td=el('td','empty',S.flows.length?'Filtrelere uyan işlem yok':'Akış yükleniyor…'); td.colSpan=FCOLS.length+1; tr.appendChild(td); frag.appendChild(tr); }
   tb.replaceChildren(frag);
@@ -524,7 +563,7 @@ function renderFeed(){
     <div class="grid"><span class="h">Sembol</span><span class="h">Adet</span><span class="h">Kontrat</span><span class="h">Prim</span>
     <span class="${f.cp==='C'?'c-green':'c-red'}">${f.sym}</span><span>${fInt(f.size)}</span><span>${fK(f.strike)}${f.cp} ${fExpN(f.exp)}</span><span class="c-purple">${fMoney(f.prem)}</span></div>
     <div class="d">${f.type} · ${SIDE_TXT[f.side]||''} · ${fDate(f.t)}</div>`;
-    c.onclick=()=>openInChain(f.sym,f.exp); return c; })); }
+    c.onclick=()=>openInsight({kind:'contract',t:f.ticker,f}); return c; })); }
 let menuEl=null;
 function closeMenu(){ if(menuEl){ menuEl.remove(); menuEl=null; } }
 function flowMenu(e,f){ closeMenu(); menuEl=el('div','menu');
@@ -606,8 +645,8 @@ function flowChanged(fromDrawer){ saveP(); S.flowDirty=true; if(!fromDrawer) fil
   $('#fcount').hidden=!n; $('#fcount').textContent=n; $('#dcount').textContent=n?`${n} filtre aktif`:'Filtre yok'; paintPresetDirty(); }
 function openDrawer(){ fillDrawer(); renderPresetSel(); $('#drawer').classList.add('on'); $('#overlay').classList.add('on'); }
 function closeDrawer(){ $('#drawer').classList.remove('on'); $('#overlay').classList.remove('on'); }
-$('#openFilters').onclick=openDrawer; $('#dClose').onclick=closeDrawer; $('#overlay').onclick=closeDrawer;
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+$('#openFilters').onclick=openDrawer; $('#dClose').onclick=closeDrawer; $('#overlay').onclick=()=>{ closeDrawer(); closeInsight(); };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDrawer(); closeInsight(); } });
 $('#dReset').onclick=()=>{ P.flow={...FLOW0}; P.activePreset=null; flowChanged(); renderPresetSel(); };
 $('#clearAll').onclick=()=>{ P.flow={...FLOW0}; P.scr={...SCR0}; P.activePreset=null; fillScr(); flowChanged(); renderPresetSel(); S.scrForce=true; };
 
@@ -654,6 +693,7 @@ function buildChain(scroll){
   for(const k of ks){ const r=by.get(k), tr=el('tr'), row={tr,k,c:[],p:[]};
     const side=(c,cols,arr)=>{ for(const [f,fmt,fl] of cols){ const td=el('td'); arr.push(td); if(c){ S.cellMap.set(c.t+'|'+f,[td,fmt,fl]); setCell(td,c[f],fmt,false); } tr.appendChild(td); } };
     star(r.C,tr); side(r.C,CC,row.c); tr.appendChild(el('td','k',fK(k))); side(r.P,PC,row.p); star(r.P,tr);
+    row.c.forEach(td=>{ if(r.C){ td.style.cursor='pointer'; td.onclick=()=>openInsight({kind:'contract',t:r.C.t}); } }); row.p.forEach(td=>{ if(r.P){ td.style.cursor='pointer'; td.onclick=()=>openInsight({kind:'contract',t:r.P.t}); } });
     S.chainRows.push(row); frag.appendChild(tr); }
   tb.appendChild(frag); $('#chainInfo').textContent=`${S.und} · ${ks.length} strike`;
   S.lastItm=null; updateItm();
@@ -704,7 +744,7 @@ function renderScreener(){
   const trs=[]; for(const c of top){ let r=S.scrRows.get(c.t);
     if(!r){ const tr=el('tr'); const star=starCell(c.t); tr.appendChild(star);
       const tds=SCR.map(sc=>{ const td=el('td',sc.n?'num':''); tr.appendChild(td); return td; });
-      tr.style.cursor='pointer'; tr.onclick=()=>{ S.selExp=c.exp; buildExpSel(); buildChain(true); view('chain'); }; r={tr,tds,star}; S.scrRows.set(c.t,r); }
+      tr.style.cursor='pointer'; tr.onclick=()=>openInsight({kind:'contract',t:c.t}); r={tr,tds,star}; S.scrRows.set(c.t,r); }
     updScr(c,r); trs.push(r.tr); }
   const e=tb.querySelector('.empty'); if(e) e.parentNode.remove();
   if(prev!==S.scrTop.join('|')||tb.children.length!==trs.length) tb.append(...trs);
@@ -734,7 +774,7 @@ function renderTracked(){
     list.sort((a,b)=>a.exp.localeCompare(b.exp)||a.strike-b.strike||a.type.localeCompare(b.type));
     for(const c of list){ const tr=el('tr'); tr.appendChild(starCell(c.t));
       const tds=TRK.map(sc=>{ const td=el('td',sc.n?'num':''); tr.appendChild(td); return td; });
-      tr.style.cursor='pointer'; tr.onclick=()=>openInChain(c.und,c.exp);
+      tr.style.cursor='pointer'; tr.onclick=()=>openInsight({kind:'contract',t:c.t});
       S.trkRows.set(c.t,{tr,tds,g}); tb.appendChild(tr); updTrk(c); } } }
 function paintGroup(g){ const u=S.trkU.get(g._und)||{}, s=S.stocks.get(g._und)||{}; const price=s.price??u.price, chg=s.chgPct??u.chgPct;
   g.firstChild.innerHTML=`<b>${g._und}</b>${f2(price)} <span class="${chg>0?'c-green':chg<0?'c-red':''}">${fSPct(chg)}</span>`; }
@@ -748,7 +788,7 @@ ST.forEach(c=>{ if(!c.g) c.g=x=>x[c.k]; });
 function buildStocks(){ const h=el('tr'); for(const c of ST) h.appendChild(el('th',c.n?'num':'',c.h)); $('#stHead').replaceChildren(h);
   const tb=$('#stBody'); tb.innerHTML=''; S.stRows.clear();
   for(const sym of watchList()){ if(!S.stocks.has(sym)) S.stocks.set(sym,{sym});
-    const tr=el('tr'); tr.style.cursor='pointer'; tr.title='Opsiyon zincirini aç'; tr.onclick=()=>{ view('chain'); load(sym); };
+    const tr=el('tr'); tr.style.cursor='pointer'; tr.title='İçgörü ve haberler'; tr.onclick=()=>openInsight({kind:'stock',sym});
     const tds=ST.map(c=>{ const td=el('td',c.n?'num':''); tr.appendChild(td); return td; });
     S.stRows.set(sym,{tr,tds}); tb.appendChild(tr); updStock(sym); } }
 function updStock(sym){ const s=S.stocks.get(sym), r=S.stRows.get(sym); if(!s||!r) return;
@@ -894,6 +934,150 @@ async function load(und){
   S.timers.push(setInterval(poll,CFG.pollMs), setInterval(fullRefresh,CFG.fullMs));
 }
 function takePending(){ if(S.pendingExp){ S.selExp=S.pendingExp; S.pendingExp=null; } }
+
+/* ============================================================
+   INSIGHT DRAWER (stock or contract) + NEWS (Exa, via /api/news)
+   ============================================================ */
+const NEWS = new Map(); // sym -> {at, data|promise}
+let insState = null;
+function closeInsight(){ $('#insight').classList.remove('on'); if(!$('#drawer').classList.contains('on')) $('#overlay').classList.remove('on'); insState=null; }
+$('#insClose').onclick=closeInsight;
+const safeUrl = u => /^https?:\/\//i.test(u||'') ? u : null;
+function ago(iso){ if(!iso) return ''; const d=(Date.now()-Date.parse(iso))/1000; if(!isFinite(d)) return '';
+  if(d<3600) return Math.max(1,Math.round(d/60))+' dk önce'; if(d<86400) return Math.round(d/3600)+' saat önce'; if(d<86400*30) return Math.round(d/86400)+' gün önce';
+  return new Date(iso).toLocaleDateString('tr-TR'); }
+function sec(title,extra){ const s=el('div','sec'); const h=el('h4',null,title); if(extra) h.appendChild(extra); s.appendChild(h); return s; }
+function kv(items){ const g=el('div','kv'); for(const [k,v,cls] of items){ const d=el('div'); d.append(el('div','k',k),el('div','v '+(cls||''),v)); g.appendChild(d); } return g; }
+function pts(list){ const u=el('ul','pts'); for(const p of list){ if(!p) continue; const [txt,cls]=Array.isArray(p)?p:[p,'']; u.appendChild(el('li',cls,txt)); } return u; }
+function btn(txt,fn,cls){ const b=el('button','btn '+(cls||''),txt); b.onclick=fn; return b; }
+function stockSnap(sym){ const s=S.stocks.get(sym)||{}; let price=s.price; if(!ok(price)){ const f=S.flows.find(x=>x.sym===sym); price=f?f.spot:(DEMO?DSPOT[sym]:null); } return {...s,price}; }
+function contractFor(t,f){
+  let c=S.contracts.get(t)||S.trk.get(t); const pt=parseTicker(t)||{};
+  if(!c&&f) c={t,und:f.sym,type:f.cp,strike:f.strike,exp:f.exp,last:f.price,vol:f.vol,oi:f.oi};
+  if(!c) c={t,und:pt.und,type:pt.type,strike:pt.strike,exp:pt.exp};
+  return c; }
+function payoffSvg(c,prem,spot){
+  if(!ok(prem)||!ok(c.strike)) return null; const K=c.strike, call=c.type==='C';
+  const ref=ok(spot)?spot:K, lo=Math.min(ref,K)*0.82, hi=Math.max(ref,K)*1.18, W=500, H=150, pad=26;
+  const pl=x=>((call?Math.max(0,x-K):Math.max(0,K-x))-prem)*100;
+  const xs=[...Array(81)].map((_,i)=>lo+(hi-lo)*i/80), ys=xs.map(pl); const ymin=Math.min(...ys), ymax=Math.max(...ys,1);
+  const X=x=>pad+(x-lo)/(hi-lo)*(W-2*pad), Y=y=>H-pad-(y-ymin)/(ymax-ymin||1)*(H-2*pad);
+  const path=xs.map((x,i)=>(i?'L':'M')+X(x).toFixed(1)+' '+Y(ys[i]).toFixed(1)).join(' ');
+  const be=call?K+prem:K-prem;
+  let s=`<svg class="payoff" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Vade sonu kâr/zarar">`+
+    `<line x1="${pad}" x2="${W-pad}" y1="${Y(0)}" y2="${Y(0)}" stroke="#4a4b52" stroke-dasharray="3 3"/>`+
+    `<path d="${path}" fill="none" stroke="${call?'#22e07a':'#ff4b55'}" stroke-width="2"/>`;
+  if(be>lo&&be<hi) s+=`<line x1="${X(be)}" x2="${X(be)}" y1="${pad-6}" y2="${H-pad}" stroke="#f2b51d" stroke-width="1"/><text x="${X(be)+4}" y="${pad}" fill="#f2b51d" font-size="11">Başabaş ${f2(be)}</text>`;
+  if(ok(spot)&&spot>lo&&spot<hi) s+=`<circle cx="${X(spot)}" cy="${Y(pl(spot))}" r="3.5" fill="#ececee"/><text x="${X(spot)+5}" y="${H-pad+16}" fill="#8c8e96" font-size="11">Spot ${f2(spot)}</text>`;
+  s+=`<text x="${pad}" y="${H-6}" fill="#8c8e96" font-size="11">Maks. zarar ${fMoney(prem*100)}</text></svg>`;
+  const d=el('div'); d.innerHTML=s; return d; }
+
+function openInsight(o){
+  closeMenu(); insState=o; const body=$('#insBody'); body.innerHTML='';
+  $('#insight').classList.add('on'); $('#overlay').classList.add('on');
+  const sym = o.kind==='stock' ? o.sym : (parseTicker(o.t)||{}).und || (o.f&&o.f.sym);
+  if(!sym) return;
+  const st=stockSnap(sym), symFlows=S.flows.filter(f=>f.sym===sym);
+  if(o.kind==='stock') renderStockInsight(body,sym,st,symFlows); else renderContractInsight(body,o,sym,st);
+  const newsSec=sec('İlgili haberler'); body.appendChild(newsSec); loadNews(sym,newsSec,o);
+}
+function renderStockInsight(body,sym,st,fl){
+  $('#insTitle').textContent=`${sym} · Hisse içgörüsü`;
+  const head=el('div','hd'); head.append(el('span','big',f2(st.price)));
+  if(ok(st.chgPct)) head.append(el('span',st.chgPct>=0?'c-green':'c-red',`${st.chg>0?'+':''}${f2(st.chg)} (${fSPct(st.chgPct)})`));
+  if(ETFS.has(sym)) head.append(el('span','tag','ETF'));
+  const top=sec('Özet'); top.appendChild(head); body.appendChild(top);
+  const acts=el('div','acts');
+  acts.append(btn('Zinciri aç',()=>{ closeInsight(); view('chain'); load(sym); }),btn('Akışta göster',()=>{ P.flow.sym=sym; flowChanged(); closeInsight(); view('flow'); }));
+  const inWatch=watchList().includes(sym)&&symSet(P.watch).has(sym);
+  acts.append(btn(inWatch?'İzleme listesinde':'İzleme listesine ekle',e=>{ if(inWatch) return; P.watch=[...symSet(P.watch),sym].join(','); wi.value=P.watch; saveP(true); buildStocks(); e.target.textContent='İzleme listesinde'; }));
+  top.appendChild(acts);
+  let cP=0,pP=0,bull=0,bear=0,unus=0; const byT=new Map();
+  for(const f of fl){ if(f.cp==='C') cP+=f.prem; else pP+=f.prem; if(f.bull) bull+=f.prem; if(f.bear) bear+=f.prem; if(f.size>f.oi) unus++;
+    const g=byT.get(f.ticker)||{f,n:0,prem:0,ask:0}; g.n++; g.prem+=f.prem; if(f.side==='A'||f.side==='AA') g.ask+=f.prem; byT.set(f.ticker,g); }
+  top.appendChild(kv([['Gün yüksek',f2(st.high)],['Gün düşük',f2(st.low)],['Hacim',fInt(st.vol)],
+    ['Call primi',fMoney(cP),'c-green'],['Put primi',fMoney(pP),'c-red'],['Put/Call',cP?(pP/cP).toFixed(2):'–']]));
+  const ins=sec('İçgörüler'); const L=[];
+  const tot=cP+pP;
+  if(fl.length){ L.push(`Bugün ${fInt(fl.length)} opsiyon işleminde toplam ${fMoney(tot)} prim; primin %${Math.round(cP/tot*100)}'i call tarafında.`);
+    const d=bull+bear?(bull-bear)/(bull+bear):0;
+    L.push(d>.15?[`Akış yükseliş yönlü: ask'ten alınan call'lar ve bid'den satılan put'lar ${fMoney(bull)}, karşı yön ${fMoney(bear)}.`,'g']:
+      d<-.15?[`Akış düşüş yönlü: ask'ten alınan put'lar ve bid'den satılan call'lar ${fMoney(bear)}, karşı yön ${fMoney(bull)}.`,'r']:
+      `Akış dengeli: yükseliş yönlü ${fMoney(bull)}, düşüş yönlü ${fMoney(bear)}.`);
+    const big=fl.reduce((a,b)=>b.prem>a.prem?b:a);
+    L.push(`En büyük işlem: ${fK(big.strike)}${big.cp} ${fExpN(big.exp)}, ${fMoney(big.prem)} (${big.type}, ${SIDE_TXT[big.side]||''}).`);
+    if(unus) L.push(`${unus} işlemde adet, kontratın açık pozisyonunu aştı; bu yeni pozisyon açıldığına işaret edebilir.`);
+    const rep=[...byT.values()].filter(g=>g.n>=3).sort((a,b)=>b.prem-a.prem)[0];
+    if(rep) L.push(`Tekrarlanan işlem: ${fK(rep.f.strike)}${rep.f.cp} ${fExpN(rep.f.exp)} kontratında ${rep.n} işlem, toplam ${fMoney(rep.prem)}.`);
+  } else L.push('Bugün bu hisse için akışta işlem görünmüyor.');
+  if(DEMO&&EARN[sym]!=null&&EARN[sym]<=30) L.push([`Bilanço yaklaşık ${EARN[sym]} gün sonra (örnek veri); bilanço öncesi opsiyon fiyatları genelde yükselir.`,'']);
+  ins.appendChild(pts(L)); body.appendChild(ins);
+  const topC=[...byT.values()].sort((a,b)=>b.prem-a.prem).slice(0,6);
+  if(topC.length){ const s=sec('En aktif kontratlar'); const t=el('table','mini'); t.innerHTML='<thead><tr><th>Kontrat</th><th class="num">İşlem</th><th class="num">Prim</th><th class="num">Ask %</th></tr></thead>';
+    const tb=el('tbody'); for(const g of topC){ const tr=el('tr'); tr.append(el('td',g.f.cp==='C'?'c-green':'c-red',`${fK(g.f.strike)}${g.f.cp} ${fExpN(g.f.exp)}`),el('td','num',fInt(g.n)),el('td','num',fMoney(g.prem)),el('td','num',Math.round(g.ask/g.prem*100)+'%'));
+      tr.onclick=()=>openInsight({kind:'contract',t:g.f.ticker,f:g.f}); tb.appendChild(tr); } t.appendChild(tb); s.appendChild(t); body.appendChild(s); }
+}
+function renderContractInsight(body,o,sym,st){
+  const c=contractFor(o.t,o.f), spot=ok(uPriceOf(c))?uPriceOf(c):(o.f?o.f.spot:st.price), call=c.type==='C';
+  $('#insTitle').textContent=`${sym} ${fK(c.strike)}${c.type} · Kontrat içgörüsü`;
+  const fl=S.flows.filter(f=>f.ticker===o.t);
+  const price=ok(c.mid)?c.mid:ok(c.last)?c.last:(fl[0]?fl[0].price:null), dte=dteOf(c.exp);
+  const be=ok(price)?(call?c.strike+price:c.strike-price):null, beDist=ok(be)&&ok(spot)?(be-spot)/spot*100:null;
+  const otm=ok(spot)?(call?(c.strike-spot):(spot-c.strike))/spot*100:null;
+  const head=el('div','hd'); head.append(el('span','big',ok(price)?'$'+f2(price):'–'), el('span','tag',call?'Call':'Put'), el('span','tag',fExp(c.exp)+` · ${dte} gün`), el('span','tag',`${sym} ${f2(spot)}`));
+  const top=sec('Özet'); top.appendChild(head);
+  const acts=el('div','acts'); acts.style.marginTop='12px';
+  acts.append(btn(isTracked(o.t)?'Takipten çıkar':'Takibe al',e=>{ toggleTrack(o.t,c); e.target.textContent=isTracked(o.t)?'Takipten çıkar':'Takibe al'; }),
+    btn('Zincirde aç',()=>{ closeInsight(); openInChain(sym,c.exp); }), btn(`${sym} içgörüsü`,()=>openInsight({kind:'stock',sym})));
+  top.appendChild(acts);
+  const vo=volOiOf(c);
+  top.appendChild(kv([['Bid / Ask',ok(c.bid)?`${f2(c.bid)} / ${f2(c.ask)}`:'–'],['Spread',fPct(spreadOf(c))],['IV',fIV(c.iv)],
+    ['Δ Delta',f3(c.delta)],['Θ Theta',f3(c.theta)],['Vega',f3(c.vega)],
+    ['Hacim',fInt(c.vol)],['OI',fInt(c.oi)],['Hacim/OI',ok(vo)?vo.toFixed(2):'–',ok(vo)&&vo>=1?'c-yellow':''],
+    ['Başabaş',ok(be)?f2(be):'–'],['Başabaşa uzaklık',ok(beDist)?fSPct(beDist):'–'],[otm>0?'OTM':'ITM',ok(otm)?fPct(Math.abs(otm)):'–']]));
+  body.appendChild(top);
+  const ins=sec('İçgörüler'); const L=[];
+  if(ok(otm)) L.push(otm>0?`Kontrat paranın %${Math.abs(otm).toFixed(1)} dışında (OTM); değeri tamamen zaman ve oynaklık değeri.`:`Kontrat paranın %${Math.abs(otm).toFixed(1)} içinde (ITM).`);
+  if(ok(be)&&ok(beDist)) L.push(`Vadede kâra geçmek için ${sym}'in ${f2(be)} ${call?'üstüne çıkması':'altına inmesi'} gerekiyor (bugüne göre ${fSPct(beDist)}).`);
+  if(ok(c.delta)) L.push(`Delta ${f2(c.delta)}: hisse 1$ hareket ettiğinde kontrat yaklaşık ${fMoney(Math.abs(c.delta)*100)} değişir.`);
+  if(ok(c.theta)) L.push(`Zaman kaybı günde yaklaşık ${fMoney(Math.abs(c.theta)*100)} / kontrat.`);
+  if(dte<=7) L.push([`Vadeye ${dte} gün kaldı; fiyat hem hisse hareketine hem zaman kaybına çok duyarlı.`,'r']);
+  if(ok(vo)&&vo>=1) L.push([`Bugünkü hacim açık pozisyonun ${vo.toFixed(1)} katı; yeni pozisyon açılıyor olabilir.`,'g']);
+  if(fl.length){ const tp=fl.reduce((a,f)=>a+f.prem,0), ask=fl.filter(f=>f.side==='A'||f.side==='AA').reduce((a,f)=>a+f.prem,0), qty=fl.reduce((a,f)=>a+f.size,0);
+    const askPct=Math.round(ask/tp*100);
+    L.push([`Bugün bu kontratta ${fl.length} işlem, ${fInt(qty)} adet, toplam ${fMoney(tp)} prim; ortalama fiyat $${f2(tp/qty/100)}.`,'']);
+    L.push(askPct>=60?[`İşlemlerin %${askPct}'i ask tarafında: alıcılar ağırlıkta.`,'g']:askPct<=40?[`İşlemlerin yalnızca %${askPct}'i ask tarafında: satıcılar ağırlıkta.`,'r']:`Alım ve satım tarafı dengeli (ask %${askPct}).`); }
+  ins.appendChild(pts(L)); body.appendChild(ins);
+  const ps=payoffSvg(c,price,spot); if(ps){ const s=sec('Vade sonu kâr / zarar (1 kontrat alım)'); s.appendChild(ps); body.appendChild(s); }
+  if(fl.length){ const s=sec('Bugünkü işlemler'); const t=el('table','mini'); t.innerHTML='<thead><tr><th>Saat</th><th class="num">Adet</th><th class="num">Fiyat</th><th>Taraf</th><th class="num">Prim</th><th>Tür</th></tr></thead>';
+    const tb=el('tbody'); for(const f of fl.slice(0,12)){ const tr=el('tr'); tr.style.cursor='default'; tr.append(el('td','t-dim',fTime(f.t)),el('td','num',fInt(f.size)),el('td','num','$'+f2(f.price)),el('td','',SIDE_TXT[f.side]||''),el('td','num',fMoney(f.prem)),el('td',TYPE_CLS[f.type]||'',f.type)); tb.appendChild(tr); }
+    t.appendChild(tb); s.appendChild(t); body.appendChild(s); }
+}
+async function loadNews(sym,box,o){
+  const skel=()=>{ const d=el('div'); for(let i=0;i<4;i++) d.appendChild(el('div','skel')); return d; };
+  const brief=sec('Haber özeti'); brief.appendChild(skel()); box.before(brief); box.appendChild(skel());
+  const done=(data)=>{ if(insState!==o) return; renderNews(sym,box,brief,data); };
+  if(DEMO_LOCAL()){ done({configured:false,local:true}); return; }
+  let e=NEWS.get(sym);
+  if(!e||Date.now()-e.at>10*60e3){ e={at:Date.now(),p:getJSON(`/api/news?sym=${encodeURIComponent(sym)}&brief=1`).catch(err=>({error:err.message}))}; NEWS.set(sym,e); }
+  done(await e.p);
+}
+function renderNews(sym,box,brief,d){
+  box.querySelectorAll('.skel').forEach(x=>x.remove()); brief.querySelectorAll('div:not(.sec)').forEach(x=>x.remove());
+  if(!d||d.configured===false){ brief.remove(); box.appendChild(el('div','c-muted',d&&d.local?'Yerel önizlemede haberler kapalı.':'Haber kaynağı (Exa) henüz bağlı değil. Vercel Marketplace üzerinden Exa bağlandığında haberler burada görünecek.')); return; }
+  if(d.brief&&d.brief.text){ brief.appendChild(el('div','brief',d.brief.text));
+    const cs=el('div','cites'); for(const c of d.brief.citations||[]){ const u=safeUrl(c.url); if(!u) continue; const a=el('a',null,c.source||c.title); a.href=u; a.target='_blank'; a.rel='noopener noreferrer'; a.title=c.title||''; cs.appendChild(a); } brief.appendChild(cs);
+    const n=el('div','c-muted','Exa ile otomatik özetlendi; hatalı olabilir, kaynaklara bak.'); n.style.fontSize='11px'; n.style.marginTop='8px'; brief.appendChild(n); }
+  else brief.remove();
+  if(d.error&&!(d.articles||[]).length){ box.appendChild(el('div','c-red',d.error)); return; }
+  const list=el('div','news'); let n=0;
+  for(const a of d.articles||[]){ const u=safeUrl(a.url); if(!u) continue; n++;
+    const it=el('a','nitem'); it.href=u; it.target='_blank'; it.rel='noopener noreferrer';
+    const src=el('div','src'); const fav=safeUrl(a.favicon); if(fav){ const im=el('img'); im.src=fav; im.alt=''; im.loading='lazy'; im.referrerPolicy='no-referrer'; im.onerror=()=>im.remove(); src.appendChild(im); }
+    src.append(el('span',null,a.source||''),el('span',null,a.published?'· '+ago(a.published):''));
+    it.append(src,el('div','tt',a.title)); const txt=a.summary||a.highlight; if(txt) it.appendChild(el('div','sm',txt)); list.appendChild(it); }
+  box.appendChild(n?list:el('div','c-muted',`Son iki haftada ${sym} ile ilgili haber bulunamadı.`));
+}
 
 /* ---------- wiring ---------- */
 $('#searchForm').onsubmit=e=>{ e.preventDefault(); const v=$('#tk').value.trim().toUpperCase(); if(!v) return;

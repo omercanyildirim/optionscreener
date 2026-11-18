@@ -71,3 +71,9 @@ Her kullanıcının kayıtlı filtreleri, takip ettiği kontratlar ve izleme lis
 
 - `DEMO_DATA=true` iken akış örnek veriyle üretilir.
 - Canlı modda akış, izleme listesindeki hisselerin zincirlerindeki hacim artışlarından türetilir (yaklaşık). Gerçek sweep/split/block sınıflandırması için işlem (trade) verisi gerekir: Massive Options Developer veya Advanced planı ve sürekli çalışan ayrı bir dinleyici servis.
+
+## Haberler ve içgörü drawer'ı (Exa)
+
+Akışta, zincirde, tarayıcıda, takip listesinde ya da hisseler sayfasında bir satıra tıklayınca sağdan içgörü drawer'ı açılır: hesaplanan içgörüler, vade sonu kâr/zarar grafiği, o kontrattaki işlemler ve ilgili haberler. Haberler `api/news.js` üzerinden [Exa](https://exa.ai) ile çekilir (`category: news`, son 14 gün) ve kısa bir Türkçe özet için Exa `/answer` kullanılır. Sonuçlar sembol başına 15 dk önbelleğe alınır.
+
+Kurulum: Vercel → Marketplace → **Exa** ile projeye bağla (faturalama Vercel üzerinden). Projede `EXA_API_KEY` ortam değişkeni bulunmalı; yoksa Exa panelinden alınan anahtarı bu adla ekle.
