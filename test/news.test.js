@@ -16,7 +16,7 @@ beforeEach(() => {
       { title: 'Nvidia beats estimates', url: 'https://www.example.com/a', publishedDate: '2026-11-17T10:00:00Z', summary: 'Strong data center demand.', highlights: ['Revenue rose 60%.'] },
       { title: '', url: 'https://bad.example' },
     ] }));
-    if (String(u).endsWith('/answer')) return new Response(JSON.stringify({ answer: '- Gelişme 1', citations: [{ title: 'Kaynak', url: 'https://example.com/b' }] }));
+    if (String(u).endsWith('/answer')) return new Response(JSON.stringify({ answer: '- Development 1', citations: [{ title: 'Source', url: 'https://example.com/b' }] }));
     return new Response('{}', { status: 404 });
   };
 });
@@ -32,7 +32,7 @@ test('returns cleaned news and brief, key only sent to Exa', async () => {
   assert.equal(r.status, 200);
   assert.equal(j.articles.length, 1);
   assert.equal(j.articles[0].source, 'example.com');
-  assert.equal(j.brief.text, '- Gelişme 1');
+  assert.equal(j.brief.text, '- Development 1');
   assert.ok(calls.every(c => c.key === 'exa-key'));
   assert.match(calls[0].body.query, /Nvidia \(NVDA\)/);
   assert.equal(calls[0].body.category, 'news');

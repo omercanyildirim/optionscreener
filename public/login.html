@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Giriş · Options Screener</title>
-<meta name="description" content="Opsiyon akışı, zincir, kontrat tarayıcı ve kayıtlı filtreler. Google hesabınla giriş yap.">
+<title>Sign in · Options Screener</title>
+<meta name="description" content="Options flow, chains, a contract screener and saved filters. Sign in with your Google account.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -53,39 +53,39 @@ footer a{color:var(--muted);margin-left:14px}
 <section class="hero">
   <div class="brand"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="4" width="32" height="32" rx="9" fill="#f2b51d"/><path d="M12 26 L18 18 L22 22 L29 12" stroke="#141518" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="29" cy="12" r="2.4" fill="#141518"/></svg>Options Screener</div>
   <div>
-    <h1>Opsiyon akışını <span>tek ekranda</span> takip et</h1>
-    <p>Büyük işlemler, sweep ve block'lar, opsiyon zincirleri ve kontrat tarayıcı. Filtrelerini kaydet, kontratlarını izle.</p>
+    <h1>Track options flow <span>on one screen</span></h1>
+    <p>Big trades, sweeps and blocks, option chains and a contract screener. Save your filters and watch your contracts.</p>
     <div class="preview" aria-hidden="true">
-      <div class="h"><span>Sembol</span><span>C/P</span><span>Kontrat</span><span>Prim</span><span>Tür</span></div>
-      <div><span class="g">NVDA</span><span>Call</span><span class="m">200C · 19.12</span><span class="g">$2.4M</span><span class="y">Sweep</span></div>
-      <div><span class="r">SPY</span><span>Put</span><span class="m">640P · 28.11</span><span class="r">$1.1M</span><span class="b">Block</span></div>
-      <div><span class="g">TSLA</span><span>Call</span><span class="m">450C · 05.12</span><span class="g">$860K</span><span class="p">Split</span></div>
-      <div><span class="g">QQQ</span><span>Call</span><span class="m">610C · 19.12</span><span class="g">$5.3M</span><span class="y">Sweep</span></div>
+      <div class="h"><span>Ticker</span><span>C/P</span><span>Contract</span><span>Premium</span><span>Type</span></div>
+      <div><span class="g">NVDA</span><span>Call</span><span class="m">200C · 12/19</span><span class="g">$2.4M</span><span class="y">Sweep</span></div>
+      <div><span class="r">SPY</span><span>Put</span><span class="m">640P · 11/28</span><span class="r">$1.1M</span><span class="b">Block</span></div>
+      <div><span class="g">TSLA</span><span>Call</span><span class="m">450C · 12/5</span><span class="g">$860K</span><span class="p">Split</span></div>
+      <div><span class="g">QQQ</span><span>Call</span><span class="m">610C · 12/19</span><span class="g">$5.3M</span><span class="y">Sweep</span></div>
     </div>
-    <div class="feat"><span><b>Akış</b> filtreleri</span><span><b>Kayıtlı</b> filtreler</span><span><b>Takip</b> listesi</span><span><b>Zincir</b> ve grafikler</span></div>
+    <div class="feat"><span><b>Flow</b> filters</span><span><b>Saved</b> filters</span><span><b>Contract</b> watchlist</span><span><b>Chains</b> and charts</span></div>
   </div>
   <span></span>
 </section>
 <main class="side">
   <div class="card">
-    <h2>Giriş yap</h2>
-    <p class="sub">Devam etmek için Google hesabını kullan. Filtrelerin ve takip listen hesabına kaydedilir.</p>
+    <h2>Sign in</h2>
+    <p class="sub">Use your Google account to continue. Your filters and watchlist are saved to your account.</p>
     <div class="msg" id="msg"></div>
     <a class="gbtn" id="gbtn" href="/api/auth/login">
       <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
-      Google ile giriş yap
+      Sign in with Google
     </a>
-    <p class="note">Giriş yaparak <a href="/terms">Kullanım Şartları</a>'nı ve <a href="/privacy">Gizlilik Politikası</a>'nı kabul etmiş olursun. Bu site yatırım tavsiyesi vermez.</p>
+    <p class="note">By signing in you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>. This site does not provide investment advice.</p>
   </div>
 </main>
-<footer>© Options Screener<a href="/privacy">Gizlilik</a><a href="/terms">Şartlar</a></footer>
+<footer>© Options Screener<a href="/privacy">Privacy</a><a href="/terms">Terms</a></footer>
 <script>
 (() => {
   const q = new URLSearchParams(location.search);
   const next = q.get('next');
   const safe = n => n && n.startsWith('/') && !n.startsWith('//') && !n.startsWith('/\\') ? n : '/';
   document.getElementById('gbtn').href = '/api/auth/login' + (next ? '?next=' + encodeURIComponent(safe(next)) : '');
-  if (q.has('cikis')) document.getElementById('msg').textContent = 'Çıkış yaptın. Tekrar görüşmek üzere.';
+  if ((q.has('signedout')||q.has('cikis'))) document.getElementById('msg').textContent = 'You have signed out. See you soon.';
   // Already signed in? Go straight to the app.
   fetch('/api/config', { credentials: 'same-origin', cache: 'no-store' }).then(r => { if (r.ok) location.replace(safe(next)); }).catch(() => {});
 })();

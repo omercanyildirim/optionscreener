@@ -19,9 +19,9 @@ export async function GET(request) {
   if (!exaConfigured()) return json({ configured: false });
   const url = new URL(request.url);
   const sym = (url.searchParams.get('sym') || '').toUpperCase();
-  if (!/^[A-Z][A-Z.]{0,5}$/.test(sym)) return json({ error: 'Geçersiz sembol' }, 400);
+  if (!/^[A-Z][A-Z.]{0,5}$/.test(sym)) return json({ error: 'Invalid symbol' }, 400);
   const wantBrief = url.searchParams.get('brief') === '1';
-  if (limited(s.email)) return json({ error: 'Çok fazla istek, bir dakika sonra tekrar dene' }, 429);
+  if (limited(s.email)) return json({ error: 'Too many requests, try again in a minute' }, 429);
 
   const out = { configured: true, sym };
   try {
@@ -30,7 +30,7 @@ export async function GET(request) {
     if (!news) { news = await newsFor(sym); news.at = Date.now(); await cacheSet(`news:${sym}`, news, TTL); }
     Object.assign(out, news);
   } catch (e) {
-    out.error = 'Haberler alınamadı: ' + e.message;
+    out.error = 'Could not load news: ' + e.message;
   }
   if (wantBrief) {
     try {
@@ -38,7 +38,7 @@ export async function GET(request) {
       if (!brief) { brief = await briefFor(sym); brief.at = Date.now(); await cacheSet(`brief:${sym}`, brief, TTL * 2); }
       out.brief = brief;
     } catch (e) {
-      out.briefError = 'Özet alınamadı: ' + e.message;
+      out.briefError = 'Could not load summary: ' + e.message;
     }
   }
   return json(out, out.error && !out.articles ? 502 : 200);

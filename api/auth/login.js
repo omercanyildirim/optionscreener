@@ -15,7 +15,7 @@ export function appOrigin(request) {
 export async function GET(request) {
   const env = process.env;
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.SESSION_SECRET) {
-    return json({ error: 'GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET ve SESSION_SECRET ortam değişkenleri tanımlı değil' }, 500);
+    return json({ error: 'GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and SESSION_SECRET must be set' }, 500);
   }
   const url = new URL(request.url);
   const state = crypto.randomUUID();
