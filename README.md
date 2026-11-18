@@ -62,3 +62,12 @@ Vercel fonksiyonları kalıcı WebSocket bağlantısı tutamadığı için veri 
 ## Yerelde önizleme
 
 `public/index.html` dosyasını doğrudan tarayıcıda açınca (ya da sonuna `?demo` ekleyince) sahte veriyle demo modunda çalışır.
+
+## Kullanıcı verileri (kayıtlı filtreler, takip listesi)
+
+Her kullanıcının kayıtlı filtreleri, takip ettiği kontratlar ve izleme listesi Upstash Redis'te `os:user:<e-posta>` anahtarında saklanır (`api/userdata.js`). Vercel → Storage → **Upstash for Redis** ile bir veritabanı oluşturup bu projeye bağlamak yeterli; Vercel `KV_REST_API_URL` ve `KV_REST_API_TOKEN` değişkenlerini otomatik ekler. Veritabanı bağlı değilse site çalışmaya devam eder, kayıtlar o tarayıcıda tutulur.
+
+## Akış (flow) verisi
+
+- `DEMO_DATA=true` iken akış örnek veriyle üretilir.
+- Canlı modda akış, izleme listesindeki hisselerin zincirlerindeki hacim artışlarından türetilir (yaklaşık). Gerçek sweep/split/block sınıflandırması için işlem (trade) verisi gerekir: Massive Options Developer veya Advanced planı ve sürekli çalışan ayrı bir dinleyici servis.

@@ -4,171 +4,320 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Options Screener</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
-  --bg:#0b0f14; --text:#dbe4ee; --muted:#7f8ea3; --line:#1c2532; --hl:#111821;
-  --accent:#4ea1ff; --up:#22c55e; --down:#ef4444; --warn:#f59e0b; --call:#9cc9ff; --put:#ffb4b4;
-  --mono: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bg:#141518; --rail:#1c1d20; --panel:#232428; --panel2:#2a2b30; --row:#1f2023; --row2:#25262a; --line:#33343a;
+  --text:#ececee; --muted:#8c8e96; --dim:#5d5f66;
+  --green:#22e07a; --red:#ff4b55; --yellow:#f5c518; --purple:#c58bff; --blue:#4c8dff; --cyan:#41c7ff; --accent:#f2b51d;
+  --font: Rubik, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font:13px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-a{color:var(--muted)} a:hover{color:var(--text)}
-input,select,button{font:inherit;color:inherit;background:transparent}
-input,select{border:0;border-bottom:1px solid var(--line);padding:3px 0;outline:none;border-radius:0}
-input:focus,select:focus{border-bottom-color:var(--accent)}
-select option{background:var(--bg)}
-.wrap{max-width:1600px;margin:0 auto;padding:0 20px}
-header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
-.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:12px 0}
-.brand{font-weight:650;font-size:15px}
-#tk{width:80px;text-transform:uppercase;font-weight:600;font-size:14px}
-.chips{display:flex;flex-wrap:wrap;gap:2px 12px}
-.chips button{border:0;padding:2px 0;cursor:pointer;color:var(--muted);font-size:12px}
-.chips button:hover{color:var(--text)} .chips button.on{color:var(--accent)}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.4 var(--font)}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+input,select{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 10px;outline:none;min-width:0}
+input:focus,select:focus{border-color:var(--accent)}
+select option{background:var(--panel)}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);padding:0}
+.app{display:grid;grid-template-columns:64px 1fr 300px;height:100vh;overflow:hidden}
+.app.nofeed{grid-template-columns:64px 1fr}
+/* rail */
+.rail{background:var(--rail);display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 0;border-right:1px solid #0f1012}
+.logo{width:34px;height:34px;margin-bottom:18px}
+.rail button{width:64px;height:54px;border:0;background:none;color:var(--muted);display:grid;place-items:center;position:relative}
+.rail button:hover{color:var(--text)}
+.rail button.on{color:var(--text);background:var(--panel)}
+.rail button.on::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:2px;background:var(--accent)}
+.rail svg{width:24px;height:24px}
+.rail .tip{position:absolute;left:58px;background:#000;color:#fff;font-size:12px;padding:4px 8px;border-radius:4px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s;z-index:30}
+.rail button:hover .tip{opacity:1}
+.rail .sp{flex:1}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;font-weight:600;font-size:13px;color:var(--accent)}
+/* main */
+.main{overflow:auto;padding:14px 16px 24px;min-width:0}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--panel);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.iconbtn{width:36px;height:36px;border-radius:50%;border:0;background:#000;color:#fff;display:grid;place-items:center}
+.iconbtn svg{width:16px;height:16px}
+.vtitle{font-weight:600;font-size:16px;margin:0 6px}
+.status{font-size:12px;color:var(--muted);white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px}
+.dot.live{background:var(--green)} .dot.delayed{background:var(--yellow)} .dot.err{background:var(--red)} .dot.demo{background:var(--purple)}
 .spacer{flex:1}
-.meta{color:var(--muted);font-size:12px;white-space:nowrap}
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:1px}
-.dot.live{background:var(--up);box-shadow:0 0 0 3px rgba(34,197,94,.15)} .dot.delayed{background:var(--warn)} .dot.err{background:var(--down)}
-#msg{font-size:12px;color:var(--muted);padding:8px 0 0} #msg.err{color:#fca5a5}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 24px;padding:16px 0 4px;font-variant-numeric:tabular-nums}
-.stats .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
-.stats .v{font:600 19px/1.3 var(--mono)}
-.stats .s{font:12px var(--mono);color:var(--muted)}
-.pos{color:var(--up)} .neg{color:var(--down)} .warn{color:var(--warn);font-weight:700}
-.tabs{display:flex;gap:22px;margin:14px 0 12px;border-bottom:1px solid var(--line);overflow-x:auto}
-.tabs button{border:0;padding:8px 0;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
-.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
-.tabs .n{color:var(--accent);font-size:11px;margin-left:4px}
-.panel{display:none} .panel.on{display:block}
-.row{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline;margin-bottom:10px;font-size:12px}
-.row label{color:var(--muted);display:flex;gap:6px;align-items:baseline}
-.row input[type=number]{width:58px;color:var(--text)}
-.scroll{overflow:auto;max-height:68vh}
-table{border-collapse:collapse;width:100%;font:12px/1.3 var(--mono);font-variant-numeric:tabular-nums}
-th,td{padding:5px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
-th{position:sticky;top:0;background:var(--bg);color:var(--muted);font:600 11px system-ui,sans-serif;cursor:pointer;user-select:none;z-index:1}
+.search{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel2)}
+.search input{border:0;border-radius:0;width:190px;background:transparent;text-transform:uppercase}
+.search input::placeholder{text-transform:none}
+.search button{border:0;border-left:1px solid var(--line);background:transparent;width:40px;display:grid;place-items:center}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:6px;padding:7px 14px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.dark{background:#000;border-color:#000;color:#fff;display:flex;align-items:center;gap:8px}
+.btn.gold{background:var(--accent);border-color:var(--accent);color:#141518;font-weight:600}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.45;cursor:default}
+.badge{background:var(--accent);color:#141518;border-radius:9px;font-size:11px;font-weight:700;padding:1px 6px}
+#msg{font-size:13px;color:var(--muted);margin:-4px 2px 10px} #msg:empty{display:none} #msg.err{color:#ff8a92}
+/* stat cards */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.card{background:var(--panel);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:96px}
+.card .k{color:var(--muted);font-size:13px;margin-bottom:6px}
+.card .v{font-size:24px;font-weight:600;letter-spacing:.2px}
+.card .s{font-size:12px;color:var(--muted);margin-top:2px}
+.sbar{width:120px;height:10px;border-radius:6px;background:#3a3b41;overflow:hidden}
+.sbar i{display:block;height:100%;background:var(--green);border-radius:6px;transition:width .4s}
+.ring{width:64px;height:64px;flex:none}
+/* tables */
+.tablewrap{background:var(--row);border-radius:10px;overflow:auto;max-height:calc(100vh - 290px)}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:11px 12px;text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:#111214;color:var(--muted);font-weight:500;font-size:12px;letter-spacing:.4px;text-transform:uppercase;z-index:2;cursor:pointer;user-select:none}
 th.on{color:var(--accent)}
-.l{text-align:left}
-th.c{color:var(--call)} th.p{color:var(--put)}
-td.k,th.k{text-align:center} td.k{font-weight:700}
-tbody tr:hover td{background:var(--hl)}
-td.itm{background:rgba(78,161,255,.05)}
-tr.atm td{background:rgba(245,158,11,.09)!important}
-td.star{width:22px;padding:5px 4px;text-align:center;color:var(--muted);cursor:pointer}
-td.star:hover{color:var(--text)} td.star.on{color:var(--warn)}
-tr.grp td{color:var(--muted);font:600 12px system-ui,sans-serif;text-align:left;padding-top:16px;background:transparent!important}
+tbody tr:nth-child(even) td{background:var(--row2)}
+tbody tr:hover td{background:#303137!important}
+td.num,th.num{text-align:right}
+.t-dim{color:var(--dim)}
+.c-green{color:var(--green)} .c-red{color:var(--red)} .c-cyan{color:var(--cyan)} .c-yellow{color:var(--yellow)} .c-purple{color:var(--purple)} .c-blue{color:var(--blue)} .c-muted{color:var(--muted)}
+tr.hot td{background:linear-gradient(180deg,rgba(242,140,40,.0),rgba(242,140,40,.16))!important;border-bottom:1px solid rgba(242,140,40,.6)}
+tr.gold td{background:linear-gradient(180deg,rgba(197,139,255,.0),rgba(197,139,255,.14))!important;border-bottom:1px solid rgba(197,139,255,.55)}
+tr.new td{animation:newrow 1.6s ease-out}
+@keyframes newrow{from{background:rgba(242,181,29,.22)}}
+.more{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;padding:0 6px}
+.more:hover{color:var(--text)}
+.empty{text-align:center;color:var(--muted);padding:40px!important}
+/* chain */
+.chain td,.chain th{text-align:right;padding:8px 10px}
+.chain td.k,.chain th.k{text-align:center;font-weight:600;background:#17181b!important}
+.chain th.c{color:#8fc3ff} .chain th.p{color:#ffaab0}
+.chain td.itm{background:rgba(76,141,255,.08)!important}
+.chain tr.atm td{background:rgba(242,181,29,.14)!important}
+td.star{width:28px;text-align:center;color:var(--dim);cursor:pointer}
+td.star.on{color:var(--accent)} td.star:hover{color:var(--text)}
+tr.grp td{background:#111214!important;color:var(--muted);font-weight:600}
 tr.grp td b{color:var(--text);margin-right:10px}
-@keyframes fu{0%,40%{color:var(--up)}100%{color:inherit}}
-@keyframes fd{0%,40%{color:var(--down)}100%{color:inherit}}
-.fu{animation:fu 1.4s ease-out} .fd{animation:fd 1.4s ease-out}
-.empty{text-align:center;color:var(--muted);padding:32px}
-.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:28px 40px}
-.charts h3{margin:0 0 6px;font-size:12px;color:var(--muted);font-weight:600}
-.cw{position:relative;height:290px}
-footer{color:var(--muted);font-size:11px;padding:28px 0;text-align:center}
-@media (max-width:640px){ .wrap{padding:0 16px} .charts{grid-template-columns:1fr} .stats .v{font-size:16px} }
+@keyframes fu{0%,40%{color:var(--green)}} @keyframes fd{0%,40%{color:var(--red)}}
+.fu{animation:fu 1.4s} .fd{animation:fd 1.4s}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-bottom:12px;font-size:13px}
+.row label{color:var(--muted);display:flex;align-items:center;gap:6px}
+.row input[type=number]{width:76px}
+.view{display:none} .view.on{display:block}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:12px}
+.chartbox{background:var(--panel);border-radius:10px;padding:14px}
+.chartbox h3{margin:0 0 8px;font-size:13px;font-weight:500;color:var(--muted)}
+.cw{position:relative;height:280px}
+/* feed */
+.feed{background:var(--bg);border-left:1px solid #0f1012;display:flex;flex-direction:column;min-width:0}
+.feedhead{display:flex;align-items:center;gap:8px;background:var(--panel);margin:14px 12px 8px;border-radius:10px;padding:10px 12px}
+.feedhead .t{font-weight:600}
+.feedhead select{padding:4px 6px;font-size:12px}
+.feedlist{overflow:auto;padding:0 12px 12px;display:flex;flex-direction:column;gap:8px}
+.fcard{background:var(--panel);border-radius:10px;padding:12px 14px;font-size:13px;cursor:pointer}
+.fcard:hover{background:var(--panel2)}
+.fcard .top{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-bottom:8px}
+.fcard .grid{display:grid;grid-template-columns:repeat(4,auto);gap:2px 10px}
+.fcard .h{color:var(--dim);font-size:11px;text-transform:uppercase}
+.fcard .d{font-size:11px;color:var(--dim);margin-top:6px}
+.pdot{width:8px;height:8px;border-radius:50%;background:var(--purple);display:inline-block}
+/* menu */
+.menu{position:fixed;z-index:40;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px;min-width:190px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:6px}
+.menu button:hover{background:var(--panel)}
+/* drawer */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:50}
+.overlay.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(820px,100vw);background:var(--bg);z-index:60;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;border-left:1px solid var(--line)}
+.drawer.on{transform:none}
+.dhead{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.dhead h2{margin:0;font-size:17px;font-weight:600}
+.dbody{flex:1;overflow:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-content:start}
+.fsec{background:var(--panel);border-radius:10px;padding:14px}
+.fsec h4{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px}
+.frow{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
+.frow>span{color:var(--muted)}
+.frow .pair{display:flex;gap:6px;align-items:center}
+.frow .pair input{width:100%}
+.checks{display:flex;flex-wrap:wrap;gap:10px}
+.checks label{display:flex;align-items:center;gap:5px}
+.dfoot{border-top:1px solid var(--line);padding:12px 20px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#18191c}
+.dfoot select{min-width:200px}
+.dfoot input{width:200px}
+.savestate{font-size:12px;color:var(--muted)}
+@media (max-width:1280px){ .app{grid-template-columns:64px 1fr} .feed{display:none} }
+@media (max-width:900px){ .stats{grid-template-columns:repeat(2,minmax(0,1fr))} .dbody{grid-template-columns:1fr} .charts{grid-template-columns:1fr} }
+@media (max-width:640px){
+  .app{grid-template-columns:1fr;height:auto;min-height:100vh;overflow:visible}
+  .rail{position:fixed;left:0;right:0;bottom:0;height:58px;flex-direction:row;justify-content:space-around;padding:0;z-index:20;border-right:0;border-top:1px solid #0f1012}
+  .rail .logo,.rail .sp,.rail .avatar,.rail .tip{display:none}
+  .rail button{width:auto;flex:1;height:58px} .rail button.on::before{left:20%;right:20%;top:0;bottom:auto;width:auto;height:3px}
+  .main{padding:10px 12px 76px;overflow:visible}
+  .search input{width:120px}
+  .card .v{font-size:19px} .ring{width:52px;height:52px}
+  .tablewrap{max-height:none}
+  .frow{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
-<header><div class="wrap">
-  <div class="bar">
-    <span class="brand">Options Screener</span>
-    <form id="tkForm"><input id="tk" aria-label="Sembol" placeholder="SPY" autocomplete="off"></form>
-    <div class="chips" id="chips"></div>
-    <span class="spacer"></span>
-    <span class="meta"><span class="dot" id="dot"></span><span id="status">Bağlanıyor</span></span>
-    <span class="meta" id="rate"></span>
-    <span class="meta" id="who"></span>
-  </div>
-</div></header>
-
-<main class="wrap">
-  <div id="msg"></div>
-  <div class="stats" id="stats"></div>
-
-  <nav class="tabs">
-    <button class="on" data-tab="chain">Zincir</button>
-    <button data-tab="screener">Tarayıcı</button>
-    <button data-tab="tracked">Takip<span class="n" id="trkN"></span></button>
-    <button data-tab="stocks">Hisseler</button>
-    <button data-tab="charts">Grafikler</button>
+<div class="app" id="app">
+  <nav class="rail" aria-label="Bölümler">
+    <svg class="logo" viewBox="0 0 40 40" aria-label="Options Screener"><rect x="4" y="4" width="32" height="32" rx="9" fill="#f2b51d"/><path d="M12 26 L18 18 L22 22 L29 12" stroke="#141518" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="29" cy="12" r="2.4" fill="#141518"/></svg>
+    <button data-view="flow" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg><span class="tip">Opsiyon akışı</span></button>
+    <button data-view="chain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span class="tip">Opsiyon zinciri</span></button>
+    <button data-view="screener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7"/></svg><span class="tip">Kontrat tarayıcı</span></button>
+    <button data-view="tracked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l7.5 4.2L12 12 4.5 7.7z"/><path d="M4.5 12L12 16.3 19.5 12M4.5 16.3L12 20.5l7.5-4.2"/></svg><span class="tip">Takip listem</span></button>
+    <button data-view="stocks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 20V11M12 20V5M18 20v-7"/></svg><span class="tip">Hisseler</span></button>
+    <button data-view="charts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="M7 15l4-4 3 3 5-6"/></svg><span class="tip">Grafikler</span></button>
+    <span class="sp"></span>
+    <a href="/api/auth/logout" title="Çıkış" style="text-decoration:none"><span class="avatar" id="avatar">?</span></a>
   </nav>
 
-  <section class="panel on" id="p-chain">
-    <div class="row"><label>Vade <select id="expSel"></select></label><span class="meta" id="chainInfo"></span><span class="meta">☆ ile kontratı takibe al</span></div>
-    <div class="scroll" id="chainWrap">
-      <table>
-        <thead><tr>
-          <th></th><th class="c">OI</th><th class="c">Hacim</th><th class="c">IV</th><th class="c">Δ</th><th class="c">Bid</th><th class="c">Ask</th><th class="c">Son</th>
-          <th class="k">Strike</th>
-          <th class="p">Son</th><th class="p">Bid</th><th class="p">Ask</th><th class="p">Δ</th><th class="p">IV</th><th class="p">Hacim</th><th class="p">OI</th><th></th>
-        </tr></thead>
-        <tbody id="chainBody"></tbody>
-      </table>
+  <main class="main">
+    <div class="topbar">
+      <span class="vtitle" id="vtitle">Opsiyon akışı</span>
+      <span class="status"><span class="dot" id="dot"></span><span id="status">Bağlanıyor</span></span>
+      <span class="status" id="rate"></span>
+      <span class="spacer"></span>
+      <form class="search" id="searchForm"><input id="tk" placeholder="Sembol ara" autocomplete="off" aria-label="Sembol"><button aria-label="Ara"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5" stroke-linecap="round"/></svg></button></form>
+      <select id="quickPreset" aria-label="Kayıtlı filtre" title="Kayıtlı filtreler"></select>
+      <button class="btn" id="clearAll">Temizle</button>
+      <button class="btn dark" id="openFilters"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg>Filtreler <span class="badge" id="fcount" hidden></span></button>
     </div>
-  </section>
+    <div id="msg"></div>
 
-  <section class="panel" id="p-screener">
-    <div class="row">
-      <label>Tip <select id="fType"><option value="all">Hepsi</option><option value="C">Call</option><option value="P">Put</option></select></label>
-      <label>DTE <input id="fDteMin" type="number" placeholder="min"> – <input id="fDteMax" type="number" placeholder="maks"></label>
-      <label>|Δ| <input id="fDMin" type="number" step="0.05" placeholder="min"> – <input id="fDMax" type="number" step="0.05" placeholder="maks"></label>
-      <label>Min OI <input id="fOi" type="number"></label>
-      <label>Min hacim <input id="fVol" type="number"></label>
-      <label>Maks spread % <input id="fSpr" type="number"></label>
-      <label>IV % <input id="fIvMin" type="number" placeholder="min"> – <input id="fIvMax" type="number" placeholder="maks"></label>
-      <label><input id="fUnusual" type="checkbox"> Olağandışı hacim</label>
-      <span class="meta" id="scrInfo"></span>
-    </div>
-    <div class="scroll"><table><thead id="scrHead"></thead><tbody id="scrBody"></tbody></table></div>
-  </section>
+    <section class="view on" id="v-flow">
+      <div class="stats" id="stats"></div>
+      <div class="tablewrap" id="flowWrap"><table><thead id="flowHead"></thead><tbody id="flowBody"></tbody></table></div>
+    </section>
 
-  <section class="panel" id="p-tracked">
-    <div class="row"><span class="meta" id="trkInfo">Zincirde ya da tarayıcıda ☆ işaretine basarak kontrat ekle. Liste bu tarayıcıda saklanır.</span></div>
-    <div class="scroll"><table><thead id="trkHead"></thead><tbody id="trkBody"></tbody></table></div>
-  </section>
+    <section class="view" id="v-chain">
+      <div class="stats" id="ustats"></div>
+      <div class="row"><label>Vade <select id="expSel"></select></label><span class="c-muted" id="chainInfo"></span><span class="c-muted">☆ ile kontratı takibe al</span></div>
+      <div class="tablewrap" id="chainWrap"><table class="chain">
+        <thead><tr><th></th><th class="c">OI</th><th class="c">Hacim</th><th class="c">IV</th><th class="c">Δ</th><th class="c">Bid</th><th class="c">Ask</th><th class="c">Son</th><th class="k">Strike</th><th class="p">Son</th><th class="p">Bid</th><th class="p">Ask</th><th class="p">Δ</th><th class="p">IV</th><th class="p">Hacim</th><th class="p">OI</th><th></th></tr></thead>
+        <tbody id="chainBody"></tbody></table></div>
+    </section>
 
-  <section class="panel" id="p-stocks">
-    <div class="row"><label style="flex:1">İzleme listesi <input id="watchInp" style="flex:1;color:var(--text)"></label></div>
-    <div class="scroll"><table><thead id="stHead"></thead><tbody id="stBody"></tbody></table></div>
-  </section>
+    <section class="view" id="v-screener">
+      <div class="row" id="sbar">
+        <label>Tip <select id="sType"><option value="all">Hepsi</option><option value="C">Call</option><option value="P">Put</option></select></label>
+        <label>DTE <input id="sDteMin" type="number" placeholder="min"> – <input id="sDteMax" type="number" placeholder="maks"></label>
+        <label>|Δ| <input id="sDMin" type="number" step="0.05" placeholder="min"> – <input id="sDMax" type="number" step="0.05" placeholder="maks"></label>
+        <label>Min OI <input id="sOi" type="number"></label>
+        <label>Min hacim <input id="sVol" type="number"></label>
+        <label>Maks spread % <input id="sSpr" type="number"></label>
+        <label>IV % <input id="sIvMin" type="number" placeholder="min"> – <input id="sIvMax" type="number" placeholder="maks"></label>
+        <label><input id="sUnusual" type="checkbox"> Olağandışı hacim</label>
+        <span class="c-muted" id="scrInfo"></span>
+      </div>
+      <div class="tablewrap"><table><thead id="scrHead"></thead><tbody id="scrBody"></tbody></table></div>
+    </section>
 
-  <section class="panel" id="p-charts">
-    <div class="charts">
-      <div><h3 id="ivTitle">IV eğrisi</h3><div class="cw"><canvas id="ivChart"></canvas></div></div>
-      <div><h3 id="oiTitle">Açık pozisyon</h3><div class="cw"><canvas id="oiChart"></canvas></div></div>
-      <div><h3 id="vlTitle">Hacim</h3><div class="cw"><canvas id="vlChart"></canvas></div></div>
-    </div>
-  </section>
+    <section class="view" id="v-tracked">
+      <div class="row"><span class="c-muted" id="trkInfo">Zincirde, tarayıcıda ya da akışta ☆ / ⋯ ile kontrat ekle.</span></div>
+      <div class="tablewrap"><table><thead id="trkHead"></thead><tbody id="trkBody"></tbody></table></div>
+    </section>
 
-  <footer>Veri: Massive. Gecikme abonelik planına bağlıdır. Yatırım tavsiyesi değildir.</footer>
-</main>
+    <section class="view" id="v-stocks">
+      <div class="row"><label style="flex:1">İzleme listesi <input id="watchInp" style="flex:1"></label></div>
+      <div class="tablewrap"><table><thead id="stHead"></thead><tbody id="stBody"></tbody></table></div>
+    </section>
+
+    <section class="view" id="v-charts">
+      <div class="charts">
+        <div class="chartbox"><h3 id="ivTitle">IV eğrisi</h3><div class="cw"><canvas id="ivChart"></canvas></div></div>
+        <div class="chartbox"><h3 id="oiTitle">Açık pozisyon</h3><div class="cw"><canvas id="oiChart"></canvas></div></div>
+        <div class="chartbox"><h3 id="vlTitle">Hacim</h3><div class="cw"><canvas id="vlChart"></canvas></div></div>
+        <div class="chartbox"><h3>Akış primi: call / put (dakikalık)</h3><div class="cw"><canvas id="flowChart"></canvas></div></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="feed" id="feed">
+    <div class="feedhead"><span class="pdot"></span><span class="t">Büyük işlemler</span><span class="spacer"></span>
+      <select id="bigMin" aria-label="Eşik"><option value="250000">≥ $250K</option><option value="500000">≥ $500K</option><option value="1000000" selected>≥ $1M</option><option value="5000000">≥ $5M</option></select></div>
+    <div class="feedlist" id="feedList"></div>
+  </aside>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-label="Filtreler">
+  <div class="dhead"><h2>Akış filtreleri</h2><span class="c-muted" id="dcount"></span><span class="spacer"></span><button class="btn ghost" id="dReset">Sıfırla</button><button class="iconbtn" id="dClose" aria-label="Kapat" style="background:var(--panel2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="dbody" id="dbody"></div>
+  <div class="dfoot">
+    <select id="presetSel" aria-label="Kayıtlı filtreler"></select>
+    <button class="btn" id="pLoad">Yükle</button>
+    <button class="btn" id="pSave">Değişiklikleri kaydet</button>
+    <button class="btn" id="pDefault">Varsayılan yap</button>
+    <button class="btn" id="pDelete">Sil</button>
+    <span class="spacer"></span>
+    <input id="pName" placeholder="Yeni filtre adı" maxlength="60">
+    <button class="btn gold" id="pNew">Yeni olarak kaydet</button>
+    <span class="savestate" id="saveState" style="width:100%"></span>
+  </div>
+</aside>
 
 <script>
 (() => {
 'use strict';
 const $ = s => document.querySelector(s);
+const el = (tag, cls, txt) => { const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; };
 const MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
 let DEMO = location.protocol==='file:' || new URLSearchParams(location.search).has('demo');
-const CFG = { maxDte:60, strikePct:15, maxContracts:3000, pollMs:2000, fullMs:60000 };
+const CFG = { maxDte:60, strikePct:15, maxContracts:3000, pollMs:2000, fullMs:60000, maxFlows:1500 };
+const ETFS = new Set(['SPY','QQQ','IWM','DIA','XLF','XLE','XLK','XLV','XLI','XLY','XLP','XLU','XLB','XLRE','SMH','SOXX','TLT','HYG','LQD','GLD','SLV','USO','UNG','EEM','EFA','FXI','KWEB','ARKK','VXX','UVXY','SQQQ','TQQQ','SPXL','SOXL','IBIT','GDX','XBI','KRE']);
 
-/* ---------- local preferences (no secrets) ---------- */
+/* ---------- preferences: local cache + per-user cloud copy ---------- */
 function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
-const PDEF = { und:'SPY', watch:'SPY,QQQ,IWM,AAPL,MSFT,NVDA,TSLA,AMZN,META,AMD', sortKey:'vol', sortDir:-1, tracked:[],
-  f:{type:'all',dteMin:'',dteMax:'',dMin:'',dMax:'',oi:'',vol:'',spr:'',ivMin:'',ivMax:'',unusual:false} };
+const FLOW0 = { sym:'', exclude:'', watchOnly:false, stockType:'all', spotMin:'', spotMax:'', earnings:'any',
+  cp:'all', tSweep:true, tSplit:true, tBlock:true, tOther:true, minSize:'', minPrice:'', minPrem:'', maxPrem:'', side:'any', dir:'any',
+  dteMin:'', dteMax:'', money:'any', otmMin:'', otmMax:'', volGtOi:false, volOiMin:'', oiMin:'', repeatMin:'', repeatPremMin:'' };
+const SCR0 = { type:'all', dteMin:'', dteMax:'', dMin:'', dMax:'', oi:'', vol:'', spr:'', ivMin:'', ivMax:'', unusual:false };
+const PDEF = { und:'SPY', watch:'SPY,QQQ,IWM,AAPL,MSFT,NVDA,TSLA,AMZN,META,AMD', sortKey:'vol', sortDir:-1, flowSort:'t', flowDir:-1,
+  tracked:[], presets:[], defaultPreset:null, activePreset:null, flow:{...FLOW0}, scr:{...SCR0}, view:'flow', bigMin:'1000000' };
 let P = Object.assign({}, PDEF);
-try{ const s=JSON.parse(store('os.prefs')||'{}'); P=Object.assign({},PDEF,s,{f:Object.assign({},PDEF.f,s.f||{})}); }catch(e){}
-if(!Array.isArray(P.tracked)) P.tracked=[];
-const saveP = () => store('os.prefs', JSON.stringify(P));
+try{ const s=JSON.parse(store('os.prefs2')||'{}'); P=Object.assign({},PDEF,s,{flow:{...FLOW0,...(s.flow||{})},scr:{...SCR0,...(s.scr||{})}}); }catch(e){}
+if(!Array.isArray(P.tracked)) P.tracked=[]; if(!Array.isArray(P.presets)) P.presets=[];
+const CLOUD = { configured:false, ready:false, saving:false, timer:null, err:null };
+function saveP(cloudToo){ store('os.prefs2', JSON.stringify(P)); if(cloudToo) cloudSave(); }
+function cloudPayload(){ return { presets:P.presets, tracked:P.tracked, watch:P.watch, defaultPreset:P.defaultPreset }; }
+function cloudSave(){
+  if(DEMO_LOCAL()) { paintSaveState(); return; }
+  if(!CLOUD.configured||!CLOUD.ready) { paintSaveState(); return; }
+  clearTimeout(CLOUD.timer); CLOUD.timer=setTimeout(async()=>{ CLOUD.saving=true; paintSaveState();
+    try{ const r=await fetch('/api/userdata',{method:'PUT',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(cloudPayload())});
+      const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||r.statusText); CLOUD.err=null; }
+    catch(e){ CLOUD.err=e.message; }
+    CLOUD.saving=false; paintSaveState(); },700); }
+const DEMO_LOCAL = () => location.protocol==='file:';
+async function cloudLoad(){
+  if(DEMO_LOCAL()) return;
+  try{ const r=await fetch('/api/userdata',{credentials:'same-origin',cache:'no-store'}); const j=await r.json();
+    CLOUD.configured=!!j.configured;
+    if(!CLOUD.configured){ paintSaveState(); return; }
+    if(!r.ok) throw new Error(j.error||r.statusText);
+    const d=j.data;
+    if(d){ P.presets=d.presets||[]; P.tracked=d.tracked||[]; if(d.watch) P.watch=d.watch; P.defaultPreset=d.defaultPreset||null; saveP(false); CLOUD.ready=true; }
+    else { CLOUD.ready=true; if(P.presets.length||P.tracked.length) cloudSave(); } // first use: upload what this browser has
+  }catch(e){ CLOUD.err=e.message; }
+  paintSaveState();
+}
+function paintSaveState(){
+  const t = DEMO_LOCAL() ? 'Yerel önizleme: kayıtlar bu tarayıcıda.'
+    : !CLOUD.configured ? 'Veritabanı henüz bağlı değil: filtreler şimdilik bu tarayıcıda saklanıyor.'
+    : CLOUD.err ? 'Kaydedilemedi: '+CLOUD.err
+    : CLOUD.saving ? 'Kaydediliyor…' : 'Filtrelerin hesabına kayıtlı; her cihazda aynı.';
+  $('#saveState').textContent=t; $('#saveState').style.color=CLOUD.err?'var(--red)':'';
+}
 
 /* ---------- state ---------- */
 const S = { und:P.und, uPrice:null, uChg:null, uChgPct:null, contracts:new Map(), selExp:null, dirty:new Set(),
   cellMap:new Map(), starMap:new Map(), chainRows:[], scrRows:new Map(), scrTop:[], lastScr:0, scrForce:true,
   stocks:new Map(), stRows:new Map(), stDirty:new Set(), trk:new Map(), trkU:new Map(), trkRows:new Map(), trkForce:true,
-  upd:0, rate:0, lastUpd:null, timers:[], polling:false, loadingFull:false, charts:{}, lastCharts:0, lastItm:null, gen:0, delayed:null, fails:0 };
+  flows:[], flowDirty:true, repeat:new Map(), newIds:new Set(), lastFlowRender:0, prevVol:new Map(), flowRot:0,
+  upd:0, rate:0, lastUpd:null, timers:[], flowTimers:[], polling:false, loadingFull:false, charts:{}, lastCharts:0, lastItm:null, gen:0, delayed:null, fails:0 };
 
-/* ---------- format ---------- */
+/* ---------- formatting ---------- */
 const ok = v => v!=null && isFinite(v);
 const f2 = v => ok(v) ? v.toFixed(2) : '–';
 const f3 = v => ok(v) ? v.toFixed(3) : '–';
@@ -178,7 +327,11 @@ const fPct = v => ok(v) ? v.toFixed(1)+'%' : '–';
 const fSPct = v => ok(v) ? (v>0?'+':'')+v.toFixed(2)+'%' : '–';
 const fIV = v => ok(v) ? (v*100).toFixed(1)+'%' : '–';
 const fK = v => ok(v) ? (Number.isInteger(v)? String(v) : v.toFixed(2)) : '–';
+const fMoney = v => !ok(v)?'–': v>=1e9?'$'+(v/1e9).toFixed(1)+'B': v>=1e6?'$'+(v/1e6).toFixed(1)+'M': v>=1e3?'$'+Math.round(v/1e3)+'K':'$'+Math.round(v);
 const fExp = e => { const [y,m,d]=e.split('-'); return `${+d} ${MONTHS[+m-1]} ${y.slice(2)}`; };
+const fExpN = e => { const [y,m,d]=e.split('-'); return `${d}.${m}.${y.slice(2)}`; };
+const fTime = t => new Date(t).toLocaleTimeString('tr-TR',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const fDate = t => new Date(t).toLocaleDateString('tr-TR',{timeZone:'America/New_York'});
 const iso = d => d.toISOString().slice(0,10);
 const dteCache = new Map();
 function dteOf(exp){ let v=dteCache.get(exp); if(v==null){ v=Math.max(0,Math.ceil((Date.parse(exp+'T21:00:00Z')-Date.now())/864e5)); dteCache.set(exp,v);} return v; }
@@ -187,16 +340,19 @@ const volOiOf = c => (c.oi>0&&c.vol!=null) ? c.vol/c.oi : null;
 const uPriceOf = c => c.und===S.und ? S.uPrice : (S.trkU.get(c.und)||{}).price;
 const otmOf = c => { const p=uPriceOf(c); return ok(p) ? (c.type==='C'?(c.strike-p):(p-c.strike))/p*100 : null; };
 const labelOf = c => `${c.und} ${fExp(c.exp)} ${fK(c.strike)}${c.type}`;
-function setCell(td,v,fmt,flash){ const old=td._v; td._v=v; td.textContent=fmt(v);
-  if(flash && ok(old) && ok(v) && old!==v){ td.classList.remove('fu','fd'); void td.offsetWidth; td.classList.add(v>old?'fu':'fd'); } }
+const optTicker = (und,exp,type,k) => `O:${und}${exp.slice(2).replace(/-/g,'')}${type}${String(Math.round(k*1000)).padStart(8,'0')}`;
 function parseTicker(t){ const m=/^O:([A-Z.]+?)(\d{2})(\d{2})(\d{2})([CP])(\d{8})$/.exec(t||''); return m?{und:m[1],exp:`20${m[2]}-${m[3]}-${m[4]}`,type:m[5],strike:+m[6]/1000}:null; }
+function setCell(td,v,fmt,flash){ const old=td._v; td._v=v; td.textContent=fmt(v);
+  if(flash&&ok(old)&&ok(v)&&old!==v){ td.classList.remove('fu','fd'); void td.offsetWidth; td.classList.add(v>old?'fu':'fd'); } }
+const num = v => v===''||v==null ? null : +v;
+const symSet = s => new Set(String(s||'').toUpperCase().split(/[,\s]+/).filter(Boolean));
 
 /* ---------- status ---------- */
-function setStatus(st,text){ const m={demo:['Demo',''],loading:['Yükleniyor',''],live:['Canlı','live'],delayed:['Gecikmeli (15 dk)','delayed'],error:['Bağlantı sorunu','err'],paused:['Duraklatıldı','']};
+function setStatus(st,text){ const m={demo:['Örnek veri','demo'],loading:['Yükleniyor',''],live:['Canlı','live'],delayed:['15 dk gecikmeli','delayed'],error:['Bağlantı sorunu','err'],paused:['Duraklatıldı','']};
   const [t,c]=m[st]||[st,'']; $('#status').textContent=text||t; $('#dot').className='dot '+c; }
-function note(msg,err){ const el=$('#msg'); el.textContent=msg||''; el.className=err?'err':''; }
+function note(msg,err){ const e=$('#msg'); e.textContent=msg||''; e.className=err?'err':''; }
 
-/* ---------- server API (key stays on the server) ---------- */
+/* ---------- server API (Massive key stays on the server) ---------- */
 async function getJSON(u){
   let r; try{ r=await fetch(u,{credentials:'same-origin',cache:'no-store'}); }catch(e){ throw new Error('Sunucuya ulaşılamadı'); }
   if(r.status===401){ location.href='/api/auth/login?next='+encodeURIComponent(location.pathname+location.search); throw new Error('Oturum süresi doldu'); }
@@ -205,18 +361,17 @@ async function getJSON(u){
 }
 function massive(path,params){ const u=new URL('/api/massive',location.origin); u.searchParams.set('path',path);
   if(params) for(const [k,v] of Object.entries(params)) if(v!==''&&v!=null) u.searchParams.set(k,v); return getJSON(u); }
-
-async function fetchChain(exp){
-  const ref=ok(S.uPrice)?S.uPrice:null, now=new Date();
-  const p={limit:250};
+async function fetchChainFor(und,ref,exp,maxC){
+  const now=new Date(), p={limit:250};
   if(exp) p.expiration_date=exp; else { p['expiration_date.gte']=iso(now); p['expiration_date.lte']=iso(new Date(now.getTime()+CFG.maxDte*864e5)); }
-  if(ref){ p['strike_price.gte']=(ref*(1-CFG.strikePct/100)).toFixed(2); p['strike_price.lte']=(ref*(1+CFG.strikePct/100)).toFixed(2); }
-  let j=await massive(`v3/snapshot/options/${S.und}`,p); const out=[...(j.results||[])]; let n=1;
-  while(j.next_url && out.length<CFG.maxContracts && n<60){ j=await getJSON(new URL(j.next_url,location.origin)); out.push(...(j.results||[])); n++; }
+  if(ok(ref)){ p['strike_price.gte']=(ref*(1-CFG.strikePct/100)).toFixed(2); p['strike_price.lte']=(ref*(1+CFG.strikePct/100)).toFixed(2); }
+  let j=await massive(`v3/snapshot/options/${und}`,p); const out=[...(j.results||[])]; let n=1;
+  while(j.next_url && out.length<(maxC||CFG.maxContracts) && n<60){ j=await getJSON(new URL(j.next_url,location.origin)); out.push(...(j.results||[])); n++; }
   return out;
 }
+const fetchChain = exp => fetchChainFor(S.und, S.uPrice, exp);
 function ingestOption(r,map){
-  const d=r.details||{}, t=d.ticker; if(!t) return;
+  const d=r.details||{}, t=d.ticker; if(!t) return null;
   let c=map.get(t); if(!c){ const pt=parseTicker(t)||{}; c={t,und:pt.und||S.und,type:d.contract_type==='put'?'P':'C',strike:d.strike_price,exp:d.expiration_date}; map.set(t,c); }
   const q=r.last_quote||{}, tr=r.last_trade||{}, g=r.greeks||{}, day=r.day||{};
   let ch=0; const set=(k,v)=>{ if(v!=null&&isFinite(v)&&c[k]!==v){ c[k]=v; ch++; } };
@@ -225,65 +380,282 @@ function ingestOption(r,map){
   set('delta',g.delta); set('gamma',g.gamma); set('theta',g.theta); set('vega',g.vega);
   set('chgPct',day.change_percent); set('be',r.break_even_price);
   if(q.timeframe) S.delayed = q.timeframe!=='REAL-TIME';
-  const ua=r.underlying_asset; if(ua&&ok(ua.price)){ if(c.und===S.und && !S.stocks.get(S.und)?.price) S.uPrice=ua.price; const u=S.trkU.get(c.und)||{}; u.price=ua.price; S.trkU.set(c.und,u); }
+  const ua=r.underlying_asset; if(ua&&ok(ua.price)){ c.spot=ua.price; if(c.und===S.und && !S.stocks.get(S.und)?.price) S.uPrice=ua.price; const u=S.trkU.get(c.und)||{}; u.price=ua.price; S.trkU.set(c.und,u); }
   if(ch){ S.upd+=ch; S.dirty.add(t); }
+  return c;
 }
 
 /* ---------- stocks ---------- */
 const watchList = () => [...new Set(P.watch.split(/[,\s]+/).map(s=>s.trim().toUpperCase()).filter(Boolean).concat([S.und]))];
 function ingestStock(t){ const sym=t.ticker; if(!sym) return; let s=S.stocks.get(sym); if(!s){ s={sym}; S.stocks.set(sym,s); }
   const lt=t.lastTrade||{}, lq=t.lastQuote||{}, day=t.day||{}, pd=t.prevDay||{}, mn=t.min||{};
-  const before=s.price; const price=lt.p||mn.c||day.c||pd.c; if(ok(price)) s.price=price;
+  const before=s.price, price=lt.p||mn.c||day.c||pd.c; if(ok(price)) s.price=price;
   if(ok(pd.c)) s.prev=pd.c; if(ok(lq.p)) s.bid=lq.p; if(ok(lq.P)) s.ask=lq.P;
   if(day.v>0) s.vol=day.v; if(day.h>0) s.high=day.h; if(day.l>0) s.low=day.l; if(day.vw>0) s.vwap=day.vw;
   if(before!==s.price) S.upd++; stockDerived(s); }
 function stockDerived(s){ if(ok(s.price)&&ok(s.prev)){ s.chg=s.price-s.prev; s.chgPct=s.chg/s.prev*100; }
   if(s.sym===S.und && ok(s.price)){ S.uPrice=s.price; S.uChg=s.chg; S.uChgPct=s.chgPct; }
-  const u=S.trkU.get(s.sym); if(u){ u.price=s.price; u.chgPct=s.chgPct; }
-  S.stDirty.add(s.sym); }
-async function fetchStocks(){
-  const syms=[...new Set(watchList().concat(trackedUnderlyings()))];
+  const u=S.trkU.get(s.sym); if(u){ u.price=s.price; u.chgPct=s.chgPct; } S.stDirty.add(s.sym); }
+async function fetchStocks(){ const syms=[...new Set(watchList().concat(trackedUnderlyings()))];
   const j=await massive('v2/snapshot/locale/us/markets/stocks/tickers',{tickers:syms.join(',')}); (j.tickers||[]).forEach(ingestStock); }
 
 /* ---------- tracked contracts ---------- */
 const trackedUnderlyings = () => [...new Set(P.tracked.map(t=>(parseTicker(t)||{}).und).filter(Boolean))];
-function isTracked(t){ return P.tracked.includes(t); }
-function toggleTrack(t){
-  if(isTracked(t)) P.tracked=P.tracked.filter(x=>x!==t); else { if(P.tracked.length>=50){ note('En fazla 50 kontrat takip edilebilir.',true); return; } P.tracked.push(t); }
-  saveP(); for(const td of S.starMap.get(t)||[]) paintStar(td,t);
+const isTracked = t => P.tracked.includes(t);
+function toggleTrack(t, contract){
+  if(isTracked(t)) P.tracked=P.tracked.filter(x=>x!==t);
+  else { if(P.tracked.length>=50){ note('En fazla 50 kontrat takip edilebilir.',true); return; } P.tracked.push(t); }
+  saveP(true); for(const td of S.starMap.get(t)||[]) paintStar(td,t);
   const r=S.scrRows.get(t); if(r) paintStar(r.star,t);
-  if(isTracked(t)){ const c=S.contracts.get(t); if(c) S.trk.set(t,c); } else S.trk.delete(t);
+  if(isTracked(t)){ const c=S.contracts.get(t)||contract; if(c) S.trk.set(t,c); } else S.trk.delete(t);
   S.trkForce=true; updTrkCount(); if(!DEMO) fetchTracked().catch(()=>{}); }
 function paintStar(td,t){ const on=isTracked(t); td.textContent=on?'★':'☆'; td.classList.toggle('on',on); td.title=on?'Takipten çıkar':'Takibe al'; }
-function starCell(t){ const td=document.createElement('td'); td.className='star'; paintStar(td,t); td.onclick=e=>{ e.stopPropagation(); toggleTrack(t); }; return td; }
-function updTrkCount(){ $('#trkN').textContent=P.tracked.length?P.tracked.length:''; }
-async function fetchTracked(){
-  if(!P.tracked.length) return;
+function starCell(t,contract){ const td=el('td','star'); paintStar(td,t); td.onclick=e=>{ e.stopPropagation(); toggleTrack(t,contract); }; return td; }
+function updTrkCount(){ document.querySelector('[data-view=tracked] .tip').textContent=`Takip listem${P.tracked.length?' ('+P.tracked.length+')':''}`; }
+async function fetchTracked(){ if(!P.tracked.length||DEMO) return;
   const j=await getJSON('/api/tracked?c='+encodeURIComponent(P.tracked.join(',')));
-  (j.results||[]).forEach(r=>{ ingestOption(r,S.trk); const c=S.trk.get(r.details&&r.details.ticker); if(c&&c.und===S.und){ const cc=S.contracts.get(c.t); if(cc) Object.assign(cc,{...c}); } });
-  if(j.errors&&j.errors.length) note(`${j.errors.length} takip edilen kontrat alınamadı (örn. ${j.errors[0].ticker}: ${j.errors[0].error}).`,true);
+  (j.results||[]).forEach(r=>ingestOption(r,S.trk));
+  if(j.errors&&j.errors.length) note(`${j.errors.length} takip edilen kontrat alınamadı (örn. ${j.errors[0].ticker}: ${j.errors[0].error}).`,true); }
+
+/* ============================================================
+   OPTIONS FLOW
+   ============================================================ */
+const TYPE_KEY = {Sweep:'tSweep',Split:'tSplit',Block:'tBlock'};
+const TYPE_CLS = {Sweep:'c-yellow',Split:'c-purple',Block:'c-blue'};
+const SIDE_TXT = {AA:'Ask üstü',A:'Ask',M:'Orta',B:'Bid',BB:'Bid altı'};
+function flowKey(f){ return f.ticker; }
+function addFlow(f,isNew){
+  f.id=f.id||(Math.random().toString(36).slice(2)); f.prem=f.size*f.price*100; f.ticker=f.ticker||optTicker(f.sym,f.exp,f.cp,f.strike);
+  f.dte=dteOf(f.exp); f.etf=ETFS.has(f.sym);
+  f.otm = f.cp==='C' ? (f.strike-f.spot)/f.spot*100 : (f.spot-f.strike)/f.spot*100;
+  f.bull = (f.cp==='C'&&(f.side==='A'||f.side==='AA')) || (f.cp==='P'&&(f.side==='B'||f.side==='BB'));
+  f.bear = (f.cp==='P'&&(f.side==='A'||f.side==='AA')) || (f.cp==='C'&&(f.side==='B'||f.side==='BB'));
+  S.flows.unshift(f); if(S.flows.length>CFG.maxFlows){ const old=S.flows.pop(); const r=S.repeat.get(flowKey(old)); if(r){ r.n--; r.prem-=old.prem; } }
+  const r=S.repeat.get(flowKey(f))||{n:0,prem:0}; r.n++; r.prem+=f.prem; S.repeat.set(flowKey(f),r);
+  if(isNew){ S.newIds.add(f.id); setTimeout(()=>S.newIds.delete(f.id),1800); }
+  S.flowDirty=true; S.upd++;
+}
+function passFlow(f,F){
+  if(F.sym){ const s=symSet(F.sym); if(s.size&&!s.has(f.sym)) return false; }
+  if(F.exclude&&symSet(F.exclude).has(f.sym)) return false;
+  if(F.watchOnly&&!watchList().includes(f.sym)) return false;
+  if(F.stockType==='etf'&&!f.etf) return false; if(F.stockType==='stock'&&f.etf) return false;
+  if(num(F.spotMin)!=null&&f.spot<num(F.spotMin)) return false; if(num(F.spotMax)!=null&&f.spot>num(F.spotMax)) return false;
+  if(F.earnings!=='any'){ const e=f.earn;
+    if(F.earnings==='before_exp'&&!(e!=null&&e<=f.dte)) return false;
+    if(F.earnings==='within7'&&!(e!=null&&e<=7)) return false;
+    if(F.earnings==='none'&&e!=null&&e<=f.dte) return false; }
+  if(F.cp!=='all'&&f.cp!==F.cp) return false;
+  if(!F[TYPE_KEY[f.type]||'tOther']) return false;
+  if(num(F.minSize)!=null&&f.size<num(F.minSize)) return false;
+  if(num(F.minPrice)!=null&&f.price<num(F.minPrice)) return false;
+  if(num(F.minPrem)!=null&&f.prem<num(F.minPrem)) return false;
+  if(num(F.maxPrem)!=null&&f.prem>num(F.maxPrem)) return false;
+  const sd=f.side;
+  if(F.side==='ask'&&!(sd==='A'||sd==='AA')) return false; if(F.side==='aboveAsk'&&sd!=='AA') return false;
+  if(F.side==='bid'&&!(sd==='B'||sd==='BB')) return false; if(F.side==='belowBid'&&sd!=='BB') return false; if(F.side==='mid'&&sd!=='M') return false;
+  if(F.dir==='bull'&&!f.bull) return false; if(F.dir==='bear'&&!f.bear) return false;
+  if(num(F.dteMin)!=null&&f.dte<num(F.dteMin)) return false; if(num(F.dteMax)!=null&&f.dte>num(F.dteMax)) return false;
+  if(F.money==='otm'&&!(f.otm>0)) return false; if(F.money==='itm'&&!(f.otm<0)) return false;
+  if(num(F.otmMin)!=null&&f.otm<num(F.otmMin)) return false; if(num(F.otmMax)!=null&&f.otm>num(F.otmMax)) return false;
+  if(F.volGtOi&&!(f.vol>f.oi)) return false;
+  if(num(F.volOiMin)!=null&&!(f.oi>0&&f.vol/f.oi>=num(F.volOiMin))) return false;
+  if(num(F.oiMin)!=null&&!((f.oi||0)>=num(F.oiMin))) return false;
+  const rep=S.repeat.get(flowKey(f))||{n:1,prem:f.prem};
+  if(num(F.repeatMin)!=null&&rep.n<num(F.repeatMin)) return false;
+  if(num(F.repeatPremMin)!=null&&rep.prem<num(F.repeatPremMin)) return false;
+  return true;
+}
+const FCOLS=[
+  {k:'t',h:'Saat (ET)',v:f=>f.t,r:f=>fTime(f.t),cls:()=> 't-dim'},
+  {k:'sym',h:'Sembol',v:f=>f.sym,r:f=>f.sym,cls:f=>f.cp==='C'?'c-green':'c-red'},
+  {k:'exp',h:'Vade',v:f=>f.exp,r:f=>fExpN(f.exp)},
+  {k:'strike',h:'Strike',v:f=>f.strike,r:f=>fK(f.strike),n:1},
+  {k:'cp',h:'C / P',v:f=>f.cp,r:f=>f.cp==='C'?'Call':'Put'},
+  {k:'spot',h:'Spot',v:f=>f.spot,r:f=>f2(f.spot),n:1},
+  {k:'size',h:'Adet',v:f=>f.size,r:f=>fInt(f.size),n:1,cls:f=>f.size>f.oi?'c-cyan':''},
+  {k:'price',h:'Fiyat',v:f=>f.price,r:f=>'$'+f2(f.price),n:1},
+  {k:'side',h:'Taraf',v:f=>f.side,r:f=>SIDE_TXT[f.side]||'–',cls:f=>f.side==='AA'||f.side==='A'?'c-green':f.side==='M'?'c-muted':'c-red'},
+  {k:'prem',h:'Prim',v:f=>f.prem,r:f=>fMoney(f.prem),n:1,cls:f=>f.cp==='C'?'c-green':'c-red'},
+  {k:'type',h:'Tür',v:f=>f.type,r:f=>f.type,cls:f=>TYPE_CLS[f.type]||'c-muted'},
+  {k:'vol',h:'Hacim',v:f=>f.vol,r:f=>fInt(f.vol),n:1},
+  {k:'oi',h:'OI',v:f=>f.oi,r:f=>fInt(f.oi),n:1},
+  {k:'rep',h:'Tekrar',v:f=>(S.repeat.get(flowKey(f))||{}).n||1,r:f=>{ const n=(S.repeat.get(flowKey(f))||{}).n||1; return n>1?'×'+n:''; },n:1,cls:()=> 'c-muted'}];
+function buildFlowHead(){ const tr=el('tr');
+  for(const c of FCOLS){ const th=el('th',c.n?'num':'',c.h+(P.flowSort===c.k?(P.flowDir>0?' ▲':' ▼'):'')); if(P.flowSort===c.k) th.classList.add('on');
+    th.onclick=()=>{ if(P.flowSort===c.k) P.flowDir*=-1; else { P.flowSort=c.k; P.flowDir=-1; } saveP(); buildFlowHead(); S.flowDirty=true; }; tr.appendChild(th); }
+  tr.appendChild(el('th')); $('#flowHead').replaceChildren(tr); }
+let FILTERED=[];
+function renderFlow(){
+  const F=P.flow; FILTERED=S.flows.filter(f=>passFlow(f,F));
+  const col=FCOLS.find(c=>c.k===P.flowSort)||FCOLS[0], dir=P.flowDir;
+  const list = col.k==='t'&&dir<0 ? FILTERED : [...FILTERED].sort((a,b)=>{ const x=col.v(a),y=col.v(b); return (typeof x==='string'?x.localeCompare(y):x-y)*dir; });
+  const tb=$('#flowBody'), frag=document.createDocumentFragment(), max=400;
+  for(const f of list.slice(0,max)){
+    const tr=el('tr'); if(f.prem>=1e6) tr.className='hot'; else if(f.type==='Sweep'&&f.side==='AA') tr.className='gold';
+    if(S.newIds.has(f.id)) tr.classList.add('new');
+    for(const c of FCOLS){ const td=el('td',(c.n?'num ':'')+(c.cls?c.cls(f):''),c.r(f)); tr.appendChild(td); }
+    const mt=el('td','num'); const mb=el('button','more','⋯'); mb.title='İşlemler'; mb.onclick=e=>{ e.stopPropagation(); flowMenu(e,f); }; mt.appendChild(mb); tr.appendChild(mt);
+    tr.ondblclick=()=>openInChain(f.sym,f.exp);
+    frag.appendChild(tr); }
+  if(!list.length){ const tr=el('tr'); const td=el('td','empty',S.flows.length?'Filtrelere uyan işlem yok':'Akış yükleniyor…'); td.colSpan=FCOLS.length+1; tr.appendChild(td); frag.appendChild(tr); }
+  tb.replaceChildren(frag);
+  renderFlowStats(); renderFeed(); S.flowDirty=false;
+}
+function ring(pct,color,label){ const C=2*Math.PI*18, p=Math.max(0,Math.min(1,pct||0));
+  return `<svg class="ring" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#3a3b41" stroke-width="4"/>${p>0?`<circle cx="22" cy="22" r="18" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${(p*C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/>`:''}<text x="22" y="25.5" text-anchor="middle" font-size="10" font-weight="600" fill="#ececee" font-family="Rubik,sans-serif">${label}</text></svg>`; }
+function renderFlowStats(){
+  let cP=0,pP=0,cN=0,pN=0,bull=0,bear=0;
+  for(const f of FILTERED){ if(f.cp==='C'){cP+=f.prem;cN++;} else {pP+=f.prem;pN++;} if(f.bull) bull+=f.prem; if(f.bear) bear+=f.prem; }
+  const tot=cP+pP, dirTot=bull+bear, score=dirTot?(bull-bear)/dirTot:0;
+  const sent=score>.1?'Yükseliş':score<-.1?'Düşüş':'Nötr', scol=score>.1?'var(--green)':score<-.1?'var(--red)':'var(--yellow)';
+  const pc=cP?pP/cP:null;
+  $('#stats').innerHTML=
+    `<div class="card"><div><div class="k">Akış yönü</div><div class="v">${sent}</div><div class="s">${fMoney(bull)} yükseliş · ${fMoney(bear)} düşüş</div></div><div class="sbar"><i style="width:${Math.round((score+1)/2*100)}%;background:${scol}"></i></div></div>`+
+    `<div class="card"><div><div class="k">Put / Call (prim)</div><div class="v">${pc!=null?pc.toFixed(3):'–'}</div><div class="s">${fInt(pN)} put · ${fInt(cN)} call işlem</div></div>${ring(pc!=null?Math.min(pc,1):0,'var(--cyan)',pc!=null?pc.toFixed(1):'–')}</div>`+
+    `<div class="card"><div><div class="k">Call akışı <span class="c-green">${fMoney(cP)}</span></div><div class="v">${fInt(cN)}</div><div class="s">işlem</div></div>${ring(tot?cP/tot:0,'var(--green)',tot?Math.round(cP/tot*100)+'%':'–')}</div>`+
+    `<div class="card"><div><div class="k">Put akışı <span class="c-red">${fMoney(pP)}</span></div><div class="v">${fInt(pN)}</div><div class="s">işlem</div></div>${ring(tot?pP/tot:0,'var(--red)',tot?Math.round(pP/tot*100)+'%':'–')}</div>`;
+}
+function renderFeed(){
+  const min=+P.bigMin||1e6, list=FILTERED.filter(f=>f.prem>=min).slice(0,40), box=$('#feedList');
+  if(!list.length){ box.innerHTML=`<div class="fcard" style="cursor:default;color:var(--muted)">${fMoney(min)} üzeri işlem yok</div>`; return; }
+  box.replaceChildren(...list.map(f=>{ const c=el('div','fcard');
+    c.innerHTML=`<div class="top"><span>${fTime(f.t)}</span><span class="pdot" style="background:${f.cp==='C'?'var(--green)':'var(--red)'}"></span></div>
+    <div class="grid"><span class="h">Sembol</span><span class="h">Adet</span><span class="h">Kontrat</span><span class="h">Prim</span>
+    <span class="${f.cp==='C'?'c-green':'c-red'}">${f.sym}</span><span>${fInt(f.size)}</span><span>${fK(f.strike)}${f.cp} ${fExpN(f.exp)}</span><span class="c-purple">${fMoney(f.prem)}</span></div>
+    <div class="d">${f.type} · ${SIDE_TXT[f.side]||''} · ${fDate(f.t)}</div>`;
+    c.onclick=()=>openInChain(f.sym,f.exp); return c; })); }
+let menuEl=null;
+function closeMenu(){ if(menuEl){ menuEl.remove(); menuEl=null; } }
+function flowMenu(e,f){ closeMenu(); menuEl=el('div','menu');
+  const add=(t,fn)=>{ const b=el('button',null,t); b.onclick=()=>{ closeMenu(); fn(); }; menuEl.appendChild(b); };
+  add(`${f.sym} zincirini aç`,()=>openInChain(f.sym,f.exp));
+  add(isTracked(f.ticker)?'Takipten çıkar':'Kontratı takibe al',()=>toggleTrack(f.ticker,{t:f.ticker,und:f.sym,type:f.cp,strike:f.strike,exp:f.exp,last:f.price,vol:f.vol,oi:f.oi}));
+  add(`Sadece ${f.sym} göster`,()=>{ P.flow.sym=f.sym; flowChanged(); });
+  add(`${f.sym} hariç tut`,()=>{ P.flow.exclude=[...symSet(P.flow.exclude),f.sym].join(','); flowChanged(); });
+  add(`Bu kontrat: ${fK(f.strike)}${f.cp} ${fExpN(f.exp)} (${(S.repeat.get(flowKey(f))||{n:1}).n} işlem)`,()=>{ P.flow.sym=f.sym; P.flow.cp=f.cp; flowChanged(); });
+  document.body.appendChild(menuEl);
+  const r=e.target.getBoundingClientRect(); menuEl.style.top=Math.min(innerHeight-menuEl.offsetHeight-8,r.bottom+4)+'px'; menuEl.style.left=Math.max(8,r.right-menuEl.offsetWidth)+'px'; }
+document.addEventListener('click',e=>{ if(menuEl&&!menuEl.contains(e.target)) closeMenu(); });
+function openInChain(sym,exp){ S.pendingExp=exp; view('chain'); if(sym!==S.und) load(sym); else { S.selExp=exp; buildExpSel(); buildChain(true); } }
+
+/* ---------- live flow (approximate): volume changes between snapshots ---------- */
+async function liveFlowTick(){
+  if(DEMO||document.hidden) return; const syms=watchList(); if(!syms.length) return;
+  const sym=syms[S.flowRot++%syms.length]; const st=S.stocks.get(sym)||{};
+  let res; try{ res=await fetchChainFor(sym, st.price, null, 1500); }catch(e){ return; }
+  const now=Date.now(), tmp=new Map();
+  for(const r of res){ const c=ingestOption(r,tmp); if(!c||!ok(c.vol)) continue; const prev=S.prevVol.get(c.t); S.prevVol.set(c.t,c.vol);
+    if(prev==null||c.vol<=prev) continue; const size=c.vol-prev, price=c.last||c.mid; if(!ok(price)||price<=0) continue;
+    let side='M'; if(ok(c.ask)&&price>c.ask) side='AA'; else if(ok(c.ask)&&price>=c.ask) side='A'; else if(ok(c.bid)&&price<c.bid) side='BB'; else if(ok(c.bid)&&price<=c.bid) side='B';
+    const prem=size*price*100;
+    addFlow({t:now,sym,exp:c.exp,strike:c.strike,cp:c.type,spot:c.spot||st.price||0,size,price,side,type:(size>=500||prem>=250000)?'Block':'Akış',vol:c.vol,oi:c.oi||0,earn:null,ticker:c.t},true); }
 }
 
-/* ---------- chain ---------- */
+/* ============================================================
+   FILTER DRAWER + PRESETS
+   ============================================================ */
+const FSECTIONS=[
+  {t:'Hisse',f:[
+    {k:'sym',l:'Semboller',type:'text',ph:'örn. SPY, NVDA'},
+    {k:'exclude',l:'Hariç tut',type:'text',ph:'örn. TSLA'},
+    {k:'watchOnly',l:'Sadece izleme listem',type:'bool'},
+    {k:'stockType',l:'Tür',type:'select',o:[['all','Hepsi'],['stock','Hisse'],['etf','ETF']]},
+    {k:'spot',l:'Spot fiyat ($)',type:'range',a:'spotMin',b:'spotMax'}]},
+  {t:'Olaylar',f:[
+    {k:'earnings',l:'Bilanço',type:'select',o:[['any','Farketmez'],['before_exp','Vadeden önce bilanço var'],['within7','7 gün içinde bilanço'],['none','Vadeden önce bilanço yok']]},
+    {k:'note',type:'note',txt:'Bilanço tarihleri örnek veride var; canlı veride Massive planına bağlıdır.'}]},
+  {t:'İşlem',f:[
+    {k:'cp',l:'Opsiyon tipi',type:'select',o:[['all','Call + Put'],['C','Call'],['P','Put']]},
+    {k:'types',l:'İşlem türü',type:'checks',o:[['tSweep','Sweep'],['tSplit','Split'],['tBlock','Block'],['tOther','Diğer']]},
+    {k:'side',l:'Gerçekleşme tarafı',type:'select',o:[['any','Farketmez'],['ask','Ask ve üstü'],['aboveAsk','Ask üstü'],['mid','Orta'],['bid','Bid ve altı'],['belowBid','Bid altı']]},
+    {k:'dir',l:'Yön',type:'select',o:[['any','Farketmez'],['bull','Yükseliş (call alım / put satım)'],['bear','Düşüş (put alım / call satım)']]},
+    {k:'minSize',l:'Min adet',type:'num'},
+    {k:'minPrice',l:'Min fiyat ($)',type:'num',step:'0.05'},
+    {k:'prem',l:'Prim ($)',type:'range',a:'minPrem',b:'maxPrem'}]},
+  {t:'Kontrat',f:[
+    {k:'dte',l:'Vadeye gün',type:'range',a:'dteMin',b:'dteMax'},
+    {k:'money',l:'Para durumu',type:'select',o:[['any','Farketmez'],['otm','OTM (paranın dışında)'],['itm','ITM (paranın içinde)']]},
+    {k:'otm',l:'OTM %',type:'range',a:'otmMin',b:'otmMax'}]},
+  {t:'Hacim ve açık pozisyon',f:[
+    {k:'volGtOi',l:'Hacim > OI',type:'bool'},
+    {k:'volOiMin',l:'Min hacim / OI',type:'num',step:'0.1'},
+    {k:'oiMin',l:'Min OI',type:'num'}]},
+  {t:'Tekrarlanan işlemler (bugün)',f:[
+    {k:'repeatMin',l:'Min tekrar sayısı',type:'num'},
+    {k:'repeatPremMin',l:'Toplam prim ≥ ($)',type:'num'},
+    {k:'note2',type:'note',txt:'Aynı kontratta gün içindeki tüm işlemler toplanır.'}]}];
+function buildDrawer(){
+  const body=$('#dbody'); body.innerHTML='';
+  for(const sec of FSECTIONS){ const box=el('div','fsec'); box.appendChild(el('h4',null,sec.t));
+    for(const f of sec.f){
+      if(f.type==='note'){ box.appendChild(el('div','c-muted',f.txt)).style.fontSize='12px'; continue; }
+      const row=el('div','frow'); row.appendChild(el('span',null,f.l)); let ctl;
+      if(f.type==='text'||f.type==='num'){ ctl=el('input'); ctl.type=f.type==='num'?'number':'text'; if(f.step) ctl.step=f.step; if(f.ph) ctl.placeholder=f.ph; ctl.dataset.k=f.k; }
+      else if(f.type==='bool'){ ctl=el('input'); ctl.type='checkbox'; ctl.dataset.k=f.k; }
+      else if(f.type==='select'){ ctl=el('select'); for(const [v,t] of f.o){ const o=el('option',null,t); o.value=v; ctl.appendChild(o); } ctl.dataset.k=f.k; }
+      else if(f.type==='range'){ ctl=el('div','pair'); for(const [k,ph] of [[f.a,'min'],[f.b,'maks']]){ const i=el('input'); i.type='number'; i.placeholder=ph; i.dataset.k=k; ctl.appendChild(i); } }
+      else if(f.type==='checks'){ ctl=el('div','checks'); for(const [k,t] of f.o){ const lb=el('label'); const i=el('input'); i.type='checkbox'; i.dataset.k=k; lb.append(i,t); ctl.appendChild(lb); } }
+      row.appendChild(ctl); box.appendChild(row); }
+    body.appendChild(box); }
+  body.querySelectorAll('[data-k]').forEach(i=>i.addEventListener('input',()=>{ P.flow[i.dataset.k]= i.type==='checkbox'?i.checked:i.value; flowChanged(true); }));
+}
+function fillDrawer(){ $('#dbody').querySelectorAll('[data-k]').forEach(i=>{ const v=P.flow[i.dataset.k]; if(i.type==='checkbox') i.checked=!!v; else i.value=v??''; }); }
+function activeCount(F){ let n=0; for(const k in FLOW0){ if(JSON.stringify(F[k])!==JSON.stringify(FLOW0[k])) n++; } return n; }
+function flowChanged(fromDrawer){ saveP(); S.flowDirty=true; if(!fromDrawer) fillDrawer(); const n=activeCount(P.flow);
+  $('#fcount').hidden=!n; $('#fcount').textContent=n; $('#dcount').textContent=n?`${n} filtre aktif`:'Filtre yok'; paintPresetDirty(); }
+function openDrawer(){ fillDrawer(); renderPresetSel(); $('#drawer').classList.add('on'); $('#overlay').classList.add('on'); }
+function closeDrawer(){ $('#drawer').classList.remove('on'); $('#overlay').classList.remove('on'); }
+$('#openFilters').onclick=openDrawer; $('#dClose').onclick=closeDrawer; $('#overlay').onclick=closeDrawer;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+$('#dReset').onclick=()=>{ P.flow={...FLOW0}; P.activePreset=null; flowChanged(); renderPresetSel(); };
+$('#clearAll').onclick=()=>{ P.flow={...FLOW0}; P.scr={...SCR0}; P.activePreset=null; fillScr(); flowChanged(); renderPresetSel(); S.scrForce=true; };
+
+const newId = () => 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function currentPreset(){ return P.presets.find(p=>p.id===P.activePreset)||null; }
+function renderPresetSel(){
+  for(const sel of [$('#presetSel'),$('#quickPreset')]){ sel.innerHTML='';
+    const o0=el('option',null,sel.id==='quickPreset'?'Kayıtlı filtreler':'— Kayıtlı filtre seç —'); o0.value=''; sel.appendChild(o0);
+    for(const p of P.presets){ const o=el('option',null,p.name+(p.id===P.defaultPreset?' ★':'')); o.value=p.id; sel.appendChild(o); }
+    sel.value=P.activePreset||''; }
+  const has=!!currentPreset(); for(const id of ['pSave','pDelete','pDefault']) $('#'+id).disabled=!has;
+  $('#pDefault').textContent = has&&P.defaultPreset===P.activePreset ? 'Varsayılanı kaldır' : 'Varsayılan yap';
+  paintPresetDirty(); paintSaveState(); }
+function paintPresetDirty(){ const p=currentPreset(); const dirty=p&&(JSON.stringify({...FLOW0,...p.flow})!==JSON.stringify(P.flow)||JSON.stringify({...SCR0,...p.screener})!==JSON.stringify(P.scr));
+  $('#pSave').textContent=dirty?'Değişiklikleri kaydet •':'Değişiklikleri kaydet'; }
+function applyPreset(id){ const p=P.presets.find(x=>x.id===id); if(!p) return;
+  P.flow={...FLOW0,...p.flow}; P.scr={...SCR0,...p.screener}; P.activePreset=id; fillScr(); flowChanged(); S.scrForce=true; renderPresetSel(); note(`"${p.name}" filtresi uygulandı.`); }
+$('#pLoad').onclick=()=>{ const id=$('#presetSel').value; if(id) applyPreset(id); };
+$('#presetSel').onchange=e=>{ if(e.target.value) applyPreset(e.target.value); };
+$('#quickPreset').onchange=e=>{ if(e.target.value) applyPreset(e.target.value); else { P.activePreset=null; renderPresetSel(); } };
+$('#pNew').onclick=()=>{ const name=$('#pName').value.trim(); if(!name){ $('#pName').focus(); $('#pName').placeholder='Önce bir ad yaz'; return; }
+  if(P.presets.length>=50){ note('En fazla 50 filtre kaydedilebilir.',true); return; }
+  const p={id:newId(),name,flow:{...P.flow},screener:{...P.scr},updatedAt:Date.now()}; P.presets.push(p); P.activePreset=p.id; $('#pName').value='';
+  saveP(true); renderPresetSel(); note(`"${name}" kaydedildi.`); };
+$('#pSave').onclick=()=>{ const p=currentPreset(); if(!p) return; p.flow={...P.flow}; p.screener={...P.scr}; p.updatedAt=Date.now(); saveP(true); renderPresetSel(); note(`"${p.name}" güncellendi.`); };
+$('#pDelete').onclick=()=>{ const p=currentPreset(); if(!p) return; P.presets=P.presets.filter(x=>x.id!==p.id); if(P.defaultPreset===p.id) P.defaultPreset=null; P.activePreset=null; saveP(true); renderPresetSel(); note(`"${p.name}" silindi.`); };
+$('#pDefault').onclick=()=>{ const p=currentPreset(); if(!p) return; P.defaultPreset = P.defaultPreset===p.id ? null : p.id; saveP(true); renderPresetSel(); };
+
+/* ============================================================
+   CHAIN / SCREENER / TRACKED / STOCKS / CHARTS
+   ============================================================ */
 const CC=[['oi',fInt,0],['vol',fInt,1],['iv',fIV,1],['delta',f2,1],['bid',f2,1],['ask',f2,1],['last',f2,1]];
 const PC=[...CC].reverse();
 const expiries = () => [...new Set([...S.contracts.values()].map(c=>c.exp))].sort();
 function buildExpSel(){ const ex=expiries(), sel=$('#expSel');
   if(!ex.includes(S.selExp)) S.selExp=ex.find(e=>dteOf(e)>=1)||ex[0]||null;
-  sel.innerHTML=''; for(const e of ex){ const o=document.createElement('option'); o.value=e; o.textContent=`${fExp(e)} · ${dteOf(e)} gün`; o.selected=e===S.selExp; sel.appendChild(o); } }
+  sel.innerHTML=''; for(const e of ex){ const o=el('option',null,`${fExp(e)} · ${dteOf(e)} gün`); o.value=e; o.selected=e===S.selExp; sel.appendChild(o); } }
 function buildChain(scroll){
   const tb=$('#chainBody'); tb.innerHTML=''; S.cellMap.clear(); S.starMap.clear(); S.chainRows=[];
   if(!S.selExp){ tb.innerHTML='<tr><td colspan="17" class="empty">Veri yok</td></tr>'; $('#chainInfo').textContent=''; return; }
   const by=new Map(); for(const c of S.contracts.values()) if(c.exp===S.selExp){ const r=by.get(c.strike)||{}; r[c.type]=c; by.set(c.strike,r); }
   const ks=[...by.keys()].sort((a,b)=>a-b), frag=document.createDocumentFragment();
-  const star=(c,tr)=>{ if(!c){ tr.appendChild(document.createElement('td')); return; } const td=starCell(c.t); tr.appendChild(td); const a=S.starMap.get(c.t)||[]; a.push(td); S.starMap.set(c.t,a); };
-  for(const k of ks){ const r=by.get(k), tr=document.createElement('tr'), row={tr,k,c:[],p:[]};
-    const side=(c,cols,arr)=>{ for(const [f,fmt,fl] of cols){ const td=document.createElement('td'); arr.push(td); if(c){ S.cellMap.set(c.t+'|'+f,[td,fmt,fl]); setCell(td,c[f],fmt,false); } tr.appendChild(td); } };
-    star(r.C,tr); side(r.C,CC,row.c);
-    const st=document.createElement('td'); st.className='k'; st.textContent=fK(k); tr.appendChild(st);
-    side(r.P,PC,row.p); star(r.P,tr);
+  const star=(c,tr)=>{ if(!c){ tr.appendChild(el('td')); return; } const td=starCell(c.t); tr.appendChild(td); const a=S.starMap.get(c.t)||[]; a.push(td); S.starMap.set(c.t,a); };
+  for(const k of ks){ const r=by.get(k), tr=el('tr'), row={tr,k,c:[],p:[]};
+    const side=(c,cols,arr)=>{ for(const [f,fmt,fl] of cols){ const td=el('td'); arr.push(td); if(c){ S.cellMap.set(c.t+'|'+f,[td,fmt,fl]); setCell(td,c[f],fmt,false); } tr.appendChild(td); } };
+    star(r.C,tr); side(r.C,CC,row.c); tr.appendChild(el('td','k',fK(k))); side(r.P,PC,row.p); star(r.P,tr);
     S.chainRows.push(row); frag.appendChild(tr); }
-  tb.appendChild(frag); $('#chainInfo').textContent=`${ks.length} strike`;
+  tb.appendChild(frag); $('#chainInfo').textContent=`${S.und} · ${ks.length} strike`;
   S.lastItm=null; updateItm();
   if(scroll){ const a=S.chainRows.find(r=>r.tr.classList.contains('atm')), w=$('#chainWrap'); if(a) w.scrollTop=Math.max(0,a.tr.offsetTop-w.clientHeight/2); }
 }
@@ -291,24 +663,31 @@ function updateItm(){ const p=S.uPrice; if(!ok(p)||p===S.lastItm||!S.chainRows.l
   let best=null,bd=Infinity; for(const r of S.chainRows){ const d=Math.abs(r.k-p); if(d<bd){bd=d;best=r;} }
   for(const r of S.chainRows){ r.tr.classList.toggle('atm',r===best); r.c.forEach(td=>td.classList.toggle('itm',r.k<p)); r.p.forEach(td=>td.classList.toggle('itm',r.k>p)); } }
 function updChain(c){ for(const [f] of CC){ const e=S.cellMap.get(c.t+'|'+f); if(e) setCell(e[0],c[f],e[1],e[2]); } }
+function renderUStats(){
+  let cv=0,pv=0,co=0,po=0; for(const c of S.contracts.values()){ if(c.type==='C'){cv+=c.vol||0;co+=c.oi||0;} else {pv+=c.vol||0;po+=c.oi||0;} }
+  let atm=null; if(S.selExp&&ok(S.uPrice)){ let best=null,bd=Infinity; for(const c of S.contracts.values()) if(c.exp===S.selExp){ const d=Math.abs(c.strike-S.uPrice); if(d<bd){bd=d;best=c.strike;} }
+    const v=[...S.contracts.values()].filter(c=>c.exp===S.selExp&&c.strike===best&&ok(c.iv)).map(c=>c.iv); if(v.length) atm=v.reduce((a,b)=>a+b)/v.length; }
+  const cls=S.uChg>0?'c-green':S.uChg<0?'c-red':'';
+  $('#ustats').innerHTML=`<div class="card"><div><div class="k">${S.und}</div><div class="v">${f2(S.uPrice)}</div><div class="s ${cls}">${ok(S.uChg)?(S.uChg>0?'+':'')+S.uChg.toFixed(2)+' ('+fSPct(S.uChgPct)+')':'dayanak'}</div></div></div>`+
+    `<div class="card"><div><div class="k">ATM IV</div><div class="v">${fIV(atm)}</div><div class="s">${S.selExp?fExp(S.selExp):''}</div></div></div>`+
+    `<div class="card"><div><div class="k">Put / Call hacim</div><div class="v">${pv&&cv?(pv/cv).toFixed(2):'–'}</div><div class="s">${fInt(cv)} C · ${fInt(pv)} P</div></div>${ring(cv+pv?cv/(cv+pv):0,'var(--green)',cv+pv?Math.round(cv/(cv+pv)*100)+'%':'–')}</div>`+
+    `<div class="card"><div><div class="k">Put / Call OI</div><div class="v">${po&&co?(po/co).toFixed(2):'–'}</div><div class="s">${fInt(co)} C · ${fInt(po)} P</div></div>${ring(co+po?po/(co+po):0,'var(--red)',co+po?Math.round(po/(co+po)*100)+'%':'–')}</div>`; }
 
-/* ---------- screener ---------- */
 const SCR=[
-  {k:'label',h:'Kontrat',g:labelOf,f:x=>x,s:1,l:1},
-  {k:'dte',h:'DTE',g:c=>dteOf(c.exp),f:fInt},
-  {k:'bid',h:'Bid',f:f2,fl:1},{k:'ask',h:'Ask',f:f2,fl:1},{k:'mid',h:'Orta',f:f2,fl:1},
-  {k:'spread',h:'Spread',g:spreadOf,f:fPct},{k:'last',h:'Son',f:f2,fl:1},{k:'chgPct',h:'Gün %',f:fSPct},
-  {k:'vol',h:'Hacim',f:fInt,fl:1},{k:'oi',h:'OI',f:fInt},{k:'volOi',h:'Hacim/OI',g:volOiOf,f:f2},
-  {k:'iv',h:'IV',f:fIV,fl:1},{k:'delta',h:'Δ',f:f3,fl:1},{k:'gamma',h:'Γ',f:f4},{k:'theta',h:'Θ',f:f3},{k:'vega',h:'Vega',f:f3},
-  {k:'be',h:'Başabaş',f:f2},{k:'otm',h:'OTM',g:otmOf,f:fPct}];
+  {k:'label',h:'Kontrat',g:labelOf,f:x=>x,s:1},
+  {k:'dte',h:'DTE',g:c=>dteOf(c.exp),f:fInt,n:1},
+  {k:'bid',h:'Bid',f:f2,fl:1,n:1},{k:'ask',h:'Ask',f:f2,fl:1,n:1},{k:'mid',h:'Orta',f:f2,fl:1,n:1},
+  {k:'spread',h:'Spread',g:spreadOf,f:fPct,n:1},{k:'last',h:'Son',f:f2,fl:1,n:1},{k:'chgPct',h:'Gün %',f:fSPct,n:1},
+  {k:'vol',h:'Hacim',f:fInt,fl:1,n:1},{k:'oi',h:'OI',f:fInt,n:1},{k:'volOi',h:'Hacim/OI',g:volOiOf,f:f2,n:1},
+  {k:'iv',h:'IV',f:fIV,fl:1,n:1},{k:'delta',h:'Δ',f:f3,fl:1,n:1},{k:'gamma',h:'Γ',f:f4,n:1},{k:'theta',h:'Θ',f:f3,n:1},{k:'vega',h:'Vega',f:f3,n:1},
+  {k:'be',h:'Başabaş',f:f2,n:1},{k:'otm',h:'OTM',g:otmOf,f:fPct,n:1}];
 SCR.forEach(c=>{ if(!c.g) c.g=x=>x[c.k]; });
 const IDX_CHG=SCR.findIndex(c=>c.k==='chgPct'), IDX_VOI=SCR.findIndex(c=>c.k==='volOi');
-function buildScrHead(){ const tr=document.createElement('tr'); tr.appendChild(document.createElement('th'));
-  for(const c of SCR){ const th=document.createElement('th'); th.textContent=c.h+(P.sortKey===c.k?(P.sortDir>0?' ▲':' ▼'):''); if(c.l) th.classList.add('l'); if(P.sortKey===c.k) th.classList.add('on');
+function buildScrHead(){ const tr=el('tr'); tr.appendChild(el('th'));
+  for(const c of SCR){ const th=el('th',c.n?'num':'',c.h+(P.sortKey===c.k?(P.sortDir>0?' ▲':' ▼'):'')); if(P.sortKey===c.k) th.classList.add('on');
     th.onclick=()=>{ if(P.sortKey===c.k) P.sortDir*=-1; else { P.sortKey=c.k; P.sortDir=c.s?1:-1; } saveP(); buildScrHead(); S.scrForce=true; }; tr.appendChild(th); }
   $('#scrHead').replaceChildren(tr); }
-const num = v => v===''||v==null ? null : +v;
-function pass(c){ const f=P.f;
+function passScr(c){ const f=P.scr;
   if(f.type!=='all'&&c.type!==f.type) return false;
   const d=dteOf(c.exp); if(num(f.dteMin)!=null&&d<num(f.dteMin)) return false; if(num(f.dteMax)!=null&&d>num(f.dteMax)) return false;
   const ad=ok(c.delta)?Math.abs(c.delta):null; if(num(f.dMin)!=null&&(ad==null||ad<num(f.dMin))) return false; if(num(f.dMax)!=null&&(ad==null||ad>num(f.dMax))) return false;
@@ -318,169 +697,191 @@ function pass(c){ const f=P.f;
   if(f.unusual){ const r=volOiOf(c); if(r==null||r<3||(c.vol||0)<100) return false; } return true; }
 function renderScreener(){
   const col=SCR.find(c=>c.k===P.sortKey)||SCR[8], dir=P.sortDir;
-  const list=[...S.contracts.values()].filter(pass).sort((a,b)=>{ const x=col.g(a),y=col.g(b); if(x==null&&y==null) return 0; if(x==null) return 1; if(y==null) return -1; return (typeof x==='string'?x.localeCompare(y):x-y)*dir; });
+  const list=[...S.contracts.values()].filter(passScr).sort((a,b)=>{ const x=col.g(a),y=col.g(b); if(x==null&&y==null) return 0; if(x==null) return 1; if(y==null) return -1; return (typeof x==='string'?x.localeCompare(y):x-y)*dir; });
   const top=list.slice(0,200), prev=S.scrTop.join('|'); S.scrTop=top.map(c=>c.t);
-  $('#scrInfo').textContent=`${list.length.toLocaleString('en-US')} sonuç${list.length>200?' · ilk 200':''}`;
+  $('#scrInfo').textContent=`${S.und} · ${list.length.toLocaleString('en-US')} sonuç${list.length>200?' · ilk 200':''}`;
   const tb=$('#scrBody'), keep=new Set(S.scrTop); for(const [t,r] of S.scrRows) if(!keep.has(t)){ r.tr.remove(); S.scrRows.delete(t); }
   const trs=[]; for(const c of top){ let r=S.scrRows.get(c.t);
-    if(!r){ const tr=document.createElement('tr'); const star=starCell(c.t); tr.appendChild(star);
-      const tds=SCR.map(sc=>{ const td=document.createElement('td'); if(sc.l) td.className='l'; tr.appendChild(td); return td; });
-      tr.style.cursor='pointer'; tr.onclick=()=>{ S.selExp=c.exp; buildExpSel(); buildChain(true); tab('chain'); }; r={tr,tds,star}; S.scrRows.set(c.t,r); }
+    if(!r){ const tr=el('tr'); const star=starCell(c.t); tr.appendChild(star);
+      const tds=SCR.map(sc=>{ const td=el('td',sc.n?'num':''); tr.appendChild(td); return td; });
+      tr.style.cursor='pointer'; tr.onclick=()=>{ S.selExp=c.exp; buildExpSel(); buildChain(true); view('chain'); }; r={tr,tds,star}; S.scrRows.set(c.t,r); }
     updScr(c,r); trs.push(r.tr); }
   const e=tb.querySelector('.empty'); if(e) e.parentNode.remove();
   if(prev!==S.scrTop.join('|')||tb.children.length!==trs.length) tb.append(...trs);
   if(!top.length) tb.innerHTML='<tr><td colspan="19" class="empty">Filtrelere uyan kontrat yok</td></tr>'; }
 function updScr(c,r){ SCR.forEach((sc,i)=>setCell(r.tds[i],sc.g(c),sc.f,!!sc.fl));
-  const vo=volOiOf(c); r.tds[IDX_VOI].classList.toggle('warn',vo!=null&&vo>=3&&(c.vol||0)>=100);
-  r.tds[IDX_CHG].classList.toggle('pos',c.chgPct>0); r.tds[IDX_CHG].classList.toggle('neg',c.chgPct<0); }
+  const vo=volOiOf(c); r.tds[IDX_VOI].classList.toggle('c-yellow',vo!=null&&vo>=3&&(c.vol||0)>=100);
+  r.tds[IDX_CHG].classList.toggle('c-green',c.chgPct>0); r.tds[IDX_CHG].classList.toggle('c-red',c.chgPct<0); }
+const sMap={sType:'type',sDteMin:'dteMin',sDteMax:'dteMax',sDMin:'dMin',sDMax:'dMax',sOi:'oi',sVol:'vol',sSpr:'spr',sIvMin:'ivMin',sIvMax:'ivMax',sUnusual:'unusual'};
+function fillScr(){ for(const [id,k] of Object.entries(sMap)){ const e=$('#'+id); e[e.type==='checkbox'?'checked':'value']=P.scr[k]; } }
+for(const [id,k] of Object.entries(sMap)){ const e=$('#'+id); e.addEventListener('input',()=>{ P.scr[k]=e.type==='checkbox'?e.checked:e.value; saveP(); S.scrForce=true; paintPresetDirty(); }); }
 
-/* ---------- tracked table ---------- */
 const TRK=[
-  {k:'label',h:'Kontrat',g:c=>`${fExp(c.exp)} ${fK(c.strike)} ${c.type==='C'?'Call':'Put'}`,f:x=>x,l:1},
-  {k:'dte',h:'DTE',g:c=>dteOf(c.exp),f:fInt},
-  {k:'bid',h:'Bid',f:f2,fl:1},{k:'ask',h:'Ask',f:f2,fl:1},{k:'mid',h:'Orta',f:f2,fl:1},{k:'last',h:'Son',f:f2,fl:1},
-  {k:'chgPct',h:'Gün %',f:fSPct},{k:'vol',h:'Hacim',f:fInt,fl:1},{k:'oi',h:'OI',f:fInt},
-  {k:'iv',h:'IV',f:fIV,fl:1},{k:'delta',h:'Δ',f:f3,fl:1},{k:'theta',h:'Θ',f:f3},{k:'be',h:'Başabaş',f:f2},{k:'otm',h:'OTM',g:otmOf,f:fPct}];
+  {k:'label',h:'Kontrat',g:c=>`${fExp(c.exp)} ${fK(c.strike)} ${c.type==='C'?'Call':'Put'}`,f:x=>x},
+  {k:'dte',h:'DTE',g:c=>dteOf(c.exp),f:fInt,n:1},
+  {k:'bid',h:'Bid',f:f2,fl:1,n:1},{k:'ask',h:'Ask',f:f2,fl:1,n:1},{k:'mid',h:'Orta',f:f2,fl:1,n:1},{k:'last',h:'Son',f:f2,fl:1,n:1},
+  {k:'chgPct',h:'Gün %',f:fSPct,n:1},{k:'vol',h:'Hacim',f:fInt,fl:1,n:1},{k:'oi',h:'OI',f:fInt,n:1},
+  {k:'iv',h:'IV',f:fIV,fl:1,n:1},{k:'delta',h:'Δ',f:f3,fl:1,n:1},{k:'theta',h:'Θ',f:f3,n:1},{k:'be',h:'Başabaş',f:f2,n:1},{k:'otm',h:'OTM',g:otmOf,f:fPct,n:1}];
 TRK.forEach(c=>{ if(!c.g) c.g=x=>x[c.k]; });
-function buildTrkHead(){ const tr=document.createElement('tr'); tr.appendChild(document.createElement('th'));
-  for(const c of TRK){ const th=document.createElement('th'); th.textContent=c.h; if(c.l) th.className='l'; th.style.cursor='default'; tr.appendChild(th); } $('#trkHead').replaceChildren(tr); }
+function buildTrkHead(){ const tr=el('tr'); tr.appendChild(el('th')); for(const c of TRK) tr.appendChild(el('th',c.n?'num':'',c.h)); $('#trkHead').replaceChildren(tr); }
 function renderTracked(){
   const tb=$('#trkBody'); tb.innerHTML=''; S.trkRows.clear();
   if(!P.tracked.length){ tb.innerHTML=`<tr><td colspan="${TRK.length+1}" class="empty">Henüz takip edilen kontrat yok</td></tr>`; return; }
   const groups=new Map(); for(const t of P.tracked){ const pt=parseTicker(t); if(!pt) continue; if(!groups.has(pt.und)) groups.set(pt.und,[]);
     let c=S.trk.get(t)||S.contracts.get(t); if(!c){ c={t,und:pt.und,type:pt.type,strike:pt.strike,exp:pt.exp}; S.trk.set(t,c); } groups.get(pt.und).push(c); }
   for(const [und,list] of [...groups].sort((a,b)=>a[0].localeCompare(b[0]))){
-    const g=document.createElement('tr'); g.className='grp'; const gtd=document.createElement('td'); gtd.colSpan=TRK.length+1; g.appendChild(gtd); g._und=und; tb.appendChild(g); paintGroup(g);
+    const g=el('tr','grp'); const gtd=el('td'); gtd.colSpan=TRK.length+1; g.appendChild(gtd); g._und=und; tb.appendChild(g); paintGroup(g);
     list.sort((a,b)=>a.exp.localeCompare(b.exp)||a.strike-b.strike||a.type.localeCompare(b.type));
-    for(const c of list){ const tr=document.createElement('tr'); tr.appendChild(starCell(c.t));
-      const tds=TRK.map(sc=>{ const td=document.createElement('td'); if(sc.l) td.className='l'; tr.appendChild(td); return td; });
-      tr.style.cursor='pointer'; tr.title='Zincirde göster'; tr.onclick=()=>{ if(c.und!==S.und){ S.pendingExp=c.exp; tab('chain'); load(c.und); } else { S.selExp=c.exp; buildExpSel(); buildChain(true); tab('chain'); } };
-      S.trkRows.set(c.t,{tr,tds,g}); tb.appendChild(tr); updTrk(c); } }
-}
+    for(const c of list){ const tr=el('tr'); tr.appendChild(starCell(c.t));
+      const tds=TRK.map(sc=>{ const td=el('td',sc.n?'num':''); tr.appendChild(td); return td; });
+      tr.style.cursor='pointer'; tr.onclick=()=>openInChain(c.und,c.exp);
+      S.trkRows.set(c.t,{tr,tds,g}); tb.appendChild(tr); updTrk(c); } } }
 function paintGroup(g){ const u=S.trkU.get(g._und)||{}, s=S.stocks.get(g._und)||{}; const price=s.price??u.price, chg=s.chgPct??u.chgPct;
-  g.firstChild.innerHTML=`<b>${g._und}</b>${f2(price)} <span class="${chg>0?'pos':chg<0?'neg':''}">${fSPct(chg)}</span>`; }
+  g.firstChild.innerHTML=`<b>${g._und}</b>${f2(price)} <span class="${chg>0?'c-green':chg<0?'c-red':''}">${fSPct(chg)}</span>`; }
 function updTrk(c){ const r=S.trkRows.get(c.t); if(!r) return; TRK.forEach((sc,i)=>setCell(r.tds[i],sc.g(c),sc.f,!!sc.fl));
-  const i=TRK.findIndex(x=>x.k==='chgPct'); r.tds[i].classList.toggle('pos',c.chgPct>0); r.tds[i].classList.toggle('neg',c.chgPct<0); }
+  const i=TRK.findIndex(x=>x.k==='chgPct'); r.tds[i].classList.toggle('c-green',c.chgPct>0); r.tds[i].classList.toggle('c-red',c.chgPct<0); }
 
-/* ---------- stocks table ---------- */
-const ST=[{k:'sym',h:'Sembol',f:x=>x,l:1},{k:'price',h:'Fiyat',f:f2,fl:1},{k:'chg',h:'Değişim',f:v=>ok(v)?(v>0?'+':'')+v.toFixed(2):'–'},{k:'chgPct',h:'%',f:fSPct},
-  {k:'bid',h:'Bid',f:f2,fl:1},{k:'ask',h:'Ask',f:f2,fl:1},{k:'high',h:'Gün yüksek',f:f2},{k:'low',h:'Gün düşük',f:f2},{k:'vwap',h:'VWAP',f:f2},{k:'vol',h:'Hacim',f:fInt,fl:1},{k:'n',h:'Takip',g:s=>P.tracked.filter(t=>t.startsWith('O:'+s.sym)&&parseTicker(t)?.und===s.sym).length||null,f:v=>v?v+' kontrat':''}];
+const ST=[{k:'sym',h:'Sembol',f:x=>x},{k:'price',h:'Fiyat',f:f2,fl:1,n:1},{k:'chg',h:'Değişim',f:v=>ok(v)?(v>0?'+':'')+v.toFixed(2):'–',n:1},{k:'chgPct',h:'%',f:fSPct,n:1},
+  {k:'bid',h:'Bid',f:f2,fl:1,n:1},{k:'ask',h:'Ask',f:f2,fl:1,n:1},{k:'high',h:'Gün yüksek',f:f2,n:1},{k:'low',h:'Gün düşük',f:f2,n:1},{k:'vwap',h:'VWAP',f:f2,n:1},{k:'vol',h:'Hacim',f:fInt,fl:1,n:1},
+  {k:'n',h:'Takip',g:s=>P.tracked.filter(t=>parseTicker(t)?.und===s.sym).length||null,f:v=>v?v+' kontrat':'',n:1}];
 ST.forEach(c=>{ if(!c.g) c.g=x=>x[c.k]; });
-function buildStocks(){ const h=document.createElement('tr'); for(const c of ST){ const th=document.createElement('th'); th.textContent=c.h; if(c.l) th.className='l'; th.style.cursor='default'; h.appendChild(th); }
-  $('#stHead').replaceChildren(h); const tb=$('#stBody'); tb.innerHTML=''; S.stRows.clear();
+function buildStocks(){ const h=el('tr'); for(const c of ST) h.appendChild(el('th',c.n?'num':'',c.h)); $('#stHead').replaceChildren(h);
+  const tb=$('#stBody'); tb.innerHTML=''; S.stRows.clear();
   for(const sym of watchList()){ if(!S.stocks.has(sym)) S.stocks.set(sym,{sym});
-    const tr=document.createElement('tr'); tr.style.cursor='pointer'; tr.title='Opsiyon zincirini aç'; tr.onclick=()=>{ tab('chain'); load(sym); };
-    const tds=ST.map(c=>{ const td=document.createElement('td'); if(c.l) td.className='l'; tr.appendChild(td); return td; });
+    const tr=el('tr'); tr.style.cursor='pointer'; tr.title='Opsiyon zincirini aç'; tr.onclick=()=>{ view('chain'); load(sym); };
+    const tds=ST.map(c=>{ const td=el('td',c.n?'num':''); tr.appendChild(td); return td; });
     S.stRows.set(sym,{tr,tds}); tb.appendChild(tr); updStock(sym); } }
 function updStock(sym){ const s=S.stocks.get(sym), r=S.stRows.get(sym); if(!s||!r) return;
-  ST.forEach((c,i)=>setCell(r.tds[i],c.g(s),c.f,!!c.fl)); for(const i of [2,3]){ r.tds[i].classList.toggle('pos',s.chg>0); r.tds[i].classList.toggle('neg',s.chg<0); }
-  r.tr.classList.toggle('atm',sym===S.und); }
+  ST.forEach((c,i)=>setCell(r.tds[i],c.g(s),c.f,!!c.fl)); for(const i of [2,3]){ r.tds[i].classList.toggle('c-green',s.chg>0); r.tds[i].classList.toggle('c-red',s.chg<0); }
+  r.tds[0].style.fontWeight=sym===S.und?'700':''; r.tds[0].style.color=sym===S.und?'var(--accent)':''; }
 
-/* ---------- summary ---------- */
-function renderStats(){
-  let cv=0,pv=0,co=0,po=0; for(const c of S.contracts.values()){ if(c.type==='C'){cv+=c.vol||0;co+=c.oi||0;} else {pv+=c.vol||0;po+=c.oi||0;} }
-  let atm=null; if(S.selExp&&ok(S.uPrice)){ let best=null,bd=Infinity; for(const c of S.contracts.values()) if(c.exp===S.selExp){ const d=Math.abs(c.strike-S.uPrice); if(d<bd){bd=d;best=c.strike;} }
-    const v=[...S.contracts.values()].filter(c=>c.exp===S.selExp&&c.strike===best&&ok(c.iv)).map(c=>c.iv); if(v.length) atm=v.reduce((a,b)=>a+b)/v.length; }
-  const cls=S.uChg>0?'pos':S.uChg<0?'neg':'';
-  const items=[[S.und,f2(S.uPrice),ok(S.uChg)?`<span class="${cls}">${S.uChg>0?'+':''}${S.uChg.toFixed(2)} (${fSPct(S.uChgPct)})</span>`:'dayanak'],
-    ['ATM IV',fIV(atm),S.selExp?fExp(S.selExp):''],['Put/Call hacim',pv&&cv?(pv/cv).toFixed(2):'–',`${fInt(cv)} C · ${fInt(pv)} P`],
-    ['Put/Call OI',po&&co?(po/co).toFixed(2):'–',`${fInt(co)} C · ${fInt(po)} P`],['Kontrat',fInt(S.contracts.size),`${P.tracked.length} takipte`],
-    ['Son güncelleme',S.lastUpd?new Date(S.lastUpd).toLocaleTimeString('tr-TR'):'–',`${CFG.pollMs/1000} sn aralık`]];
-  $('#stats').innerHTML=items.map(([k,v,s])=>`<div><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
-  $('#rate').textContent=S.rate?`${S.rate} değişim/sn`:''; }
-
-/* ---------- charts ---------- */
 function renderCharts(){
-  if(typeof Chart==='undefined'){ $('.charts').innerHTML='<p class="meta">Grafik kütüphanesi yüklenemedi.</p>'; return; }
+  if(typeof Chart==='undefined'){ $('.charts').innerHTML='<p class="c-muted">Grafik kütüphanesi yüklenemedi.</p>'; return; }
   const rows=[...S.contracts.values()].filter(c=>c.exp===S.selExp), ks=[...new Set(rows.map(c=>c.strike))].sort((a,b)=>a-b);
   const pick=(t,f)=>ks.map(k=>{ const c=rows.find(r=>r.strike===k&&r.type===t); return c&&ok(c[f])?c[f]:null; });
-  const css=getComputedStyle(document.documentElement), line=css.getPropertyValue('--line').trim(), mut=css.getPropertyValue('--muted').trim();
-  const opt={animation:false,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:mut,boxWidth:10,boxHeight:10}}},
-    scales:{x:{ticks:{color:mut,maxRotation:0,autoSkip:true},grid:{display:false},border:{color:line}},y:{ticks:{color:mut},grid:{color:line},border:{display:false}}}};
-  const lbl=ks.map(fK);
-  const mk=(id,type,ds)=>{ const ch=S.charts[id]; if(ch){ ch.data.labels=lbl; ch.data.datasets.forEach((d,i)=>d.data=ds[i].data); ch.update('none'); return; } S.charts[id]=new Chart($('#'+id),{type,data:{labels:lbl,datasets:ds},options:opt}); };
-  const pc=d=>d.map(v=>v==null?null:+(v*100).toFixed(2));
-  mk('ivChart','line',[{label:'Call IV %',data:pc(pick('C','iv')),borderColor:'#4ea1ff',borderWidth:1.5,pointRadius:0,spanGaps:true},{label:'Put IV %',data:pc(pick('P','iv')),borderColor:'#f87171',borderWidth:1.5,pointRadius:0,spanGaps:true}]);
-  mk('oiChart','bar',[{label:'Call OI',data:pick('C','oi'),backgroundColor:'rgba(78,161,255,.75)'},{label:'Put OI',data:pick('P','oi'),backgroundColor:'rgba(248,113,113,.75)'}]);
-  mk('vlChart','bar',[{label:'Call hacim',data:pick('C','vol'),backgroundColor:'rgba(78,161,255,.75)'},{label:'Put hacim',data:pick('P','vol'),backgroundColor:'rgba(248,113,113,.75)'}]);
+  const opt={animation:false,responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8c8e96',boxWidth:10,boxHeight:10}}},
+    scales:{x:{ticks:{color:'#8c8e96',maxRotation:0,autoSkip:true},grid:{display:false}},y:{ticks:{color:'#8c8e96'},grid:{color:'#2c2d32'}}}};
+  const mk=(id,type,labels,ds)=>{ const ch=S.charts[id]; if(ch){ ch.data.labels=labels; ch.data.datasets.forEach((d,i)=>d.data=ds[i].data); ch.update('none'); return; } S.charts[id]=new Chart($('#'+id),{type,data:{labels,datasets:ds},options:opt}); };
+  const lbl=ks.map(fK), pc=d=>d.map(v=>v==null?null:+(v*100).toFixed(2));
+  mk('ivChart','line',lbl,[{label:'Call IV %',data:pc(pick('C','iv')),borderColor:'#22e07a',borderWidth:1.5,pointRadius:0,spanGaps:true},{label:'Put IV %',data:pc(pick('P','iv')),borderColor:'#ff4b55',borderWidth:1.5,pointRadius:0,spanGaps:true}]);
+  mk('oiChart','bar',lbl,[{label:'Call OI',data:pick('C','oi'),backgroundColor:'#22e07a'},{label:'Put OI',data:pick('P','oi'),backgroundColor:'#ff4b55'}]);
+  mk('vlChart','bar',lbl,[{label:'Call hacim',data:pick('C','vol'),backgroundColor:'#22e07a'},{label:'Put hacim',data:pick('P','vol'),backgroundColor:'#ff4b55'}]);
+  const b=new Map(); for(const f of FILTERED){ const m=Math.floor(f.t/6e4)*6e4; const x=b.get(m)||{c:0,p:0}; if(f.cp==='C') x.c+=f.prem; else x.p+=f.prem; b.set(m,x); }
+  const mins=[...b.keys()].sort((a,c)=>a-c).slice(-60);
+  mk('flowChart','bar',mins.map(m=>new Date(m).toLocaleTimeString('tr-TR',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit'})),[{label:'Call prim',data:mins.map(m=>Math.round(b.get(m).c)),backgroundColor:'#22e07a'},{label:'Put prim',data:mins.map(m=>-Math.round(b.get(m).p)),backgroundColor:'#ff4b55'}]);
   const e=S.selExp?` · ${S.und} ${fExp(S.selExp)}`:''; $('#ivTitle').textContent='IV eğrisi'+e; $('#oiTitle').textContent='Açık pozisyon'+e; $('#vlTitle').textContent='Hacim'+e; }
 
-/* ---------- render loop ---------- */
-let cur='chain';
-function tab(t){ cur=t; document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));
-  if(t==='screener') S.scrForce=true; if(t==='charts') S.lastCharts=0; if(t==='tracked') S.trkForce=true; }
+/* ---------- views + render loop ---------- */
+const VTITLE={flow:'Opsiyon akışı',chain:'Opsiyon zinciri',screener:'Kontrat tarayıcı',tracked:'Takip listem',stocks:'Hisseler',charts:'Grafikler'};
+let cur='flow';
+function view(v){ cur=v; P.view=v; saveP(); document.querySelectorAll('.rail [data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v)); $('#vtitle').textContent=VTITLE[v];
+  $('#app').classList.toggle('nofeed',v!=='flow'); $('#openFilters').style.display=v==='flow'?'':'none';
+  if(v==='screener') S.scrForce=true; if(v==='charts') S.lastCharts=0; if(v==='tracked') S.trkForce=true; if(v==='flow') S.flowDirty=true; if(v==='chain') renderUStats(); }
+document.querySelectorAll('.rail [data-view]').forEach(b=>b.onclick=()=>view(b.dataset.view));
 function flush(){ const now=performance.now();
   for(const t of S.dirty){ const c=S.contracts.get(t)||S.trk.get(t); if(!c) continue;
-    if(c.und===S.und && c.exp===S.selExp) updChain(S.contracts.get(t)||c);
+    if(c.und===S.und&&c.exp===S.selExp) updChain(S.contracts.get(t)||c);
     if(cur==='screener'){ const r=S.scrRows.get(t); if(r) updScr(c,r); }
     if(cur==='tracked') updTrk(S.trk.get(t)||c); }
   S.dirty.clear();
   for(const s of S.stDirty){ updStock(s); if(cur==='tracked') for(const r of S.trkRows.values()) if(r.g._und===s) paintGroup(r.g); } S.stDirty.clear();
   updateItm();
+  if(cur==='flow'&&S.flowDirty&&now-S.lastFlowRender>500){ renderFlow(); S.lastFlowRender=now; }
   if(cur==='screener'&&(S.scrForce||now-S.lastScr>1500)){ renderScreener(); S.lastScr=now; S.scrForce=false; }
   if(cur==='tracked'&&S.trkForce){ renderTracked(); S.trkForce=false; }
-  if(cur==='charts'&&now-S.lastCharts>3000){ renderCharts(); S.lastCharts=now; } }
+  if(cur==='charts'&&now-S.lastCharts>3000){ FILTERED=S.flows.filter(f=>passFlow(f,P.flow)); renderCharts(); S.lastCharts=now; } }
 setInterval(flush,250);
-setInterval(()=>{ S.rate=S.upd; S.upd=0; renderStats(); },1000);
+setInterval(()=>{ S.rate=S.upd; S.upd=0; $('#rate').textContent=S.lastUpd?`Son: ${new Date(S.lastUpd).toLocaleTimeString('tr-TR')}`:''; if(cur==='chain') renderUStats(); },1000);
 setInterval(()=>dteCache.clear(),3600e3);
 
-/* ---------- polling (server proxies Massive; nothing secret in the browser) ---------- */
+/* ---------- live polling for the selected symbol ---------- */
 async function poll(){
   if(DEMO||S.polling) return; if(document.hidden){ setStatus('paused','Arka planda duraklatıldı'); return; }
   S.polling=true; const gen=S.gen;
   const jobs=[fetchStocks(), S.selExp?fetchChain(S.selExp).then(r=>{ if(gen===S.gen) r.forEach(x=>ingestOption(x,S.contracts)); }):Promise.resolve(), fetchTracked()];
   const res=await Promise.allSettled(jobs); S.polling=false; if(gen!==S.gen) return;
   const err=res.find(r=>r.status==='rejected');
-  if(err && res.every(r=>r.status==='rejected')){ S.fails++; setStatus('error'); if(S.fails>2) note('Veri alınamıyor: '+err.reason.message,true); return; }
+  if(err&&res.every(r=>r.status==='rejected')){ S.fails++; setStatus('error'); if(S.fails>2) note('Veri alınamıyor: '+err.reason.message,true); return; }
   S.fails=0; S.lastUpd=Date.now(); setStatus(S.delayed?'delayed':'live');
-  if(err) note('Bazı veriler alınamadı: '+err.reason.message,true); else if($('#msg').classList.contains('err')) note('');
-  if(expiries().length!==$('#expSel').options.length) buildExpSel();
-}
+  if(err) note('Bazı veriler alınamadı: '+err.reason.message,true);
+  if(expiries().length!==$('#expSel').options.length) buildExpSel(); }
 async function fullRefresh(){ if(DEMO||S.loadingFull||document.hidden) return; S.loadingFull=true; const gen=S.gen;
   try{ const r=await fetchChain(); if(gen===S.gen){ r.forEach(x=>ingestOption(x,S.contracts)); if(expiries().length!==$('#expSel').options.length) buildExpSel(); S.scrForce=true; } }
   catch(e){ note('Zincir yenilenemedi: '+e.message,true); } finally{ S.loadingFull=false; } }
 
-/* ---------- demo (local preview only) ---------- */
+/* ============================================================
+   DEMO DATA (sample market, for previewing without a paid plan)
+   ============================================================ */
 const erf=x=>{ const s=Math.sign(x); x=Math.abs(x); const t=1/(1+.3275911*x); return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x)); };
 const N=x=>.5*(1+erf(x/Math.SQRT2)), nd=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
 function bs(Sp,K,T,v,type,r=.04){ T=Math.max(T,1/365); const d1=(Math.log(Sp/K)+(r+v*v/2)*T)/(v*Math.sqrt(T)), d2=d1-v*Math.sqrt(T), df=Math.exp(-r*T), call=type==='C';
   const price=call?Sp*N(d1)-K*df*N(d2):K*df*N(-d2)-Sp*N(-d1);
   return {price:Math.max(price,.01),delta:call?N(d1):N(d1)-1,gamma:nd(d1)/(Sp*v*Math.sqrt(T)),theta:(-Sp*nd(d1)*v/(2*Math.sqrt(T))+(call?-1:1)*r*K*df*N(call?d2:-d2))/365,vega:Sp*nd(d1)*Math.sqrt(T)/100}; }
-const DPX={SPY:665,QQQ:600,IWM:245,AAPL:255,MSFT:510,NVDA:185,TSLA:430,AMZN:225,META:720,AMD:240};
+const UNIV={SPY:665,QQQ:600,IWM:245,DIA:470,XLF:52,XLE:92,SMH:300,TLT:90,GLD:380,AAPL:255,MSFT:510,NVDA:185,TSLA:430,AMZN:225,META:720,AMD:240,GOOGL:280,NFLX:1150,AVGO:350,PLTR:180,COIN:330,MSTR:330,UBER:95,BA:215,JPM:300,BAC:52,INTC:37,MU:210,SOFI:28,HOOD:130,DIS:112,NKE:65,PYPL:68,XOM:115,WMT:105,COST:920,CRM:245,ORCL:230,SHOP:160,SMCI:45};
+const WEIGHT=s=>({SPY:9,QQQ:7,NVDA:6,TSLA:6,IWM:4,AAPL:4,AMD:3,META:3,AMZN:3,MSFT:3,PLTR:3,COIN:2,MSTR:2,GOOGL:2,SMH:2}[s]||1);
+const EARN={}; for(const s of Object.keys(UNIV)) EARN[s]=ETFS.has(s)?null:(Math.random()<.85?Math.floor(Math.random()*70):null);
+const DSPOT={...UNIV};
+const RND=(a,b)=>a+Math.random()*(b-a);
+function pickW(){ const ks=Object.keys(UNIV); const tot=ks.reduce((a,k)=>a+WEIGHT(k),0); let r=Math.random()*tot; for(const k of ks){ r-=WEIGHT(k); if(r<=0) return k; } return 'SPY'; }
+function nextFridays(n){ const out=[]; const d=new Date(); for(let i=0;i<400&&out.length<n;i++){ const x=new Date(d.getTime()+i*864e5); if(x.getUTCDay()===5) out.push(iso(x)); } return out; }
+const DEXPS=nextFridays(30);
+const strikeStep=p=>p>500?5:p>150?2.5:p>50?1:.5;
+let lastDemoFlows=[];
+function genFlow(t){
+  let f;
+  if(lastDemoFlows.length&&Math.random()<.15){ const b=lastDemoFlows[Math.floor(Math.random()*lastDemoFlows.length)]; f={...b}; delete f.id; }
+  else { const sym=pickW(), spot=DSPOT[sym], cp=Math.random()<.56?'C':'P';
+    const di=Math.min(DEXPS.length-1,Math.floor(Math.pow(Math.random(),2.2)*DEXPS.length)); const exp=DEXPS[di];
+    const step=strikeStep(spot); const k=Math.max(step,Math.round(spot*(1+(cp==='C'?1:-1)*Math.abs(RND(-.04,.12)))/step)*step);
+    f={sym,cp,exp,strike:+k.toFixed(2),earn:EARN[sym]}; }
+  const spot=DSPOT[f.sym], T=dteOf(f.exp)/365, iv=RND(.22,.65);
+  const theo=bs(spot,f.strike,T,iv,f.cp).price; const sp=Math.max(.01,theo*.03);
+  const sideR=Math.random(); const side=sideR<.14?'AA':sideR<.5?'A':sideR<.63?'M':sideR<.9?'B':'BB';
+  const price=Math.max(.01,+(theo+({AA:sp*1.2,A:sp/2,M:0,B:-sp/2,BB:-sp*1.2}[side])).toFixed(2));
+  const size=Math.max(1,Math.round(Math.exp(RND(3,7.2))*(Math.random()<.05?RND(3,12):1)));
+  const tr=Math.random(); const type=tr<.48?'Sweep':tr<.72?'Split':'Block';
+  const oi=Math.round(Math.exp(RND(4,10))); const vol=size+Math.round(Math.exp(RND(3,9.5)));
+  f={...f,t,spot,price,size,side,type,oi,vol};
+  lastDemoFlows.push(f); if(lastDemoFlows.length>60) lastDemoFlows.shift();
+  return f; }
+function startDemoFlow(){
+  S.flowTimers.forEach(clearTimeout); S.flowTimers=[]; S.flows=[]; S.repeat.clear();
+  const now=Date.now(); const seed=[]; let t=now; for(let i=0;i<450;i++){ t-=RND(4000,45000); seed.push(t); }
+  for(const ts of seed.reverse()) addFlow(genFlow(ts),false);
+  const tick=()=>{ for(const s in DSPOT) DSPOT[s]*=1+(Math.random()-.5)*.0008; addFlow(genFlow(Date.now()),true); S.lastUpd=Date.now(); S.flowTimers.push(setTimeout(tick,RND(600,2600))); };
+  tick(); }
 function dPrice(c){ const m=Math.log(c.strike/S.uPrice); c.iv=Math.max(.08,c.base+.35*m*m-(c.type==='P'?.25*m:.1*m)+(Math.random()-.5)*.004);
   const g=bs(S.uPrice,c.strike,dteOf(c.exp)/365,c.iv,c.type), sp=Math.max(.01,g.price*.015+.02);
   c.mid=+g.price.toFixed(2); c.bid=Math.max(0,+(c.mid-sp/2).toFixed(2)); c.ask=+(c.mid+sp/2).toFixed(2);
   Object.assign(c,{delta:g.delta,gamma:g.gamma,theta:g.theta,vega:g.vega,be:c.type==='C'?c.strike+c.mid:c.strike-c.mid}); }
-function startDemo(){
-  for(const sym of watchList()){ const p=DPX[sym]||50+Math.random()*300, prev=p*(1+(Math.random()-.5)*.03);
+function startDemoChain(){
+  for(const sym of watchList()){ const p=DSPOT[sym]||UNIV[sym]||50+Math.random()*300, prev=p*(1+(Math.random()-.5)*.03);
     const s={sym,price:p,prev,bid:p-.01,ask:p+.01,high:Math.max(p,prev)*1.008,low:Math.min(p,prev)*.992,vwap:(p+prev)/2,vol:Math.round(1e6+Math.random()*4e7)}; S.stocks.set(sym,s); stockDerived(s); }
-  const step=S.uPrice>500?5:S.uPrice>150?2.5:S.uPrice>50?1:.5, base=.14+Math.random()*.2, lo=S.uPrice*(1-CFG.strikePct/100), hi=S.uPrice*(1+CFG.strikePct/100);
-  const exps=[]; for(let i=1;i<=CFG.maxDte;i++){ const x=new Date(Date.now()+i*864e5); if(x.getUTCDay()===5) exps.push(iso(x)); }
-  for(const exp of exps) for(let k=Math.ceil(lo/step)*step;k<=hi;k+=step) for(const type of ['C','P']){
-    const t=`O:${S.und}${exp.slice(2).replace(/-/g,'')}${type}${String(Math.round(k*1000)).padStart(8,'0')}`, dist=Math.abs(k-S.uPrice)/S.uPrice;
+  const step=strikeStep(S.uPrice), base=.14+Math.random()*.2, lo=S.uPrice*(1-CFG.strikePct/100), hi=S.uPrice*(1+CFG.strikePct/100);
+  for(const exp of DEXPS.slice(0,9)) for(let k=Math.ceil(lo/step)*step;k<=hi;k+=step) for(const type of ['C','P']){
+    const t=optTicker(S.und,exp,type,k), dist=Math.abs(k-S.uPrice)/S.uPrice;
     const c={t,und:S.und,type,strike:+k.toFixed(2),exp,base:base+dteOf(exp)/3000,oi:Math.round(Math.exp(-dist*25)*20000*Math.random()+50),vol:Math.round(Math.exp(-dist*30)*8000*Math.random())};
     if(Math.random()<.02) c.vol=c.oi*(3+Math.random()*4); dPrice(c); c.last=c.mid; c.chgPct=(Math.random()-.5)*40; S.contracts.set(t,c); }
   for(const t of P.tracked){ const c=S.contracts.get(t); if(c) S.trk.set(t,c); }
   const all=[...S.contracts.values()], s0=S.stocks.get(S.und);
   S.timers.push(setInterval(()=>{ s0.price*=1+(Math.random()-.5)*.0006; stockDerived(s0);
     const pool=all.filter(c=>c.exp===S.selExp||isTracked(c.t));
-    for(let i=0;i<25;i++){ const c=pool.length&&Math.random()<.8?pool[Math.floor(Math.random()*pool.length)]:all[Math.floor(Math.random()*all.length)];
+    for(let i=0;i<20;i++){ const c=pool.length&&Math.random()<.8?pool[Math.floor(Math.random()*pool.length)]:all[Math.floor(Math.random()*all.length)];
       dPrice(c); if(Math.random()<.3){ c.vol+=Math.ceil(Math.random()*20); c.last=Math.random()<.5?c.bid:c.ask; } S.dirty.add(c.t); S.upd++; }
     for(const s of S.stocks.values()) if(s!==s0&&Math.random()<.4){ s.price*=1+(Math.random()-.5)*.001; s.vol+=Math.round(Math.random()*500); stockDerived(s); S.upd++; }
-    S.lastUpd=Date.now(); },CFG.pollMs/4));
-}
+    S.lastUpd=Date.now(); },500)); }
 
-/* ---------- load an underlying ---------- */
+/* ---------- load an underlying (chain / screener) ---------- */
 async function load(und){
   und=(und||'').trim().toUpperCase(); if(!und) return;
   S.gen++; const gen=S.gen; S.timers.forEach(clearInterval); S.timers=[];
-  S.und=und; P.und=und; saveP(); $('#tk').value=und; renderChips(); note('');
+  S.und=und; P.und=und; saveP(); $('#tk').value='';
   S.contracts.clear(); S.dirty.clear(); S.scrRows.clear(); $('#scrBody').innerHTML=''; S.scrTop=[]; S.selExp=null;
-  S.uPrice=null; S.uChg=null; S.uChgPct=null; S.delayed=null; S.stocks.clear();
+  S.uPrice=null; S.uChg=null; S.uChgPct=null; S.delayed=null;
   buildStocks(); S.trkForce=true;
-  if(DEMO){ S.uPrice=DPX[und]||100+Math.random()*200; setStatus('demo'); startDemo(); takePending(); buildExpSel(); buildChain(true); S.scrForce=true; buildStocks(); return; }
-  setStatus('loading'); $('#chainBody').innerHTML='<tr><td colspan="17" class="empty">Yükleniyor…</td></tr>';
+  if(DEMO){ S.uPrice=DSPOT[und]||UNIV[und]||100+Math.random()*200; startDemoChain(); takePending(); buildExpSel(); buildChain(true); S.scrForce=true; buildStocks(); return; }
+  $('#chainBody').innerHTML='<tr><td colspan="17" class="empty">Yükleniyor…</td></tr>';
   try{
     try{ await fetchStocks(); }catch(e){ note('Hisse verisi alınamadı: '+e.message,true); }
     if(!ok(S.uPrice)){ try{ const j=await massive(`v2/aggs/ticker/${und}/prev`); const b=j.results&&j.results[0]; if(b) S.uPrice=b.c; }catch(e){} }
@@ -494,30 +895,33 @@ async function load(und){
 }
 function takePending(){ if(S.pendingExp){ S.selExp=S.pendingExp; S.pendingExp=null; } }
 
-/* ---------- UI ---------- */
-function renderChips(){ const el=$('#chips'); el.innerHTML='';
-  for(const s of watchList().slice(0,12)){ const b=document.createElement('button'); b.textContent=s; b.className=s===S.und?'on':''; b.onclick=()=>load(s); el.appendChild(b); } }
-$('#tkForm').onsubmit=e=>{ e.preventDefault(); load($('#tk').value); };
+/* ---------- wiring ---------- */
+$('#searchForm').onsubmit=e=>{ e.preventDefault(); const v=$('#tk').value.trim().toUpperCase(); if(!v) return;
+  if(cur==='flow'){ P.flow.sym=v; flowChanged(); $('#tk').value=''; } else load(v); };
 $('#expSel').onchange=e=>{ S.selExp=e.target.value; buildChain(true); S.lastCharts=0; if(!DEMO) poll(); };
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
-const fm={fType:'type',fDteMin:'dteMin',fDteMax:'dteMax',fDMin:'dMin',fDMax:'dMax',fOi:'oi',fVol:'vol',fSpr:'spr',fIvMin:'ivMin',fIvMax:'ivMax',fUnusual:'unusual'};
-for(const [id,k] of Object.entries(fm)){ const el=$('#'+id); el[el.type==='checkbox'?'checked':'value']=P.f[k];
-  el.addEventListener('input',()=>{ P.f[k]=el.type==='checkbox'?el.checked:el.value; saveP(); S.scrForce=true; }); }
 const wi=$('#watchInp'); wi.value=P.watch;
-wi.addEventListener('change',()=>{ P.watch=wi.value||PDEF.watch; saveP(); renderChips(); buildStocks(); if(!DEMO) fetchStocks().catch(()=>{}); });
-document.addEventListener('visibilitychange',()=>{ if(!document.hidden && !DEMO){ poll(); S.scrForce=true; S.lastCharts=0; } });
+wi.addEventListener('change',()=>{ P.watch=wi.value||PDEF.watch; saveP(true); buildStocks(); if(!DEMO) fetchStocks().catch(()=>{}); });
+$('#bigMin').value=P.bigMin; $('#bigMin').onchange=e=>{ P.bigMin=e.target.value; saveP(); renderFeed(); };
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&!DEMO){ poll(); S.scrForce=true; S.lastCharts=0; } });
 
 async function init(){
-  buildScrHead(); buildTrkHead(); renderChips(); updTrkCount();
+  buildDrawer(); buildFlowHead(); buildScrHead(); buildTrkHead(); fillScr(); updTrkCount();
   if(!DEMO){
     try{ const c=await getJSON('/api/config'); CFG.pollMs=c.pollMs||CFG.pollMs;
-      $('#who').innerHTML=`${c.email} · <a href="/api/auth/logout">Çıkış</a>`;
+      $('#avatar').textContent=(c.name||c.email||'?').trim()[0].toUpperCase(); $('#avatar').parentNode.title=`${c.email} · Çıkış`;
       if(c.demo) DEMO=true;
-      else if(!c.keyConfigured){ setStatus('error'); note('Sunucuda MASSIVE_API_KEY tanımlı değil. Vercel proje ayarlarından eklenmeli.',true); return; } }
+      else if(!c.keyConfigured){ setStatus('error'); note('Sunucuda MASSIVE_API_KEY tanımlı değil.',true); } }
     catch(e){ setStatus('error'); note('Sunucu yapılandırması okunamadı: '+e.message,true); return; }
+    await cloudLoad();
   }
+  paintSaveState(); wi.value=P.watch;
+  if(P.defaultPreset&&!P.activePreset) applyPreset(P.defaultPreset);
+  renderPresetSel(); flowChanged(); updTrkCount();
+  view(P.view||'flow');
+  if(DEMO){ setStatus('demo'); note('Örnek veri gösteriliyor: işlemler, fiyatlar ve hacimler gerçek piyasa verisi değildir.'); startDemoFlow(); }
+  else { setStatus('loading'); note('Canlı akış, izleme listesindeki hisselerin zincirlerindeki hacim artışlarından türetilir (yaklaşık; sweep/split ayrımı yapılamaz).');
+    S.flowTimers.push(setInterval(liveFlowTick,CFG.pollMs)); }
   load(P.und);
-  if(DEMO) note('Örnek veri gösteriliyor: fiyatlar ve hacimler gerçek piyasa verisi değildir.');
 }
 init();
 })();
