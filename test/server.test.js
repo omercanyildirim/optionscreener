@@ -132,3 +132,24 @@ test('open redirect is blocked', async () => {
   assert.equal(login.safeNext('//evil.com'), '/');
   assert.equal(login.safeNext('/ok'), '/ok');
 });
+
+test('cross-site POSTs to the API are blocked; same-site ones pass to the session check', async () => {
+  const cross = new Request('https://os.example.com/api/userdata', { method: 'PUT', headers: { origin: 'https://evil.example', cookie: await sessionCookie() } });
+  assert.equal((await middleware(cross)).status, 403);
+  const fetchSite = new Request('https://os.example.com/api/track', { method: 'POST', headers: { 'sec-fetch-site': 'cross-site', cookie: await sessionCookie() } });
+  assert.equal((await middleware(fetchSite)).status, 403);
+  const same = new Request('https://os.example.com/api/track', { method: 'POST', headers: { origin: 'https://os.example.com', 'sec-fetch-site': 'same-origin', cookie: await sessionCookie() } });
+  assert.equal(await middleware(same), undefined);
+});
+
+test('pages have no inline scripts (strict Content-Security-Policy)', async () => {
+  const fs = await import('node:fs');
+  for (const f of fs.readdirSync('public').filter(f => f.endsWith('.html'))) {
+    const html = fs.readFileSync('public/' + f, 'utf8');
+    assert.ok(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(html), `${f} has an inline <script>`);
+    assert.ok(!/\son[a-z]+\s*=\s*"/i.test(html), `${f} has an inline event handler`);
+  }
+  const csp = JSON.parse(fs.readFileSync('vercel.json', 'utf8')).headers[0].headers.find(h => h.key === 'Content-Security-Policy').value;
+  assert.match(csp, /script-src 'self' https:\/\/cdnjs/);
+  assert.ok(!/script-src[^;]*unsafe/.test(csp));
+});
