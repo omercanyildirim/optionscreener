@@ -98,3 +98,30 @@ test('admins are always Pro; the webhook path skips the session check', async ()
   const r = await middleware(new Request('https://os.example.com/api/paddle-webhook', { method: 'POST', headers: { origin: 'https://paddle.com' } }));
   assert.equal(r, undefined);
 });
+
+test('checkout sync: Pro only after Paddle confirms a paid transaction for this account', async () => {
+  process.env.PADDLE_API_KEY = 'pdl_sdbx_apikey_test';
+  const sig = await billing.signAccount('user@example.com');
+  let txnStatus = 'paid', owner = { email: 'user@example.com', sig };
+  const kvFetch = globalThis.fetch;
+  globalThis.fetch = async (u, init) => {
+    u = String(u);
+    if (u.startsWith('https://sandbox-api.paddle.com/transactions/txn_01abcdefghijk'))
+      return new Response(JSON.stringify({ data: { id: 'txn_01abcdefghijk', status: txnStatus, subscription_id: txnStatus === 'paid' ? 'sub_01xyz' : null, custom_data: owner } }));
+    if (u.startsWith('https://sandbox-api.paddle.com/subscriptions/sub_01xyz'))
+      return new Response(JSON.stringify({ data: { id: 'sub_01xyz', status: 'active', customer_id: 'ctm_1', items: [{ price: { id: 'pri_123' } }], next_billed_at: '2026-12-19T00:00:00Z', updated_at: new Date().toISOString() } }));
+    return kvFetch(u, init);
+  };
+  // someone else's transaction is refused
+  owner = { email: 'other@example.com', sig: await billing.signAccount('other@example.com') };
+  assert.equal((await api.GET(await req('/api/billing?a=sync&txn=txn_01abcdefghijk'))).status, 403);
+  // not paid yet: still free
+  owner = { email: 'user@example.com', sig }; txnStatus = 'ready';
+  let j = await (await api.GET(await req('/api/billing?a=sync&txn=txn_01abcdefghijk'))).json();
+  assert.equal(j.pending, true); assert.equal(j.billing.plan, 'free');
+  // paid: Pro
+  txnStatus = 'paid';
+  j = await (await api.GET(await req('/api/billing?a=sync&txn=txn_01abcdefghijk'))).json();
+  assert.equal(j.billing.plan, 'pro'); assert.equal(j.billing.nextBill, '2026-12-19T00:00:00Z');
+  assert.equal((await api.GET(await req('/api/billing?a=sync&txn=bad'))).status, 400);
+});

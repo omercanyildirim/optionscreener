@@ -257,8 +257,8 @@ tr.grp:hover td{background:none}
 .pro .fine{color:var(--dim);font-size:12px;line-height:1.5;margin:16px 0 0}
 .pro .fine.err{color:var(--put)}
 .rail button.lock::after{content:"";position:absolute;right:7px;top:7px;width:5px;height:5px;border-radius:50%;background:var(--sweep)}
-body.walled #app,body.gated #app{filter:blur(9px) saturate(.5);pointer-events:none;user-select:none}
-.wall{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(18,20,23,.5)}
+body.gated #app{filter:blur(3.5px) grayscale(.9);opacity:.5;pointer-events:none;user-select:none}
+.wall{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(40,44,52,.18)}
 .wall[hidden]{display:none}
 .wbox{background:var(--raise);border:1px solid var(--line2);border-radius:12px;padding:32px;max-width:480px;width:100%;max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.55)}
 .wbox h2{font-size:25px} .wbox .fine a{color:var(--muted)}
@@ -271,6 +271,36 @@ body.walled #app,body.gated #app{filter:blur(9px) saturate(.5);pointer-events:no
 .amenu .legal{display:flex;gap:12px;padding:6px 10px 4px} .amenu .legal a{width:auto;padding:0;font-size:12px;color:var(--muted)}
 .freeleft{border:1px solid var(--line2);background:none;color:var(--muted);font:inherit;font-size:12px;border-radius:999px;padding:3px 10px;cursor:pointer}
 .freeleft:hover{color:var(--text);border-color:var(--muted)}
+/* ---------- paywall dialog ---------- */
+body.gate-main .main,body.gate-main .feed,body.gate-all #app{filter:blur(3.5px) grayscale(.9);opacity:.5;pointer-events:none;user-select:none;transition:filter .2s,opacity .2s}
+.gate{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(40,44,52,.18);overflow:auto}
+body.gate-main .gate{left:56px}
+.gate[hidden]{display:none}
+.gbox{position:relative;display:grid;grid-template-columns:1fr 1fr;width:100%;max-width:900px;background:var(--raise);border:1px solid var(--line2);border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.45);max-height:calc(100vh - 32px);overflow:auto}
+.gx{position:absolute;right:10px;top:8px;width:32px;height:32px;border:0;background:none;color:var(--muted);font-size:22px;line-height:1;border-radius:6px;cursor:pointer;z-index:2}
+.gx:hover{background:var(--hover);color:var(--text)} .gx[hidden]{display:none}
+.goffer{padding:36px 32px}
+.goffer h2{font-size:26px;line-height:1.15;font-weight:500;letter-spacing:-.02em;margin:0 0 10px;font-variation-settings:"wdth" 112}
+.glead{color:var(--muted);font-size:14px;margin:0 0 24px}
+.gprice{display:flex;align-items:baseline;gap:8px;margin-bottom:20px}
+.gprice .amt{font-size:44px;font-weight:500;letter-spacing:-.02em;font-variation-settings:"wdth" 125} .gprice .per{color:var(--muted);font-size:14px}
+.gfeat{list-style:none;margin:0 0 20px;padding:0;border-top:1px solid var(--line)}
+.gfeat li{padding:9px 0 9px 22px;border-bottom:1px solid var(--line);position:relative;font-size:13.5px}
+.gfeat li::before{content:"";position:absolute;left:2px;top:15px;width:9px;height:5px;border-left:1.5px solid var(--call);border-bottom:1.5px solid var(--call);transform:rotate(-45deg)}
+.gnote{color:var(--muted);font-size:12.5px;line-height:1.5;margin:0}
+.gpay{padding:36px 28px 24px;background:var(--bg);border-left:1px solid var(--line);border-radius:0 12px 12px 0;display:flex;flex-direction:column;min-height:520px}
+.gsum{border:1px solid var(--line2);border-radius:8px;padding:12px 14px;margin-bottom:16px}
+.gsum .row{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:2px 0}
+.gsum .row.s{color:var(--muted);font-size:12px} .gsum .row.s:empty{display:none}
+.gsum .row.tot{border-top:1px solid var(--line);margin-top:8px;padding-top:9px;font-weight:600}
+.pay-frame{min-height:0;flex:1}
+.gstate{color:var(--muted);font-size:13px;margin:8px 0;text-align:center} .gstate.err{color:var(--put)} .gstate:empty{display:none}
+.gsecure{display:flex;align-items:center;gap:7px;justify-content:center;color:var(--muted);font-size:12.5px;margin-top:14px}
+.gsecure b{color:var(--text);font-weight:600}
+.gfine{color:var(--dim);font-size:11.5px;line-height:1.5;margin:10px 0 0;text-align:center} .gfine a{color:var(--muted)}
+.gbox.done .gpay>*:not(.gstate){display:none} .gbox.done .gpay{justify-content:center} .gbox.done .gstate{color:var(--text);font-size:15px}
+@media (max-width:820px){ .gbox{grid-template-columns:1fr} .gpay{border-left:0;border-top:1px solid var(--line);border-radius:0 0 12px 12px;min-height:0} .goffer{padding:28px 20px 20px} .gpay{padding:20px} .gfeat li:nth-child(n+4){display:none} }
+@media (max-width:640px){ body.gate-main .gate{left:0;bottom:56px} }
 </style>
 </head>
 <body>
@@ -284,19 +314,34 @@ body.walled #app,body.gated #app{filter:blur(9px) saturate(.5);pointer-events:no
     <p class="fine err" id="legalErr"></p>
   </div>
 </div>
-<div class="wall" id="wall" hidden role="dialog" aria-modal="true" aria-labelledby="wallT">
-  <div class="pro wbox">
-    <h2 id="wallT">You have used today's free symbols</h2>
-    <p class="lead" id="wallLead">The free plan includes 3 symbols a day. Upgrade to Pro for unlimited options data.</p>
-    <div class="price"><span class="amt">$9.99</span><span class="per">per month, billed monthly. Cancel anytime.</span></div>
-    <ul class="feat">
-      <li>Unlimited symbols and option chains, every day</li>
-      <li>Options flow with sweeps, blocks and big-trade alerts</li>
-      <li>Contract screener, charts and stock insights</li>
-    </ul>
-    <button class="btn gold big" id="wallBuy">Upgrade for $9.99/month</button>
-    <p class="fine">Free symbols reset at midnight New York time. Secure checkout by Paddle; your card is saved and renewed monthly, and you can cancel anytime. <a href="/api/auth/logout">Sign out</a></p>
-    <p class="fine err" id="wallErr"></p>
+<div class="gate" id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateT">
+  <div class="gbox">
+    <button class="gx" id="gateX" aria-label="Close">×</button>
+    <div class="goffer">
+      <h2 id="gateT">Options flow is part of Pro</h2>
+      <p class="glead" id="gateLead">Unlock the live options flow, the contract screener, charts and stock insights.</p>
+      <div class="gprice"><span class="amt">$9.99</span><span class="per">per month</span></div>
+      <ul class="gfeat">
+        <li>Unlimited symbols and option chains, every day</li>
+        <li>Live options flow with sweeps, blocks and big-trade alerts</li>
+        <li>Contract screener across every expiry and strike</li>
+        <li>IV smile, open interest and volume charts</li>
+        <li>Stock and contract insights with related news</li>
+      </ul>
+      <p class="gnote">Renews monthly on the card you save. Cancel anytime from your account menu. 14-day money-back guarantee.</p>
+    </div>
+    <div class="gpay">
+      <div class="gsum">
+        <div class="row"><span>Options Screener Pro</span><span>$9.99</span></div>
+        <div class="row s"><span>Monthly subscription, 1 seat</span><span id="gateCycle">per month</span></div>
+        <div class="row tot"><span>Due today</span><span id="gateTotal">$9.99</span></div>
+        <div class="row s" id="gateTax"></div>
+      </div>
+      <div class="pay-frame" id="payFrame"></div>
+      <p class="gstate" id="gateState">Loading secure checkout…</p>
+      <div class="gsecure"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Secure, encrypted checkout by <b>Paddle</b></span></div>
+      <p class="gfine">Paddle.com is our reseller and merchant of record: it processes the payment, issues your invoice and handles VAT and sales tax. Pay by card, PayPal, Google Pay or Apple Pay. Your card is stored by Paddle, never by us. <a href="/terms" target="_blank">Terms</a> · <a href="/refund" target="_blank">Refund Policy</a></p>
+    </div>
   </div>
 </div>
 <div class="app" id="app">
@@ -366,23 +411,6 @@ body.walled #app,body.gated #app{filter:blur(9px) saturate(.5);pointer-events:no
       <div class="tablewrap" id="uniWrap" hidden><table><thead id="uniHead"></thead><tbody id="uniBody"></tbody></table></div>
     </section>
 
-    <section class="view" id="v-pro">
-      <div class="pro">
-        <h2 id="proTitle">Options flow is part of Pro</h2>
-        <p class="lead">Unlock the live options flow, the contract screener, charts and stock insights.</p>
-        <div class="price"><span class="amt">$9.99</span><span class="per">per month, billed monthly. Cancel anytime.</span></div>
-        <ul class="feat">
-          <li>Unlimited symbols and option chains, every day</li>
-          <li>Options flow with sweeps, blocks and big-trade alerts</li>
-          <li>Contract screener across every expiry and strike</li>
-          <li>IV smile, open interest and volume charts</li>
-          <li>Stock and contract insights with related news</li>
-        </ul>
-        <button class="btn gold big" id="proBuy">Upgrade to Pro</button>
-        <p class="fine" id="proFine">Secure checkout by Paddle, our reseller. Your card is saved with Paddle and renewed monthly; you can update it or cancel from your account menu. The free plan includes a few symbols a day. Not investment advice.</p>
-        <p class="fine err" id="proErr"></p>
-      </div>
-    </section>
 
     <section class="view" id="v-charts">
       <div class="charts">

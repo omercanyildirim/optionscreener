@@ -2,7 +2,7 @@
 // /api/billing?a=status          (GET, signed in)  -> current plan
 // /api/paddle-webhook            (POST, from Paddle; rewritten here with a=webhook) -> subscription updates
 import { getSession, json } from '../lib/session.js';
-import { verifyWebhook, handleEvent, getSubscription, portalUrl, billingInfo } from '../lib/billing.js';
+import { verifyWebhook, handleEvent, getSubscription, portalUrl, billingInfo, syncTransaction } from '../lib/billing.js';
 import { storeConfigured } from '../lib/store.js';
 import { logEvent } from '../lib/activity.js';
 
@@ -12,7 +12,17 @@ export async function GET(request) {
   const s = await getSession(request);
   if (!s) return json({ error: 'unauthorized' }, 401);
   const a = action(request);
-  if (a === 'status') return json(await billingInfo(s.email));
+  if (a === 'status') return json(await billingInfo(s.email, request.headers.get('x-vercel-ip-country') || ''));
+  // ?a=sync&txn=txn_...: confirm a just-finished checkout with Paddle, then return the plan.
+  if (a === 'sync') {
+    if (!storeConfigured()) return json({ error: 'database not connected' }, 503);
+    try {
+      const r = await syncTransaction(s.email, new URL(request.url).searchParams.get('txn'));
+      if (r.error) return json({ error: r.error }, r.status || 400);
+      if (r.email) await logEvent(r.email, 'settings_saved', `subscription ${r.status} (checkout)`);
+      return json({ ...r, billing: await billingInfo(s.email) });
+    } catch (e) { return json({ error: e.message }, 502); }
+  }
   if (a === 'portal') {
     const sub = await getSubscription(s.email);
     if (!sub || !sub.customerId) return json({ error: 'No subscription yet.' }, 404);

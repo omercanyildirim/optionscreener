@@ -243,7 +243,7 @@ function buildFlowHead(){ const tr=el('tr');
   tr.appendChild(el('th')); $('#flowHead').replaceChildren(tr); }
 let FILTERED=[];
 function renderFlow(){
-  const F=P.flow; FILTERED=S.flows.filter(f=>passFlow(f,F));
+  const F=P.flow; FILTERED=isPro()?S.flows.filter(f=>passFlow(f,F)):teaserFlows();
   const col=FCOLS.find(c=>c.k===P.flowSort)||FCOLS[0], dir=P.flowDir;
   const list = col.k==='t'&&dir<0 ? FILTERED : [...FILTERED].sort((a,b)=>{ const x=col.v(a),y=col.v(b); return (typeof x==='string'?x.localeCompare(y):x-y)*dir; });
   const tb=$('#flowBody'), frag=document.createDocumentFragment(), max=400;
@@ -590,23 +590,60 @@ const isPro = () => !CFG.billing || !CFG.billing.paywall || CFG.billing.plan==='
 const locked = v => PRO_VIEWS.has(v) && !isPro();
 function paintLocks(){ document.querySelectorAll('.rail [data-view]').forEach(b=>b.classList.toggle('lock',locked(b.dataset.view)));
   $('#acctBtn').classList.toggle('pro',!!(CFG.billing&&CFG.billing.plan==='pro')); }
-function showPro(what){ $('#proTitle').textContent=`${what} ${what.endsWith('s')?'are':'is'} part of Pro`; $('#proErr').textContent='';
-  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-pro')); $('#app').classList.add('nofeed'); $('#openFilters').style.display='none'; }
-let paddleReady=null;
+/* ---------- paywall dialog: $9.99 offer + Paddle checkout embedded on the right ---------- */
+const GATE_TXT={
+  flow:['Options flow is part of Pro','See large options trades as they print: sweeps, blocks and big-trade alerts across your watchlist and the most active stocks.'],
+  screener:['The contract screener is part of Pro','Screen every contract across all expiries and strikes by volume, open interest, IV and more.'],
+  charts:['Charts are part of Pro','IV smile, open interest, volume and flow premium charts for any symbol.'],
+  insight:['Insights are part of Pro','Stock and contract insights with related news, one click away.'],
+  upgrade:['Upgrade to Options Screener Pro','Unlimited symbols, the live options flow, the contract screener, charts and insights.'],
+  limit:["You've used today's free symbols",n=>`The free plan includes ${n} symbols a day. Upgrade to Pro for unlimited options data, the live flow, the screener and charts.`]};
+let GATE=null, coOpen=false, paddleReady=null;
+function openGate(kind,limit){ const b=CFG.billing; if(!b||!b.paddle){ note('Payments are not set up yet.',true); return; }
+  const whole=kind==='limit'||kind==='upgrade'||kind==='insight', [t,l]=GATE_TXT[kind]||GATE_TXT.upgrade;
+  $('#gateT').textContent=t; $('#gateLead').textContent=typeof l==='function'?l(limit||(CFG.free&&CFG.free.limit)||3):l;
+  $('#gateX').hidden=kind==='limit';
+  document.body.classList.toggle('gate-all',whole); document.body.classList.toggle('gate-main',!whole);
+  $('#app').inert=whole; $('.main').inert=!whole; if(!whole) $('#feed').inert=true;
+  $('#gate').hidden=false; closeAcct(); closeMenu(); if(GATE!==kind) track('view','Paywall: '+kind); GATE=kind; mountCheckout(); }
+function closeGate(force){ if(!GATE||(GATE==='limit'&&!force)) return; GATE=null; $('#gate').hidden=true;
+  document.body.classList.remove('gate-all','gate-main'); $('#app').inert=false; $('.main').inert=false; $('#feed').inert=false;
+  if(coOpen){ try{ Paddle.Checkout.close(); }catch(e){} coOpen=false; } }
+$('#gateX').onclick=()=>{ const k=GATE; closeGate(); if(PRO_VIEWS.has(k)) view('chain'); };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&GATE&&GATE!=='limit') $('#gateX').click(); });
 function loadPaddle(){ if(paddleReady) return paddleReady; const b=CFG.billing.paddle;
-  paddleReady=new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='https://cdn.paddle.com/paddle/v2/paddle.js'; sc.onerror=()=>{ paddleReady=null; rej(new Error('Could not load checkout')); };
-    sc.onload=()=>{ try{ if(b.env==='sandbox') Paddle.Environment.set('sandbox');
-      Paddle.Initialize({ token:b.token, eventCallback:e=>{ if(e&&e.name==='checkout.completed') afterCheckout(); } }); res(); }catch(e){ rej(e); } };
+  paddleReady=new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src='https://cdn.paddle.com/paddle/v2/paddle.js'; sc.onerror=()=>{ paddleReady=null; rej(new Error('the payment provider did not respond')); };
+    sc.onload=()=>{ try{ if(b.env==='sandbox') Paddle.Environment.set('sandbox'); Paddle.Initialize({ token:b.token, eventCallback:onPaddle }); res(); }catch(e){ rej(e); } };
     document.head.appendChild(sc); }); return paddleReady; }
-async function upgrade(){ const b=CFG.billing; if(!b||!b.paddle){ note('Payments are not set up yet.',true); return; }
-  track('view','Upgrade'); $('#proBuy').disabled=true; $('#wallBuy').disabled=true;
-  try{ await loadPaddle(); Paddle.Checkout.open({ items:[{priceId:b.paddle.priceId,quantity:1}], customer:{email:b.paddle.customData.email}, customData:b.paddle.customData,
-      settings:{ displayMode:'overlay', theme:'dark', locale:'en', allowLogout:false } }); }
-  catch(e){ $('#proErr').textContent=$('#wallErr').textContent='Checkout could not open: '+e.message; } finally{ $('#proBuy').disabled=false; $('#wallBuy').disabled=false; } }
-async function afterCheckout(){ note('Payment received. Activating Pro…');
-  for(let i=0;i<30;i++){ await new Promise(r=>setTimeout(r,2000));
-    try{ const b=await getJSON('/api/billing?a=status'); if(b.plan==='pro'){ if(S.walled){ location.reload(); return; } CFG.billing=b; CFG.free=null; paintFree(); paintLocks(); note('Welcome to Pro. Everything is unlocked.'); view(P.view==='chain'?'flow':P.view); return; } }catch(e){} }
-  note('Payment received, but activation is taking longer than usual. Refresh the page in a minute.',true); }
+async function mountCheckout(){ const st=$('#gateState'); $('.gbox').classList.remove('done'); if(coOpen) return;
+  st.className='gstate'; st.textContent='Loading secure checkout…';
+  try{ await loadPaddle(); const b=CFG.billing.paddle;
+    Paddle.Checkout.open({ items:[{priceId:b.priceId,quantity:1}], customData:b.customData,
+      customer:{ email:b.customData.email, ...(b.country?{address:{countryCode:b.country}}:{}) },
+      settings:{ displayMode:'inline', frameTarget:'pay-frame', frameInitialHeight:420, frameStyle:'width:100%;min-width:260px;background-color:transparent;border:none;',
+        theme:'dark', locale:'en', variant:'one-page', allowLogout:false, showAddDiscounts:false } });
+    coOpen=true; }
+  catch(e){ st.className='gstate err'; st.textContent='Checkout could not load: '+e.message+'. Try again in a moment.'; } }
+function onPaddle(e){ if(!e||!e.name) return; const d=e.data||{}, st=$('#gateState');
+  if(e.name==='checkout.loaded') st.textContent='';
+  if((e.name==='checkout.loaded'||e.name==='checkout.updated')&&d.totals&&isFinite(+d.totals.total)){
+    const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:d.currency_code||'USD'}).format(+v);
+    $('#gateTotal').textContent=money(d.totals.total); $('#gateTax').textContent=+d.totals.tax?`Includes ${money(d.totals.tax)} tax`:''; }
+  if(e.name==='checkout.error'){ st.className='gstate err'; st.textContent=(d&&d.detail)||'Checkout error. Please try again.'; }
+  if(e.name==='checkout.completed') afterCheckout(d.transaction_id); }
+// Unlock only after the server has confirmed the payment with Paddle (webhook or direct check).
+async function afterCheckout(txn){ const st=$('#gateState'); $('.gbox').classList.add('done'); st.className='gstate'; st.textContent='Payment received. Confirming with Paddle…'; coOpen=false;
+  for(let i=0;i<30;i++){
+    let b=null; try{ const j=await getJSON('/api/billing?a=sync&txn='+encodeURIComponent(txn||'')); b=j.billing; }catch(e){ try{ b=await getJSON('/api/billing?a=status'); }catch(e2){} }
+    if(b&&b.plan==='pro'){ st.textContent='Welcome to Pro. Unlocking everything…'; try{ sessionStorage.setItem('os_welcome','1'); }catch(e){} setTimeout(()=>location.reload(),900); return; }
+    await new Promise(r=>setTimeout(r,2000)); }
+  st.className='gstate err'; st.textContent='Your payment went through, but confirming it is taking longer than usual. Refresh the page in a minute; if Pro is still locked, email us and we will fix it right away.'; }
+// Placeholder trades shown blurred behind the paywall on the flow view (never readable, never real).
+let TEASER=null;
+function teaserFlows(){ if(TEASER) return TEASER; const syms=['NVDA','SPY','TSLA','AAPL','QQQ','AMD','META','AMZN','MSFT','PLTR'], types=['Sweep','Block','Split','Single'], sides=['AA','A','M','B','BB'], now=Date.now();
+  TEASER=Array.from({length:22},(_,i)=>{ const cp=Math.random()<.6?'C':'P', price=+(0.5+Math.random()*12).toFixed(2), size=Math.round(50+Math.random()*3000), spot=50+Math.random()*600;
+    return { id:'tz'+i, t:now-i*47e3, sym:syms[i%syms.length], exp:'2026-12-19', strike:Math.round(spot/5)*5, cp, spot, size, price, side:sides[i%5], prem:price*size*100, type:types[i%4], vol:size*3, oi:size*2, ticker:'' }; });
+  return TEASER; }
 let amenu=null;
 function closeAcct(){ if(amenu){ amenu.remove(); amenu=null; } }
 function openAcct(){ closeAcct(); const b=CFG.billing||{}; amenu=el('div','amenu'); amenu.setAttribute('role','menu');
@@ -615,8 +652,8 @@ function openAcct(){ closeAcct(); const b=CFG.billing||{}; amenu=el('div','amenu
     if(pro&&b.cancelAt) tag.textContent+=` · ends ${new Date(b.cancelAt).toLocaleDateString('en-US')}`; else if(pro&&b.nextBill) tag.textContent+=` · renews ${new Date(b.nextBill).toLocaleDateString('en-US')}`;
     who.append(el('br'),tag); }
   amenu.append(who);
-  if(b.configured&&b.plan!=='pro'){ const u=el('button',null,'Upgrade to Pro · $9.99/month'); u.onclick=()=>{ closeAcct(); showPro('Pro features'); upgrade(); }; amenu.append(u); }
-  if(b.configured&&b.plan==='pro'&&b.status==='admin'&&b.paddle&&b.paddle.env==='sandbox'){ const t=el('button',null,'Test checkout (sandbox, no real charge)'); t.onclick=()=>{ closeAcct(); upgrade(); }; amenu.append(t); }
+  if(b.configured&&b.plan!=='pro'){ const u=el('button',null,'Upgrade to Pro · $9.99/month'); u.onclick=()=>openGate('upgrade'); amenu.append(u); }
+  if(b.configured&&b.plan==='pro'&&b.status==='admin'&&b.paddle&&b.paddle.env==='sandbox'){ const t=el('button',null,'Test checkout (sandbox, no real charge)'); t.onclick=()=>openGate('upgrade'); amenu.append(t); }
   if(b.canManage){ const m=el('a',null,'Manage subscription and card'); m.href='/api/billing?a=portal'; m.target='_blank'; m.rel='noopener'; amenu.append(m); }
   amenu.append(el('hr'));
   const dl=el('a',null,'Download my data'); dl.href='/api/userdata?a=export'; dl.setAttribute('download',''); amenu.append(dl);
@@ -639,20 +676,18 @@ function askConsent(){ return new Promise(res=>{ document.body.classList.add('ga
 $('#acctBtn').onclick=e=>{ e.stopPropagation(); amenu?closeAcct():openAcct(); };
 document.addEventListener('click',e=>{ if(amenu&&!amenu.contains(e.target)) closeAcct(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAcct(); });
-$('#proBuy').onclick=upgrade; $('#wallBuy').onclick=upgrade;
 /* ---------- free plan: a few symbols a day, then the data is blurred and the upgrade screen shows ---------- */
 function countFree(sym){ const f=CFG.free; if(!f||f.used.includes(sym)) return; f.used.push(sym); f.left=Math.max(0,f.limit-f.used.length); paintFree(); }
 function paintFree(){ const e=$('#freeLeft'), f=CFG.free; if(!f||S.walled){ e.hidden=true; return; } e.hidden=false;
   e.textContent=f.left>0?`${f.left} of ${f.limit} free symbols left today`:`No free symbols left today`;
   e.title=`The free plan includes ${f.limit} symbols a day (option chains). Opening another symbol needs Pro, $9.99/month.`; }
-$('#freeLeft').onclick=()=>{ showPro('Unlimited symbols'); upgrade(); };
-function wallUp(j){ if(S.walled) return; S.walled=true; const lim=(j&&j.limit)||(CFG.free&&CFG.free.limit)||3;
-  $('#wallLead').textContent=`The free plan includes ${lim} symbols a day. Upgrade to Pro for unlimited options data, live flow, the contract screener and charts.`;
-  document.body.classList.add('walled'); $('#app').setAttribute('aria-hidden','true'); $('#app').inert=true; $('#wall').hidden=false; $('#wallBuy').focus();
-  closeAcct(); setStatus('paused','Free plan limit reached'); note(''); paintFree(); track('view','Paywall'); }
+$('#freeLeft').onclick=()=>openGate('upgrade');
+function wallUp(j){ if(S.walled) return; S.walled=true;
+  openGate('limit',(j&&j.limit)||(CFG.free&&CFG.free.limit)||3); setStatus('paused','Free plan limit reached'); note(''); paintFree(); }
 let cur='flow';
 function view(v){ if(cur!==v) track('view',VTITLE[v]||v); cur=v; P.view=v; saveP(); document.querySelectorAll('.rail [data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
-  $('#vtitle').textContent=VTITLE[v]; if(locked(v)){ showPro(VTITLE[v]); return; }
+  $('#vtitle').textContent=VTITLE[v];
+  if(locked(v)) openGate(v); else if(GATE&&GATE!=='limit') closeGate();
   document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v)); $('#vtitle').textContent=VTITLE[v];
   $('#app').classList.toggle('nofeed',v!=='flow'); $('#openFilters').style.display=v==='flow'?'':'none';
   if(v==='screener') S.scrForce=true; if(v==='charts') S.lastCharts=0; if(v==='tracked') S.trkForce=true; if(v==='flow') S.flowDirty=true; if(v==='chain') renderUStats(); }
@@ -818,7 +853,7 @@ function payoffSvg(c,prem,spot){
   s+=`<text x="${pad}" y="${H-6}" fill="#878d96" font-size="11">Max loss ${fMoney(prem*100)}</text></svg>`;
   const d=el('div'); d.innerHTML=s; return d; }
 
-function openInsight(o){ if(!isPro()){ closeMenu(); showPro('Insights'); $('#vtitle').textContent='Insights'; return; } track('insight', o.kind==='stock'?o.sym:String(o.t||'').replace(/^O:/,''));
+function openInsight(o){ if(!isPro()){ closeMenu(); openGate('insight'); return; } track('insight', o.kind==='stock'?o.sym:String(o.t||'').replace(/^O:/,''));
   closeMenu(); insState=o; const body=$('#insBody'); body.innerHTML='';
   $('#insight').classList.add('on'); $('#overlay').classList.add('on');
   const sym = o.kind==='stock' ? o.sym : (parseTicker(o.t)||{}).und || (o.f&&o.f.sym);
@@ -953,12 +988,13 @@ async function init(){
   paintSaveState(); wi.value=P.watch; stMode(!!P.stAll);
   if(P.defaultPreset&&!P.activePreset) applyPreset(P.defaultPreset);
   renderPresetSel(); flowChanged(); updTrkCount();
-  view(P.view||'flow');
+  { const v0=P.view||'flow'; view(locked(v0)?'chain':v0); } // free users start on the free chain view
   if(DEMO){ setStatus('demo'); note('Showing sample data: trades, prices and volumes are simulated, not real market data.'); startDemoFlow(); }
   else { setStatus('loading');
     if(CFG.provider==='alpaca'){ note('Flow shows the latest print of each contract for your watchlist and the 20 most active stocks. On the free Alpaca plan option trades arrive about 15 minutes late.'); refreshActive(); S.flowTimers.push(setInterval(refreshActive,300e3)); }
     else note('Live flow is derived from volume changes in your watchlist\'s option chains (approximate; sweeps and splits cannot be told apart).');
     S.flowTimers.push(setInterval(liveFlowTick,CFG.provider==='alpaca'?Math.max(4000,CFG.pollMs*1.5):CFG.pollMs)); }
+  try{ if(sessionStorage.getItem('os_welcome')){ sessionStorage.removeItem('os_welcome'); note('Welcome to Pro. Everything is unlocked.'); } }catch(e){}
   if(!S.walled) load(P.und);
 }
 init();

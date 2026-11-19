@@ -18,7 +18,7 @@ export async function GET(request) {
     // DEMO_DATA=true shows simulated data (for previewing before a paid Massive plan).
     // Sample mode switches off by itself once Alpaca keys are added.
     demo: process.env.DEMO_DATA === 'true' && !alpacaConfigured(),
-    billing: await billingInfo(s.email),
+    billing: await billingInfo(s.email, request.headers.get('x-vercel-ip-country') || ''),
     free: await quotaState(s.email).catch(() => null),
     legal: await consentState(s.email),
   });
