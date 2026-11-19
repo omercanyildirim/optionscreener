@@ -3,7 +3,7 @@
 // /api/paddle-webhook            (POST, from Paddle; rewritten here with a=webhook) -> subscription updates
 import { getSession, json } from '../lib/session.js';
 import { verifyWebhook, handleEvent, getSubscription, portalUrl, billingInfo, syncTransaction, accountFrom, emailForCustomer } from '../lib/billing.js';
-import { txnRow } from '../lib/payments.js';
+import { txnRow, invoicePdf } from '../lib/payments.js';
 import { sendPaymentEmailOnce } from '../lib/mail.js';
 import { storeConfigured, cmd } from '../lib/store.js';
 import { logEvent } from '../lib/activity.js';
@@ -65,6 +65,6 @@ async function onPayment(d) {
   const m = await sendPaymentEmailOnce(d.id, email, {
       name, amount: t.total, tax: t.tax, currency: t.currency, paidAt: t.at || new Date().toISOString(),
       nextBill: sub && sub.nextBill, invoice: t.invoice, method: t.method, renewal: d.origin === 'subscription_recurring',
-    });
-  return { payment: d.id, email, mail: m.id ? 'sent' : m.skipped || 'skipped' };
+    }, () => invoicePdf(d.id, t.invoice));
+  return { payment: d.id, email, mail: m.id ? 'sent' : m.skipped || 'skipped', invoice: !!m.invoice };
 }

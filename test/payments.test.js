@@ -43,7 +43,7 @@ beforeEach(() => {
   R = {}; sent = []; paddle = {};
   Object.assign(process.env, { SESSION_SECRET: SECRET, ALLOWED_EMAILS: '*', ADMIN_EMAILS: 'admin@example.com', KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't',
     PADDLE_ENV: 'sandbox', PADDLE_CLIENT_TOKEN: 'tok', PADDLE_PRICE_ID: 'pri_1', PADDLE_API_KEY: 'key', PADDLE_WEBHOOK_SECRET: WH, PAYWALL: 'true',
-    RESEND_API_KEY: 're_test', MAIL_FROM: 'Options Screener <billing@optionscreener.org>', APP_URL: 'https://optionscreener.org' });
+    RESEND_API_KEY: 're_test', MAIL_FROM: 'Options Screener <info@optionscreener.org>', APP_URL: 'https://optionscreener.org' });
   process.env.ADMIN_TOTP_SECRET = totp.newSecret();
   globalThis.fetch = async (u, init) => {
     u = String(u);
@@ -109,8 +109,13 @@ test('a completed payment emails the customer once (first payment and renewal)',
   const txn = { id: 'txn_01aaaaaaaaaa', status: 'completed', origin: 'web', customer_id: 'ctm_1', currency_code: 'USD', billed_at: '2026-11-19T10:00:00Z', invoice_number: '325-10001',
     custom_data: { email: 'user@example.com', sig }, details: { totals: { subtotal: '833', tax: '166', grand_total: '999', fee: '100', earnings: '733', currency_code: 'USD' } },
     payments: [{ status: 'captured', method_details: { type: 'card', card: { type: 'visa', last4: '4242' } } }] };
+  paddle['/transactions/txn_01aaaaaaaaaa/invoice'] = { data: { url: 'https://sandbox-api.paddle.com/pdf/inv.pdf' } };
+  paddle['/pdf/inv.pdf'] = '%PDF-1.4 test';
   let r = await hook({ event_type: 'transaction.completed', data: txn });
   assert.equal(r.status, 200); assert.equal(sent.length, 1);
+  assert.equal(sent[0].attachments.length, 1); assert.equal(sent[0].attachments[0].filename, 'Options-Screener-invoice-325-10001.pdf');
+  assert.equal(Buffer.from(sent[0].attachments[0].content, 'base64').toString(), JSON.stringify('%PDF-1.4 test'));
+  assert.match(sent[0].html, /invoice from Paddle, our reseller, is attached/);
   assert.equal(sent[0].to[0], 'user@example.com'); assert.match(sent[0].subject, /Welcome to Options Screener Pro/);
   assert.match(sent[0].html, /\$9\.99/); assert.match(sent[0].html, /visa •••• 4242/); assert.match(sent[0].html, /Hi Ada/);
   await hook({ event_type: 'transaction.completed', data: txn }); // duplicate delivery
@@ -119,6 +124,7 @@ test('a completed payment emails the customer once (first payment and renewal)',
   R['os:cust:ctm_1'] = 'user@example.com';
   await hook({ event_type: 'transaction.completed', data: { ...txn, id: 'txn_01bbbbbbbbbb', origin: 'subscription_recurring', custom_data: null } });
   assert.equal(sent.length, 2); assert.match(sent[1].subject, /payment was received/);
+  assert.equal(sent[1].attachments, undefined); assert.match(sent[1].html, /emails your official receipt and invoice separately/); // no PDF yet: sent without it
   assert.ok(R['os:ev:user@example.com'].some(l => JSON.parse(l).type === 'payment'));
 });
 
