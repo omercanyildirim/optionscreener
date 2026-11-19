@@ -119,3 +119,20 @@ contracts), per user and as a live feed.
   `/api/*` to 600 requests/min per IP, Bot Protection = Challenge, AI crawlers and assistants = Deny.
   The Hobby plan allows two custom rules; OWASP managed rules need Enterprise.
 - `*.vercel.app` deployment URLs require a Vercel login (only optionscreener.org is public).
+
+## Payments (Paddle, card on file)
+
+Pro = $9.99/month subscription. Paddle stores the card at the first checkout and renews monthly; customers update the
+card or cancel from **Account → Manage subscription and card** (Paddle customer portal).
+
+| Variable | Value |
+|---|---|
+| `PADDLE_ENV` | `sandbox` while testing, `production` when live |
+| `PADDLE_CLIENT_TOKEN` | client-side token (Paddle → Developer tools → Authentication) |
+| `PADDLE_PRICE_ID` | the Pro price (`pri_…`) |
+| `PADDLE_API_KEY` | API key (secret) — customer portal links |
+| `PADDLE_WEBHOOK_SECRET` | secret of the webhook destination `https://optionscreener.org/api/paddle-webhook` (events: `subscription.*`) |
+| `PAYWALL` | `true` locks Flow, Screener, Charts and Insights for non-Pro users |
+
+Admins (`ADMIN_EMAILS`) are always Pro. The webhook is verified with `Paddle-Signature`; the account a payment belongs to
+travels in signed `custom_data`, so a payment can't be attached to someone else's account.

@@ -3,11 +3,13 @@
 import { getSession, json } from './lib/session.js';
 
 export const config = {
-  matcher: ['/((?!api/auth/|login|js/login\\.js|privacy|terms|favicon\\.ico|robots\\.txt|\\.well-known/).*)'],
+  matcher: ['/((?!api/auth/|api/paddle-webhook|login|js/login\\.js|privacy|terms|favicon\\.ico|robots\\.txt|\\.well-known/).*)'],
 };
 
 export default async function middleware(request) {
   const url = new URL(request.url);
+  // Paddle's webhook: no session, verified by its signature inside the function.
+  if (request.method === 'POST' && (url.pathname === '/api/paddle-webhook' || (url.pathname === '/api/billing' && url.searchParams.get('a') === 'webhook'))) return;
   // Cross-site request forgery: state-changing API calls must come from this site's own pages.
   if (url.pathname.startsWith('/api/') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
     const origin = request.headers.get('origin');

@@ -1,6 +1,7 @@
 import { getSession, json } from '../lib/session.js';
 import { cacheGet, cacheSet } from '../lib/store.js';
 import { exaConfigured, newsFor, briefFor } from '../lib/exa.js';
+import { paywallOn, planFor } from '../lib/billing.js';
 
 const TTL = 15 * 60; // seconds; news per symbol is shared between users
 const hits = new Map(); // best-effort per-user rate limit (per function instance)
@@ -16,6 +17,7 @@ function limited(email) {
 export async function GET(request) {
   const s = await getSession(request);
   if (!s) return json({ error: 'unauthorized' }, 401);
+  if (paywallOn() && (await planFor(s.email)).plan !== 'pro') return json({ error: 'Insights are part of Pro.' }, 402);
   if (!exaConfigured()) return json({ configured: false });
   const url = new URL(request.url);
   const sym = (url.searchParams.get('sym') || '').toUpperCase();

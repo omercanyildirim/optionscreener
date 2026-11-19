@@ -1,5 +1,6 @@
 import { getSession, json } from '../lib/session.js';
 import { alpacaConfigured, feedInfo } from '../lib/alpaca.js';
+import { billingInfo } from '../lib/billing.js';
 
 export async function GET(request) {
   const s = await getSession(request);
@@ -15,5 +16,6 @@ export async function GET(request) {
     // DEMO_DATA=true shows simulated data (for previewing before a paid Massive plan).
     // Sample mode switches off by itself once Alpaca keys are added.
     demo: process.env.DEMO_DATA === 'true' && !alpacaConfigured(),
+    billing: await billingInfo(s.email),
   });
 }

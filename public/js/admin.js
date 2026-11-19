@@ -91,7 +91,7 @@ function render(){
   stat('Users', users.length, 'signed in at least once');
   stat('Active today', users.filter(u=>u.last&&now-u.last<day).length, 'last 24 hours');
   stat('Active this week', users.filter(u=>u.last&&now-u.last<7*day).length, 'last 7 days');
-  stat('New this week', users.filter(u=>u.first&&now-u.first<7*day).length, 'first sign-in');
+  stat('Pro subscribers', users.filter(u=>u.plan==='Pro').length, 'active subscriptions');
   stat('Actions today', ev.filter(e=>now-e.t<day).length+(ev.length>=500?'+':''), 'from the latest 500');
   frag.append(stats);
   if (D.site) frag.append(el('p','note',`Who can sign in: ${D.site.access} · Market data: ${D.site.provider} · Refreshes every 30 s`));
@@ -100,13 +100,13 @@ function render(){
   // users
   const uBox = el('section'); const uh = el('div','sechead'); uh.append(el('h3',null,'Users'), el('span','sp'));
   const q = el('input'); q.placeholder='Search name or email'; q.style.width='220px'; uh.append(q);
-  const uw = el('div','tw'); const ut = el('table'); ut.innerHTML='<thead><tr><th>User</th><th>Last active</th><th class="n">Sign-ins</th><th class="n">Actions</th><th class="n">Filters</th><th class="n">Watching</th><th>Last action</th><th>Country</th><th>First seen</th></tr></thead>';
+  const uw = el('div','tw'); const ut = el('table'); ut.innerHTML='<thead><tr><th>User</th><th>Plan</th><th>Last active</th><th class="n">Sign-ins</th><th class="n">Actions</th><th class="n">Filters</th><th class="n">Watching</th><th>Last action</th><th>Country</th><th>First seen</th></tr></thead>';
   const ub = el('tbody'); ut.append(ub); uw.append(ut); uBox.append(uh, uw);
   const paintUsers = () => { const s=q.value.trim().toLowerCase(); ub.replaceChildren();
     const list = users.filter(u=>!s||u.email.includes(s)||(u.name||'').toLowerCase().includes(s));
-    if(!list.length){ const tr=el('tr'), td=el('td','empty', D.store?'No users yet':'No data until the database is connected'); td.colSpan=9; tr.append(td); ub.append(tr); return; }
+    if(!list.length){ const tr=el('tr'), td=el('td','empty', D.store?'No users yet':'No data until the database is connected'); td.colSpan=10; tr.append(td); ub.append(tr); return; }
     for (const u of list){ const tr=el('tr','click'); tr.title='Show activity';
-      const c=el('td','u'); c.append(el('b',null,u.name||u.email), el('span',null,u.name?u.email:'')); tr.append(c);
+      const c=el('td','u'); c.append(el('b',null,u.name||u.email), el('span',null,u.name?u.email:'')); tr.append(c); tr.append(el('td',u.plan==='Pro'?'g':'m',u.plan||'Free'));
       const la=el('td',u.last&&now-u.last<15*60e3?'g':'',ago(u.last)); la.title=fmt(u.last); tr.append(la);
       for (const v of [u.logins,u.events,u.presets,u.tracked]) tr.append(el('td','n',String(v||0)));
       tr.append(el('td','m',act(u.lastType)), el('td','m',u.country||'–'), el('td','d',fmt(u.first)));
