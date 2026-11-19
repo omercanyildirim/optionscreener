@@ -127,7 +127,7 @@ function ingestOption(r,map){
   let c=map.get(t); if(!c){ const pt=parseTicker(t)||{}; c={t,und:pt.und||S.und,type:d.contract_type==='put'?'P':'C',strike:d.strike_price,exp:d.expiration_date}; map.set(t,c); }
   const q=r.last_quote||{}, tr=r.last_trade||{}, g=r.greeks||{}, day=r.day||{};
   let ch=0; const set=(k,v)=>{ if(v!=null&&isFinite(v)&&c[k]!==v){ c[k]=v; ch++; } };
-  set('bid',q.bid); set('ask',q.ask); set('mid',q.midpoint ?? ((q.bid!=null&&q.ask!=null)?(q.bid+q.ask)/2:null)); set('last',tr.price ?? day.close);
+  set('bid',q.bid); set('ask',q.ask); set('bidSize',q.bid_size); set('askSize',q.ask_size); set('mid',q.midpoint ?? ((q.bid!=null&&q.ask!=null)?(q.bid+q.ask)/2:null)); set('last',tr.price ?? day.close);
   set('vol',day.volume); set('oi',r.open_interest); set('iv',r.implied_volatility);
   set('delta',g.delta); set('gamma',g.gamma); set('theta',g.theta); set('vega',g.vega);
   set('chgPct',day.change_percent); set('be',r.break_even_price);
@@ -145,7 +145,7 @@ function ingestStock(t){ const sym=t.ticker; if(!sym) return; let s=S.stocks.get
   const lt=t.lastTrade||{}, lq=t.lastQuote||{}, day=t.day||{}, pd=t.prevDay||{}, mn=t.min||{};
   const before=s.price, price=lt.p||mn.c||day.c||pd.c; if(ok(price)) s.price=price;
   const lts=tsMs(lt.t); if(lts&&lts<=Date.now()+60e3&&lts>(S.stockT||0)) S.stockT=lts;
-  if(ok(pd.c)) s.prev=pd.c; if(ok(lq.p)) s.bid=lq.p; if(ok(lq.P)) s.ask=lq.P;
+  if(ok(pd.c)) s.prev=pd.c; if(ok(lq.p)) s.bid=lq.p; if(ok(lq.P)) s.ask=lq.P; if(ok(lq.s)) s.bidSize=lq.s; if(ok(lq.S)) s.askSize=lq.S; if(lq.t) s.quoteT=tsMs(lq.t);
   if(day.v>0) s.vol=day.v; if(day.h>0) s.high=day.h; if(day.l>0) s.low=day.l; if(day.vw>0) s.vwap=day.vw;
   if(before!==s.price) S.upd++; stockDerived(s); }
 function stockDerived(s){ if(ok(s.price)&&ok(s.prev)){ s.chg=s.price-s.prev; s.chgPct=s.chg/s.prev*100; }
@@ -826,7 +826,7 @@ function takePending(){ if(S.pendingExp){ S.selExp=S.pendingExp; S.pendingExp=nu
    ============================================================ */
 const NEWS = new Map(); // sym -> {at, data|promise}
 let insState = null;
-function closeInsight(){ $('#insight').classList.remove('on'); if(!$('#drawer').classList.contains('on')) $('#overlay').classList.remove('on'); insState=null; }
+function closeInsight(){ clearInterval(bookTimer); $('#insight').classList.remove('on'); if(!$('#drawer').classList.contains('on')) $('#overlay').classList.remove('on'); insState=null; }
 $('#insClose').onclick=closeInsight;
 const safeUrl = u => /^https?:\/\//i.test(u||'') ? u : null;
 function ago(iso){ if(!iso) return ''; const d=(Date.now()-Date.parse(iso))/1000; if(!isFinite(d)) return '';
@@ -837,8 +837,9 @@ function kv(items){ const g=el('div','kv'); for(const [k,v,cls] of items){ const
 function pts(list){ const u=el('ul','pts'); for(const p of list){ if(!p) continue; const [txt,cls]=Array.isArray(p)?p:[p,'']; u.appendChild(el('li',cls,txt)); } return u; }
 function btn(txt,fn,cls){ const b=el('button','btn '+(cls||''),txt); b.onclick=fn; return b; }
 function stockSnap(sym){ const u=S.uniMap.get(sym); const s=S.stocks.get(sym)||(u?{sym,price:u.p,chgPct:u.c,vol:u.v,name:u.n}:{}); let price=s.price; if(!ok(price)){ const f=S.flows.find(x=>x.sym===sym); price=f?f.spot:(DEMO?DSPOT[sym]:null); } return {...s,price}; }
+const INS_C=new Map(); // contracts opened in the drawer that are neither in the loaded chain nor watched
 function contractFor(t,f){
-  let c=S.contracts.get(t)||S.trk.get(t); const pt=parseTicker(t)||{};
+  let c=S.contracts.get(t)||S.trk.get(t)||INS_C.get(t); const pt=parseTicker(t)||{};
   if(!c&&f) c={t,und:f.sym,type:f.cp,strike:f.strike,exp:f.exp,last:f.price,vol:f.vol,oi:f.oi};
   if(!c) c={t,und:pt.und,type:pt.type,strike:pt.strike,exp:pt.exp};
   return c; }
@@ -867,6 +868,55 @@ function openInsight(o){ if(!isPro()){ closeMenu(); openGate('insight'); return;
   if(o.kind==='stock') renderStockInsight(body,sym,st,symFlows); else renderContractInsight(body,o,sym,st);
   const newsSec=sec('Related news'); body.appendChild(newsSec); loadNews(sym,newsSec,o);
 }
+/* ---------- buying vs selling pressure (drawer) ---------- */
+// 1) Top of book: best bid and ask with their sizes. Deeper levels are not available on this data feed.
+function bookSec(title){ const s=sec(title,el('span','hint','Live')); s.classList.add('book'); const box=el('div'); s.appendChild(box); return {s,box}; }
+function paintBook(box,q){ box.replaceChildren();
+  if(!ok(q.bid)||!ok(q.ask)){ box.appendChild(el('div','c-muted','No quote right now (the market may be closed).')); return; }
+  const bs=ok(q.bidSize)?q.bidSize:0, as=ok(q.askSize)?q.askSize:0, tot=bs+as, bp=tot?bs/tot*100:50;
+  const row=el('div','bkrow');
+  const L=el('div','bkside b'); L.append(el('span','k','Bid'), el('span','p',f2(q.bid)), el('span','s',tot?`× ${fInt(bs)}`:''));
+  const R=el('div','bkside a'); R.append(el('span','s',tot?`${fInt(as)} ×`:''), el('span','p',f2(q.ask)), el('span','k','Ask'));
+  row.append(L,R); box.appendChild(row);
+  if(tot){ const bar=el('div','bkbar'); const b=el('i','b'), a=el('i','a'); b.style.flexGrow=bp; a.style.flexGrow=100-bp; bar.append(b,a); box.appendChild(bar); }
+  const mid=(q.bid+q.ask)/2, spr=q.ask-q.bid, sp=mid?spr/mid*100:null;
+  const lean=!tot?'Sizes not available.':bp>=60?`Bid side is heavier: ${Math.round(bp)}% of the size shown is on the bid.`:bp<=40?`Ask side is heavier: ${Math.round(100-bp)}% of the size shown is on the ask.`:'Bid and ask sizes are balanced.';
+  box.appendChild(el('div','bknote',`Mid ${f2(mid)} · spread ${q.unit||'$'}${f2(spr)}${ok(sp)?` (${sp.toFixed(sp<1?2:1)}%)`:''}. ${lean}`));
+  box.appendChild(el('div','bkfine','Best bid and offer only (top of book). Order book depth is not available on this data feed.')); }
+// 2) Where trades printed against the quote, by premium.
+const SIDES=[['AA','Above ask','sAA'],['A','At ask','sA'],['M','Mid','sM'],['B','At bid','sB'],['BB','Below bid','sBB']];
+function sideBar(label,fl){ const w=el('div','sdw'); const tot=fl.reduce((a,f)=>a+f.prem,0); if(!tot) return null;
+  const by={}; for(const f of fl){ const k=by[f.side]||(by[f.side]={prem:0,n:0,qty:0}); k.prem+=f.prem; k.n++; k.qty+=f.size; }
+  const buy=((by.AA||{}).prem||0)+((by.A||{}).prem||0), sell=((by.B||{}).prem||0)+((by.BB||{}).prem||0);
+  const hd=el('div','sdh'); hd.append(el('b',null,label), el('span',null,`${fMoney(tot)} · ${fInt(fl.length)} trade${fl.length>1?'s':''}`)); w.appendChild(hd);
+  const bar=el('div','sdbar'); for(const [k,,cls] of SIDES){ const v=(by[k]||{}).prem||0; if(!v) continue; const i=el('i',cls); i.style.flexGrow=v; i.title=`${SIDE_TXT[k]}: ${fMoney(v)} (${Math.round(v/tot*100)}%)`; bar.appendChild(i); } w.appendChild(bar);
+  const lg=el('div','sdlg'); for(const [k,name,cls] of SIDES){ const v=by[k]; if(!v) continue; const it=el('span'); it.append(el('i',cls), document.createTextNode(`${name} ${Math.round(v.prem/tot*100)}%`)); it.title=`${fMoney(v.prem)} · ${fInt(v.qty)} contracts · ${v.n} trades`; lg.appendChild(it); } w.appendChild(lg);
+  const bp=Math.round(buy/tot*100), sp=Math.round(sell/tot*100);
+  w.appendChild(el('div','sdsum '+(bp-sp>=20?'c-green':sp-bp>=20?'c-red':''), bp-sp>=20?`Buyers aggressive: ${bp}% at or above the ask vs ${sp}% at or below the bid.`:sp-bp>=20?`Sellers aggressive: ${sp}% at or below the bid vs ${bp}% at or above the ask.`:`Balanced: ${bp}% at or above the ask, ${sp}% at or below the bid.`));
+  return w; }
+// 3) Running net premium through the day: + for buyer-initiated (or bullish) trades, - for seller-initiated (or bearish).
+function netFlowSvg(fl,sign){ const pts0=[...fl].sort((a,b)=>a.t-b.t); if(pts0.length<2) return null;
+  let cum=0; const P=pts0.map(f=>{ cum+=sign(f)*f.prem; return [f.t,cum]; }); P.unshift([P[0][0]-1,0]);
+  const W=480,H=120,pad=6, t0=P[0][0], t1=P[P.length-1][0]||t0+1, vs=P.map(p=>p[1]), lo=Math.min(0,...vs), hi=Math.max(0,...vs), span=hi-lo||1;
+  const x=t=>pad+(t-t0)/(t1-t0||1)*(W-2*pad), y=v=>pad+(hi-v)/span*(H-2*pad);
+  const d=P.map((p,i)=>(i?'L':'M')+x(p[0]).toFixed(1)+','+y(p[1]).toFixed(1)).join(''), last=P[P.length-1][1], col=last>=0?'var(--call)':'var(--put)';
+  const ns='http://www.w3.org/2000/svg', svg=document.createElementNS(ns,'svg'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('class','netsvg'); svg.setAttribute('role','img');
+  svg.setAttribute('aria-label',`Net premium ${last>=0?'+':''}${fMoney(last)} through the day`);
+  svg.innerHTML=`<line x1="${pad}" x2="${W-pad}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line2)" stroke-dasharray="3 3"/><path d="${d}L${x(t1)},${y(0)}L${x(t0)},${y(0)}Z" fill="${col}" opacity=".12"/><path d="${d}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round"/>`;
+  const w=el('div'); w.appendChild(svg);
+  const ax=el('div','netax'); ax.append(el('span',null,fTime(t0+1)), el('span',last>=0?'c-green':'c-red',`${last>=0?'+':''}${fMoney(last)} net`), el('span',null,fTime(t1))); w.appendChild(ax); return w; }
+// Keep the quote in the drawer fresh while it is open.
+let bookTimer=null;
+function liveBook(o,box,get,refresh){ clearInterval(bookTimer); paintBook(box,get());
+  if(DEMO) return; const tick=async()=>{ if(insState!==o){ clearInterval(bookTimer); return; } try{ await refresh(); }catch(e){} if(insState===o) paintBook(box,get()); };
+  tick(); bookTimer=setInterval(tick,5000); }
+function pressureSecs(body,o,fl,opts){
+  const s=sec('Buying vs selling'); const note=el('div','bkfine',`Where each trade printed against the bid and ask at that moment. Covers the ${fInt(fl.length)} trade${fl.length===1?'':'s'} seen since you opened the app${CFG.provider==='alpaca'?'; option trades arrive about 15 minutes late on the free feed':''}.`);
+  if(!fl.length){ s.appendChild(el('div','c-muted','No trades seen yet today. This fills in as trades print.')); body.appendChild(s); return; }
+  for(const [label,list] of opts.bars){ const b=sideBar(label,list); if(b) s.appendChild(b); }
+  s.appendChild(note); body.appendChild(s);
+  const g=netFlowSvg(fl,opts.sign); if(g){ const n=sec(opts.netTitle); n.appendChild(g); n.appendChild(el('div','bkfine',opts.netNote)); body.appendChild(n); } }
+
 function renderStockInsight(body,sym,st,fl){
   $('#insTitle').textContent=`${sym} · Stock insights`;
   const head=el('div','hd'); head.append(el('span','big',f2(st.price)));
@@ -883,6 +933,11 @@ function renderStockInsight(body,sym,st,fl){
     const g=byT.get(f.ticker)||{f,n:0,prem:0,ask:0}; g.n++; g.prem+=f.prem; if(f.side==='A'||f.side==='AA') g.ask+=f.prem; byT.set(f.ticker,g); }
   top.appendChild(kv([['Day high',f2(st.high)],['Day low',f2(st.low)],['Volume',fInt(st.vol)],
     ['Call premium',fMoney(cP),'c-green'],['Put premium',fMoney(pP),'c-red'],['Put/call',cP?(pP/cP).toFixed(2):'–']]));
+  const bk=bookSec(`${sym} bid / ask`); body.appendChild(bk.s);
+  liveBook(insState,bk.box,()=>stockSnap(sym),async()=>{ const j=await massive('v2/snapshot/locale/us/markets/stocks/tickers',{tickers:sym}); (j.tickers||[]).forEach(ingestStock); });
+  pressureSecs(body,insState,fl,{bars:[['Calls',fl.filter(f=>f.cp==='C')],['Puts',fl.filter(f=>f.cp==='P')]],
+    sign:f=>f.bull?1:f.bear?-1:0, netTitle:'Net bullish premium through the day',
+    netNote:'Running total of bullish premium (calls bought at the ask, puts sold at the bid) minus bearish premium (puts bought at the ask, calls sold at the bid).'});
   const ins=sec('Insights'); const L=[];
   const tot=cP+pP;
   if(fl.length){ L.push(`${fInt(fl.length)} option trades today totaling ${fMoney(tot)} in premium; ${Math.round(cP/tot*100)}% of it in calls.`);
@@ -922,6 +977,10 @@ function renderContractInsight(body,o,sym,st){
     ['Volume',fInt(c.vol)],['OI',fInt(c.oi)],['Vol/OI',ok(vo)?vo.toFixed(2):'–',ok(vo)&&vo>=1?'c-yellow':''],
     ['Breakeven',ok(be)?f2(be):'–'],['To breakeven',ok(beDist)?fSPct(beDist):'–'],[otm>0?'OTM':'ITM',ok(otm)?fPct(Math.abs(otm)):'–']]));
   body.appendChild(top);
+  const bk=bookSec('Bid / ask'); body.appendChild(bk.s);
+  liveBook(insState,bk.box,()=>contractFor(o.t,o.f),async()=>{ const j=await getJSON('/api/tracked?c='+encodeURIComponent(o.t)); (j.results||[]).forEach(r=>ingestOption(r,S.contracts.has(o.t)?S.contracts:S.trk.has(o.t)?S.trk:INS_C)); });
+  pressureSecs(body,insState,fl,{bars:[['This contract',fl]], sign:f=>f.side==='A'||f.side==='AA'?1:f.side==='B'||f.side==='BB'?-1:0,
+    netTitle:'Net buying through the day', netNote:'Running total of premium bought at or above the ask minus premium sold at or below the bid.'});
   const ins=sec('Insights'); const L=[];
   if(ok(otm)) L.push(otm>0?`The contract is ${Math.abs(otm).toFixed(1)}% out of the money; its value is all time and volatility premium.`:`The contract is ${Math.abs(otm).toFixed(1)}% in the money.`);
   if(ok(be)&&ok(beDist)) L.push(`To profit at expiry, ${sym} needs to be ${call?'above':'below'} ${f2(be)} (${fSPct(beDist)} from today).`);

@@ -17,7 +17,7 @@ const SNAP = {
   greeks: { delta: 0.52, gamma: 0.03, theta: -0.2, vega: 0.4 },
   impliedVolatility: 0.21,
 };
-const STOCK = { latestTrade: { p: 600 }, latestQuote: { bp: 599.9, ap: 600.1 }, dailyBar: { o: 595, h: 602, l: 594, c: 600, v: 5e7, vw: 598 }, prevDailyBar: { c: 590 } };
+const STOCK = { latestTrade: { p: 600 }, latestQuote: { bp: 599.9, ap: 600.1, bs: 3, as: 7, t: '2026-11-19T15:00:00Z' }, dailyBar: { o: 595, h: 602, l: 594, c: 600, v: 5e7, vw: 598 }, prevDailyBar: { c: 590 } };
 
 let calls;
 beforeEach(() => {
@@ -71,6 +71,7 @@ test('option chain: all pages, Massive shape, open interest, keys only in header
   assert.equal(c.details.strike_price, 600);
   assert.equal(c.last_quote.bid, 5.0);
   assert.equal(c.last_quote.midpoint, 5.1);
+  assert.equal(c.last_quote.bid_size, 10); assert.equal(c.last_quote.ask_size, 12);
   assert.equal(c.open_interest, 4321);
   assert.equal(c.day.volume, 1234);
   assert.equal(c.implied_volatility, 0.21);
@@ -89,6 +90,7 @@ test('stocks snapshot in Massive shape, IEX feed by default', async () => {
   assert.equal(j.tickers.length, 2);
   assert.equal(j.tickers[0].lastTrade.p, 600);
   assert.equal(j.tickers[0].prevDay.c, 590);
+  assert.equal(j.tickers[0].lastQuote.s, 3); assert.equal(j.tickers[0].lastQuote.S, 7); // bid/ask sizes for the drawer
   assert.equal(calls[0].url.searchParams.get('feed'), 'iex');
   const prev = await (await massiveApi.GET(await req('/api/massive?path=v2/aggs/ticker/SPY/prev'))).json();
   assert.equal(prev.results[0].c, 590);
