@@ -614,6 +614,7 @@ function openAcct(){ closeAcct(); const b=CFG.billing||{}; amenu=el('div','amenu
     who.append(el('br'),tag); }
   amenu.append(who);
   if(b.configured&&b.plan!=='pro'){ const u=el('button',null,'Upgrade to Pro · $9.99/month'); u.onclick=()=>{ closeAcct(); showPro('Pro features'); upgrade(); }; amenu.append(u); }
+  if(b.configured&&b.plan==='pro'&&b.status==='admin'&&b.paddle&&b.paddle.env==='sandbox'){ const t=el('button',null,'Test checkout (sandbox, no real charge)'); t.onclick=()=>{ closeAcct(); upgrade(); }; amenu.append(t); }
   if(b.canManage){ const m=el('a',null,'Manage subscription and card'); m.href='/api/billing?a=portal'; m.target='_blank'; m.rel='noopener'; amenu.append(m); }
   const o=el('a',null,'Sign out'); o.href='/api/auth/logout'; amenu.append(o);
   document.body.appendChild(amenu); }
