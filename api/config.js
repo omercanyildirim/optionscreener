@@ -1,4 +1,5 @@
 import { getSession, json } from '../lib/session.js';
+import { alpacaConfigured, feedInfo } from '../lib/alpaca.js';
 
 export async function GET(request) {
   const s = await getSession(request);
@@ -6,9 +7,13 @@ export async function GET(request) {
   return json({
     email: s.email,
     name: s.name,
-    pollMs: Math.max(1000, +(process.env.POLL_MS || 2000)),
-    keyConfigured: !!process.env.MASSIVE_API_KEY,
+    // The free Alpaca plan allows 200 requests/min, so poll a little slower there.
+    pollMs: Math.max(1000, +(process.env.POLL_MS || (alpacaConfigured() ? 3000 : 2000))),
+    keyConfigured: alpacaConfigured() || !!process.env.MASSIVE_API_KEY,
+    provider: alpacaConfigured() ? 'alpaca' : process.env.MASSIVE_API_KEY ? 'massive' : null,
+    feed: alpacaConfigured() ? feedInfo() : null,
     // DEMO_DATA=true shows simulated data (for previewing before a paid Massive plan).
-    demo: process.env.DEMO_DATA === 'true',
+    // Sample mode switches off by itself once Alpaca keys are added.
+    demo: process.env.DEMO_DATA === 'true' && !alpacaConfigured(),
   });
 }

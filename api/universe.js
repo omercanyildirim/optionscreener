@@ -1,0 +1,16 @@
+import { getSession, json } from '../lib/session.js';
+import { alpacaConfigured, universe, mostActive } from '../lib/alpaca.js';
+
+// GET /api/universe            -> every listed US stock/ETF: symbol, name, price, % change, volume, has options
+// GET /api/universe?active=20  -> most active symbols by volume
+export async function GET(request) {
+  if (!(await getSession(request))) return json({ error: 'unauthorized' }, 401);
+  if (!alpacaConfigured()) return json({ configured: false, rows: [] });
+  const q = new URL(request.url).searchParams;
+  try {
+    if (q.has('active')) return json({ symbols: await mostActive(Math.min(100, Math.max(1, +q.get('active') || 20))) });
+    return json(await universe());
+  } catch (e) {
+    return json({ error: e.message || 'Alpaca request failed' }, e.status || 502);
+  }
+}

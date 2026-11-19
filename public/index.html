@@ -113,6 +113,11 @@ tr.grp:hover td{background:none}
 .row label{color:var(--muted);display:flex;align-items:center;gap:7px}
 .row input[type=number]{width:72px}
 .view{display:none} .view.on{display:block}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:5px;padding:2px;gap:2px}
+.seg button{border:0;background:none;color:var(--muted);padding:4px 12px;border-radius:3px;font-size:13px;font-weight:500}
+.seg button.on{background:var(--hover);color:var(--text)}
+.seg button:hover{color:var(--text)}
+[hidden]{display:none!important}
 .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:36px 32px}
 .chartbox h3{margin:0 0 12px;font-size:13px;font-weight:500;color:var(--text)}
 .cw{position:relative;height:280px}
@@ -292,8 +297,11 @@ tr.grp:hover td{background:none}
     </section>
 
     <section class="view" id="v-stocks">
-      <div class="row"><label style="flex:1">Watchlist <input id="watchInp" style="flex:1"></label></div>
-      <div class="tablewrap"><table><thead id="stHead"></thead><tbody id="stBody"></tbody></table></div>
+      <div class="row"><div class="seg" role="tablist"><button id="stModeW" class="on" role="tab">Watchlist</button><button id="stModeA" role="tab">All stocks</button></div>
+        <label id="stWatchL" style="flex:1">Symbols <input id="watchInp" style="flex:1"></label>
+        <span id="stAllCtl" hidden style="display:contents"><input id="uniQ" placeholder="Filter by ticker or name" style="width:230px"><label><input type="checkbox" id="uniOpt"> Has options</label><span class="c-muted" id="uniInfo"></span></span></div>
+      <div class="tablewrap" id="stWrap"><table><thead id="stHead"></thead><tbody id="stBody"></tbody></table></div>
+      <div class="tablewrap" id="uniWrap" hidden><table><thead id="uniHead"></thead><tbody id="uniBody"></tbody></table></div>
     </section>
 
     <section class="view" id="v-charts">
@@ -342,7 +350,7 @@ const $ = s => document.querySelector(s);
 const el = (tag, cls, txt) => { const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; };
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let DEMO = location.protocol==='file:' || new URLSearchParams(location.search).has('demo');
-const CFG = { maxDte:60, strikePct:15, maxContracts:3000, pollMs:2000, fullMs:60000, maxFlows:1500 };
+const CFG = { maxDte:60, strikePct:15, maxContracts:3000, pollMs:2000, fullMs:60000, maxFlows:1500, provider:null, flowDte:60, flowPct:15 };
 const ETFS = new Set(['SPY','QQQ','IWM','DIA','XLF','XLE','XLK','XLV','XLI','XLY','XLP','XLU','XLB','XLRE','SMH','SOXX','TLT','HYG','LQD','GLD','SLV','USO','UNG','EEM','EFA','FXI','KWEB','ARKK','VXX','UVXY','SQQQ','TQQQ','SPXL','SOXL','IBIT','GDX','XBI','KRE']);
 
 /* ---------- preferences: local cache + per-user cloud copy ---------- */
@@ -389,7 +397,7 @@ function paintSaveState(){
 }
 
 /* ---------- state ---------- */
-const S = { und:P.und, uPrice:null, uChg:null, uChgPct:null, contracts:new Map(), selExp:null, dirty:new Set(),
+const S = { flowSeen:new Set(), prevTrade:new Map(), active:[], uni:null, uniMap:new Map(), und:P.und, uPrice:null, uChg:null, uChgPct:null, contracts:new Map(), selExp:null, dirty:new Set(),
   cellMap:new Map(), starMap:new Map(), chainRows:[], scrRows:new Map(), scrTop:[], lastScr:0, scrForce:true,
   stocks:new Map(), stRows:new Map(), stDirty:new Set(), trk:new Map(), trkU:new Map(), trkRows:new Map(), trkForce:true,
   flows:[], flowDirty:true, repeat:new Map(), newIds:new Set(), lastFlowRender:0, prevVol:new Map(), flowRot:0,
@@ -427,7 +435,8 @@ const symSet = s => new Set(String(s||'').toUpperCase().split(/[,\s]+/).filter(B
 
 /* ---------- status ---------- */
 function setStatus(st,text){ const m={demo:['Sample data','demo'],loading:['Loading',''],live:['Live','live'],delayed:['15-min delayed','delayed'],error:['Connection problem','err'],paused:['Paused','']};
-  const [t,c]=m[st]||[st,'']; $('#status').textContent=text||t; $('#dot').className='dot '+c; }
+  let [t,c]=m[st]||[st,'']; if(st==='delayed'&&CFG.provider==='alpaca'){ t='Free data feed'; }
+  $('#status').textContent=text||t; $('#status').title=CFG.provider==='alpaca'&&(st==='delayed')?'Alpaca free plan: stock prices from IEX, option prices from the indicative feed (trades delayed about 15 min).':''; $('#dot').className='dot '+c; }
 function note(msg,err){ const e=$('#msg'); e.textContent=msg||''; e.className=err?'err':''; }
 
 /* ---------- server API (Massive key stays on the server) ---------- */
@@ -439,10 +448,10 @@ async function getJSON(u){
 }
 function massive(path,params){ const u=new URL('/api/massive',location.origin); u.searchParams.set('path',path);
   if(params) for(const [k,v] of Object.entries(params)) if(v!==''&&v!=null) u.searchParams.set(k,v); return getJSON(u); }
-async function fetchChainFor(und,ref,exp,maxC){
-  const now=new Date(), p={limit:250};
-  if(exp) p.expiration_date=exp; else { p['expiration_date.gte']=iso(now); p['expiration_date.lte']=iso(new Date(now.getTime()+CFG.maxDte*864e5)); }
-  if(ok(ref)){ p['strike_price.gte']=(ref*(1-CFG.strikePct/100)).toFixed(2); p['strike_price.lte']=(ref*(1+CFG.strikePct/100)).toFixed(2); }
+async function fetchChainFor(und,ref,exp,maxC,win){
+  const now=new Date(), p={limit:250}, dte=win?win.dte:CFG.maxDte, pct=win?win.pct:CFG.strikePct;
+  if(exp) p.expiration_date=exp; else { p['expiration_date.gte']=iso(now); p['expiration_date.lte']=iso(new Date(now.getTime()+dte*864e5)); }
+  if(ok(ref)&&pct<100){ p['strike_price.gte']=(ref*(1-pct/100)).toFixed(2); p['strike_price.lte']=(ref*(1+pct/100)).toFixed(2); }
   let j=await massive(`v3/snapshot/options/${und}`,p); const out=[...(j.results||[])]; let n=1;
   while(j.next_url && out.length<(maxC||CFG.maxContracts) && n<60){ j=await getJSON(new URL(j.next_url,location.origin)); out.push(...(j.results||[])); n++; }
   return out;
@@ -458,6 +467,7 @@ function ingestOption(r,map){
   set('delta',g.delta); set('gamma',g.gamma); set('theta',g.theta); set('vega',g.vega);
   set('chgPct',day.change_percent); set('be',r.break_even_price);
   if(q.timeframe) S.delayed = q.timeframe!=='REAL-TIME';
+  if(tr.sip_timestamp){ c.tradeT=tr.sip_timestamp/1e6; c.tradeSize=tr.size; c.cond=(tr.conditions||[])[0]||''; }
   const ua=r.underlying_asset; if(ua&&ok(ua.price)){ c.spot=ua.price; if(c.und===S.und && !S.stocks.get(S.und)?.price) S.uPrice=ua.price; const u=S.trkU.get(c.und)||{}; u.price=ua.price; S.trkU.set(c.und,u); }
   if(ch){ S.upd+=ch; S.dirty.add(t); }
   return c;
@@ -499,7 +509,7 @@ async function fetchTracked(){ if(!P.tracked.length||DEMO) return;
    OPTIONS FLOW
    ============================================================ */
 const TYPE_KEY = {Sweep:'tSweep',Split:'tSplit',Block:'tBlock'};
-const TYPE_CLS = {Sweep:'c-yellow',Split:'c-purple',Block:'c-blue'};
+const TYPE_CLS = {Sweep:'c-yellow',Split:'c-purple',Block:'c-blue','Multi-leg':'c-cyan'};
 const SIDE_TXT = {AA:'Above ask',A:'Ask',M:'Mid',B:'Bid',BB:'Below bid'};
 function flowKey(f){ return f.ticker; }
 function addFlow(f,isNew){
@@ -615,17 +625,35 @@ function flowMenu(e,f){ closeMenu(); menuEl=el('div','menu');
 document.addEventListener('click',e=>{ if(menuEl&&!menuEl.contains(e.target)) closeMenu(); });
 function openInChain(sym,exp){ S.pendingExp=exp; view('chain'); if(sym!==S.und) load(sym); else { S.selExp=exp; buildExpSel(); buildChain(true); } }
 
-/* ---------- live flow (approximate): volume changes between snapshots ---------- */
+/* ---------- live flow ----------
+   Alpaca: each contract's latest trade (size, price, exchange condition) from chain snapshots, scanned
+   across your watchlist plus the most active stocks. Sweeps come from OPRA's intermarket-sweep conditions.
+   Other providers: approximated from volume changes between snapshots. */
+const SWEEP_C=new Set(['S','b','d']), MULTI_C=new Set('fghijklmnopqrst'.split('')), CANCEL_C=new Set(['A','C','E','G']);
+async function refreshActive(){ if(CFG.provider!=='alpaca'||DEMO) return; try{ const j=await getJSON('/api/universe?active=20'); S.active=j.symbols||[]; }catch(e){} }
+const flowSyms = () => [...new Set(watchList().concat(S.active||[]))];
+function sideOf(price,c){ if(ok(c.ask)&&price>c.ask) return 'AA'; if(ok(c.ask)&&price>=c.ask) return 'A'; if(ok(c.bid)&&price<c.bid) return 'BB'; if(ok(c.bid)&&price<=c.bid) return 'B'; return 'M'; }
 async function liveFlowTick(){
-  if(DEMO||document.hidden) return; const syms=watchList(); if(!syms.length) return;
+  if(DEMO||document.hidden||S.flowBusy) return; const syms=flowSyms(); if(!syms.length) return;
   const sym=syms[S.flowRot++%syms.length]; const st=S.stocks.get(sym)||{};
-  let res; try{ res=await fetchChainFor(sym, st.price, null, 1500); }catch(e){ return; }
-  const now=Date.now(), tmp=new Map();
-  for(const r of res){ const c=ingestOption(r,tmp); if(!c||!ok(c.vol)) continue; const prev=S.prevVol.get(c.t); S.prevVol.set(c.t,c.vol);
+  S.flowBusy=true; let res; try{ res=await fetchChainFor(sym, st.price, null, 1500, {dte:CFG.flowDte,pct:CFG.flowPct}); }catch(e){ return; } finally{ S.flowBusy=false; }
+  const now=Date.now(), tmp=new Map(), first=!S.flowSeen.has(sym); S.flowSeen.add(sym);
+  for(const r of res){ const c=ingestOption(r,tmp); if(!c) continue;
+    if(CFG.provider==='alpaca'){
+      if(!c.tradeT||!ok(c.last)||!(c.tradeSize>0)) continue;
+      const prevT=S.prevTrade.get(c.t); S.prevTrade.set(c.t,c.tradeT);
+      if(prevT!=null&&c.tradeT<=prevT) continue;
+      if(CANCEL_C.has(c.cond)) continue;
+      const size=c.tradeSize, price=c.last, prem=size*price*100;
+      if(first&&(now-c.tradeT>6*3600e3||prem<25000)) continue; // first scan: only today's larger prints
+      const type=SWEEP_C.has(c.cond)?'Sweep':MULTI_C.has(c.cond)?'Multi-leg':(size>=500||prem>=250000)?'Block':'Other';
+      addFlow({t:c.tradeT,sym,exp:c.exp,strike:c.strike,cp:c.type,spot:c.spot||st.price||0,size,price,side:sideOf(price,c),type,vol:c.vol||0,oi:c.oi||0,earn:null,ticker:c.t},!first);
+      continue; }
+    if(!ok(c.vol)) continue; const prev=S.prevVol.get(c.t); S.prevVol.set(c.t,c.vol);
     if(prev==null||c.vol<=prev) continue; const size=c.vol-prev, price=c.last||c.mid; if(!ok(price)||price<=0) continue;
-    let side='M'; if(ok(c.ask)&&price>c.ask) side='AA'; else if(ok(c.ask)&&price>=c.ask) side='A'; else if(ok(c.bid)&&price<c.bid) side='BB'; else if(ok(c.bid)&&price<=c.bid) side='B';
     const prem=size*price*100;
-    addFlow({t:now,sym,exp:c.exp,strike:c.strike,cp:c.type,spot:c.spot||st.price||0,size,price,side,type:(size>=500||prem>=250000)?'Block':'Other',vol:c.vol,oi:c.oi||0,earn:null,ticker:c.t},true); }
+    addFlow({t:now,sym,exp:c.exp,strike:c.strike,cp:c.type,spot:c.spot||st.price||0,size,price,side:sideOf(price,c),type:(size>=500||prem>=250000)?'Block':'Other',vol:c.vol,oi:c.oi||0,earn:null,ticker:c.t},true); }
+  if(first) S.flows.sort((x,y)=>y.t-x.t);
 }
 
 /* ============================================================
@@ -643,7 +671,7 @@ const FSECTIONS=[
     {k:'note',type:'note',txt:'Earnings dates are available in sample data; live availability depends on your Massive plan.'}]},
   {t:'Trade',f:[
     {k:'cp',l:'Option type',type:'select',o:[['all','Call + Put'],['C','Call'],['P','Put']]},
-    {k:'types',l:'Trade type',type:'checks',o:[['tSweep','Sweep'],['tSplit','Split'],['tBlock','Block'],['tOther','Other']]},
+    {k:'types',l:'Trade type',type:'checks',o:[['tSweep','Sweep'],['tSplit','Split'],['tBlock','Block'],['tOther','Other / multi-leg']]},
     {k:'side',l:'Execution side',type:'select',o:[['any','Any'],['ask','At or above ask'],['aboveAsk','Above ask'],['mid','Mid'],['bid','At or below bid'],['belowBid','Below bid']]},
     {k:'dir',l:'Sentiment',type:'select',o:[['any','Any'],['bull','Bullish (calls bought / puts sold)'],['bear','Bearish (puts bought / calls sold)']]},
     {k:'minSize',l:'Min size',type:'num'},
@@ -832,6 +860,41 @@ function updStock(sym){ const s=S.stocks.get(sym), r=S.stRows.get(sym); if(!s||!
   ST.forEach((c,i)=>setCell(r.tds[i],c.g(s),c.f,!!c.fl)); for(const i of [2,3]){ r.tds[i].classList.toggle('c-green',s.chg>0); r.tds[i].classList.toggle('c-red',s.chg<0); }
   r.tds[0].style.fontWeight=sym===S.und?'700':''; r.tds[0].style.color=''; }
 
+/* ---------- all stocks (whole market, from /api/universe) ---------- */
+const UNI_COLS=[{k:'s',h:'Ticker'},{k:'n',h:'Name'},{k:'p',h:'Price',n:1,f:f2},{k:'c',h:'%',n:1,f:fSPct},{k:'v',h:'Volume',n:1,f:fInt},{k:'dv',h:'$ volume',n:1,f:v=>v?fMoney(v):'–'},{k:'o',h:'Options',n:1,f:v=>v?'Yes':''}];
+const UNI_MAX=400; let uniSort={k:'dv',d:-1}, uniTimer=null;
+function stMode(all){ P.stAll=!!all; saveP(); $('#stModeW').classList.toggle('on',!all); $('#stModeA').classList.toggle('on',all);
+  $('#stWatchL').hidden=all; $('#stAllCtl').hidden=!all; $('#stWrap').hidden=all; $('#uniWrap').hidden=!all;
+  clearInterval(uniTimer); if(all){ loadUni(); uniTimer=setInterval(()=>{ if(cur==='stocks'&&P.stAll&&!document.hidden) loadUni(); },90e3); } }
+async function loadUni(){
+  if(DEMO){ if(!S.uni){ const rows=Object.keys(UNIV).map(sym=>{ const p=DSPOT[sym]||UNIV[sym], v=Math.round(1e6+Math.random()*6e7); return {s:sym,n:NAMES_DEMO[sym]||sym,p,c:+((Math.random()-.5)*6).toFixed(2),v,dv:Math.round(p*v),o:1}; });
+      S.uni={rows,at:Date.now()}; } renderUni(); return; }
+  if(!S.uni) $('#uniBody').innerHTML='<tr><td colspan="7" class="empty">Loading every listed stock…</td></tr>';
+  try{ const j=await getJSON('/api/universe'); if(j.configured===false){ $('#uniBody').innerHTML='<tr><td colspan="7" class="empty">The full stock list needs an Alpaca key on the server.</td></tr>'; return; }
+    S.uni=j; S.uniMap=new Map(j.rows.map(r=>[r.s,r])); renderUni(); }
+  catch(e){ if(!S.uni){ const td=el('td','empty','Could not load the stock list: '+e.message); td.colSpan=7; const tr=el('tr'); tr.appendChild(td); $('#uniBody').replaceChildren(tr); } } }
+function renderUni(){ if(!S.uni) return;
+  const h=el('tr'); for(const c of UNI_COLS){ const th=el('th',(c.n?'num ':'')+(uniSort.k===c.k?'on':''),c.h+(uniSort.k===c.k?(uniSort.d<0?' ▼':' ▲'):''));
+    th.onclick=()=>{ uniSort=uniSort.k===c.k?{k:c.k,d:-uniSort.d}:{k:c.k,d:c.n?-1:1}; renderUni(); }; h.appendChild(th); } $('#uniHead').replaceChildren(h);
+  const q=$('#uniQ').value.trim().toUpperCase(), opt=$('#uniOpt').checked;
+  let rows=S.uni.rows.filter(r=>(!opt||r.o)&&(!q||r.s.startsWith(q)||(q.length>1&&r.n.toUpperCase().includes(q))));
+  const k=uniSort.k, d=uniSort.d; rows.sort((a,b)=>{ const x=a[k],y=b[k]; if(x==null&&y==null) return 0; if(x==null) return 1; if(y==null) return -1; return (typeof x==='string'?x.localeCompare(y):x-y)*d; });
+  if(q) rows.sort((a,b)=>(b.s===q)-(a.s===q));
+  const total=rows.length; rows=rows.slice(0,UNI_MAX);
+  $('#uniInfo').textContent=`${fInt(total)} of ${fInt(S.uni.rows.length)} stocks`+(total>UNI_MAX?` · showing top ${UNI_MAX}, filter to narrow`:'')+(S.uni.at?` · ${new Date(S.uni.at).toLocaleTimeString('en-US')}`:'');
+  const frag=document.createDocumentFragment();
+  for(const r of rows){ const tr=el('tr'); tr.style.cursor='pointer'; tr.title=r.o?'Insights and news · ⋯ for the option chain':'Insights and news';
+    for(const c of UNI_COLS){ const v=r[c.k]; const td=el('td',c.n?'num':'',c.f?c.f(v):(v??''));
+      if(c.k==='c') td.className+=v>0?' c-green':v<0?' c-red':''; if(c.k==='s') td.style.fontWeight='600';
+      if(c.k==='n'){ td.style.maxWidth='280px'; td.style.overflow='hidden'; td.style.textOverflow='ellipsis'; td.className+=' c-muted'; }
+      if(c.k==='o'&&v){ td.textContent=''; const b=el('button','btn','Chain'); b.style.padding='2px 10px'; b.onclick=e=>{ e.stopPropagation(); view('chain'); load(r.s); }; td.appendChild(b); }
+      tr.appendChild(td); }
+    tr.onclick=()=>openInsight({kind:'stock',sym:r.s}); frag.appendChild(tr); }
+  $('#uniBody').replaceChildren(frag); if(!rows.length) $('#uniBody').innerHTML='<tr><td colspan="7" class="empty">No stocks match this filter</td></tr>'; }
+const NAMES_DEMO={SPY:'SPDR S&P 500 ETF',QQQ:'Invesco QQQ Trust',AAPL:'Apple Inc.',MSFT:'Microsoft Corporation',NVDA:'NVIDIA Corporation',TSLA:'Tesla, Inc.',AMZN:'Amazon.com, Inc.',META:'Meta Platforms, Inc.'};
+let uniQT=0; $('#uniQ').addEventListener('input',()=>{ clearTimeout(uniQT); uniQT=setTimeout(renderUni,120); }); $('#uniOpt').onchange=renderUni;
+$('#stModeW').onclick=()=>stMode(false); $('#stModeA').onclick=()=>stMode(true);
+
 function renderCharts(){
   if(typeof Chart==='undefined'){ $('.charts').innerHTML='<p class="c-muted">Could not load the chart library.</p>'; return; }
   const rows=[...S.contracts.values()].filter(c=>c.exp===S.selExp), ks=[...new Set(rows.map(c=>c.strike))].sort((a,b)=>a-b);
@@ -987,7 +1050,7 @@ function sec(title,extra){ const s=el('div','sec'); const h=el('h4',null,title);
 function kv(items){ const g=el('div','kv'); for(const [k,v,cls] of items){ const d=el('div'); d.append(el('div','k',k),el('div','v '+(cls||''),v)); g.appendChild(d); } return g; }
 function pts(list){ const u=el('ul','pts'); for(const p of list){ if(!p) continue; const [txt,cls]=Array.isArray(p)?p:[p,'']; u.appendChild(el('li',cls,txt)); } return u; }
 function btn(txt,fn,cls){ const b=el('button','btn '+(cls||''),txt); b.onclick=fn; return b; }
-function stockSnap(sym){ const s=S.stocks.get(sym)||{}; let price=s.price; if(!ok(price)){ const f=S.flows.find(x=>x.sym===sym); price=f?f.spot:(DEMO?DSPOT[sym]:null); } return {...s,price}; }
+function stockSnap(sym){ const u=S.uniMap.get(sym); const s=S.stocks.get(sym)||(u?{sym,price:u.p,chgPct:u.c,vol:u.v,name:u.n}:{}); let price=s.price; if(!ok(price)){ const f=S.flows.find(x=>x.sym===sym); price=f?f.spot:(DEMO?DSPOT[sym]:null); } return {...s,price}; }
 function contractFor(t,f){
   let c=S.contracts.get(t)||S.trk.get(t); const pt=parseTicker(t)||{};
   if(!c&&f) c={t,und:f.sym,type:f.cp,strike:f.strike,exp:f.exp,last:f.price,vol:f.vol,oi:f.oi};
@@ -1128,20 +1191,23 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&!DEMO){ 
 async function init(){
   buildDrawer(); buildFlowHead(); buildScrHead(); buildTrkHead(); fillScr(); updTrkCount();
   if(!DEMO){
-    try{ const c=await getJSON('/api/config'); CFG.pollMs=c.pollMs||CFG.pollMs;
+    try{ const c=await getJSON('/api/config'); CFG.pollMs=c.pollMs||CFG.pollMs; CFG.provider=c.provider||null;
+      if(CFG.provider==='alpaca'){ CFG.strikePct=100; CFG.maxDte=1100; CFG.fullMs=120000; CFG.maxContracts=40000; }
       $('#avatar').textContent=(c.name||c.email||'?').trim()[0].toUpperCase(); $('#avatar').parentNode.title=`${c.email} · Sign out`;
       if(c.demo) DEMO=true;
-      else if(!c.keyConfigured){ setStatus('error'); note('MASSIVE_API_KEY is not set on the server.',true); } }
+      else if(!c.keyConfigured){ setStatus('error'); note('No market data key is set on the server (ALPACA_KEY_ID / ALPACA_SECRET_KEY).',true); } }
     catch(e){ setStatus('error'); note('Could not read server configuration: '+e.message,true); return; }
     await cloudLoad();
   }
-  paintSaveState(); wi.value=P.watch;
+  paintSaveState(); wi.value=P.watch; stMode(!!P.stAll);
   if(P.defaultPreset&&!P.activePreset) applyPreset(P.defaultPreset);
   renderPresetSel(); flowChanged(); updTrkCount();
   view(P.view||'flow');
   if(DEMO){ setStatus('demo'); note('Showing sample data: trades, prices and volumes are simulated, not real market data.'); startDemoFlow(); }
-  else { setStatus('loading'); note('Live flow is derived from volume changes in your watchlist\'s option chains (approximate; sweeps and splits cannot be told apart).');
-    S.flowTimers.push(setInterval(liveFlowTick,CFG.pollMs)); }
+  else { setStatus('loading');
+    if(CFG.provider==='alpaca'){ note('Flow shows the latest print of each contract for your watchlist and the 20 most active stocks. On the free Alpaca plan option trades arrive about 15 minutes late.'); refreshActive(); S.flowTimers.push(setInterval(refreshActive,300e3)); }
+    else note('Live flow is derived from volume changes in your watchlist\'s option chains (approximate; sweeps and splits cannot be told apart).');
+    S.flowTimers.push(setInterval(liveFlowTick,CFG.provider==='alpaca'?Math.max(4000,CFG.pollMs*1.5):CFG.pollMs)); }
   load(P.und);
 }
 init();

@@ -77,3 +77,21 @@ Her kullanıcının kayıtlı filtreleri, takip ettiği kontratlar ve izleme lis
 Akışta, zincirde, tarayıcıda, takip listesinde ya da hisseler sayfasında bir satıra tıklayınca sağdan içgörü drawer'ı açılır: hesaplanan içgörüler, vade sonu kâr/zarar grafiği, o kontrattaki işlemler ve ilgili haberler. Haberler `api/news.js` üzerinden [Exa](https://exa.ai) ile çekilir (`category: news`, son 14 gün) ve kısa bir Türkçe özet için Exa `/answer` kullanılır. Sonuçlar sembol başına 15 dk önbelleğe alınır.
 
 Kurulum: Vercel → Marketplace → **Exa** ile projeye bağla (faturalama Vercel üzerinden). Projede `EXA_API_KEY` ortam değişkeni bulunmalı; yoksa Exa panelinden alınan anahtarı bu adla ekle.
+
+## Market data: Alpaca (recommended)
+
+Add these in Vercel → Settings → Environment Variables, then redeploy:
+
+| Variable | Value |
+|---|---|
+| `ALPACA_KEY_ID` | API key ID from your Alpaca dashboard (a free paper account is enough) |
+| `ALPACA_SECRET_KEY` | API secret |
+| `ALPACA_STOCK_FEED` | optional: `iex` (free Basic plan, default) or `sip` (Algo Trader Plus) |
+| `ALPACA_OPTIONS_FEED` | optional: `indicative` (free) or `opra` (paid); by default Alpaca picks per account |
+| `ALPACA_TRADING_URL` | optional: `https://paper-api.alpaca.markets` (default) or `https://api.alpaca.markets` for live keys |
+
+When Alpaca keys are present they are used instead of Massive, and `DEMO_DATA` is ignored.
+What you get: every listed US stock/ETF (Stocks → All stocks, refreshed every 90 s), full option chains (all expiries and
+strikes) with greeks/IV and open interest, and a flow built from each contract's latest print (sweeps from OPRA ISO
+conditions S/b/d, multi-leg from f–t, blocks by size/premium). The free plan allows 200 requests/min, stocks come from IEX
+only and option trades from the indicative feed (about 15 minutes delayed).
