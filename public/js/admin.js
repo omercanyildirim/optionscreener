@@ -12,10 +12,12 @@ const fmt = t => t ? new Date(t).toLocaleString('en-GB',{day:'2-digit',month:'sh
 function ago(t){ if(!t) return '–'; const d=(Date.now()-t)/1000; if(d<60) return 'just now'; if(d<3600) return Math.round(d/60)+' min ago'; if(d<86400) return Math.round(d/3600)+' h ago'; return Math.round(d/86400)+' d ago'; }
 const ACT = { login:'Signed in', logout:'Signed out', session:'Opened the app', view:'Opened view', search:'Searched', chain:'Opened chain',
   insight:'Opened insights', all_stocks:'Browsed all stocks', filter_save:'Saved a filter', filter_load:'Loaded a filter', filter_delete:'Deleted a filter',
-  filter_default:'Set default filter', watch_add:'Watched a contract', watch_remove:'Stopped watching', settings_saved:'Saved settings', consent:'Accepted terms', data_export:'Downloaded own data' };
+  filter_default:'Set default filter', watch_add:'Watched a contract', watch_remove:'Stopped watching', settings_saved:'Saved settings', consent:'Accepted terms', data_export:'Downloaded own data', payment:'Payment', marketing:'Email preference', comp:'Free Pro' };
 const act = t => ACT[t] || t;
 const main = $('#main');
-let ST = null, DATA = null, timer = null;
+let ST = null, DATA = null, PAY = null, TAB = 'users', timer = null;
+const money = (v, cur='USD') => v==null ? '–' : new Intl.NumberFormat('en-US',{style:'currency',currency:cur||'USD'}).format(v);
+const day1 = t => t ? new Date(t).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '–';
 
 async function start(){
   try { ST = await api('/api/admin?a=status'); } catch (e) { main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
@@ -76,14 +78,20 @@ async function dashboard(){
   main.replaceChildren(el('p','m','Loading activity…'));
   await load(); clearInterval(timer); timer = setInterval(() => { if(!document.hidden) load(); }, 30000);
 }
+async function loadPay(){ try { PAY = await api('/api/admin?a=payments'); } catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } PAY = { error: e.message }; } }
 async function load(){
+  if (TAB==='payments') await loadPay();
   try { DATA = await api('/api/admin?a=overview'); }
   catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
   render();
 }
-function render(){
+function tabs(){ const t=el('div','tabs'); t.setAttribute('role','tablist');
+  for (const [k,label] of [['users','Users and activity'],['payments','Payments']]){ const b=el('button',TAB===k?'on':'',label); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(TAB===k));
+    b.onclick=async()=>{ if(TAB===k) return; TAB=k; if(k==='payments'&&!PAY){ main.replaceChildren(tabs(), el('p','m','Loading payments from Paddle…')); await loadPay(); } render(); }; t.append(b); }
+  return t; }
+function render(){ if (TAB==='payments') return renderPay();
   const D = DATA, now = Date.now(), day = 864e5;
-  const frag = document.createDocumentFragment();
+  const frag = document.createDocumentFragment(); frag.append(tabs());
   if (!D.store) frag.append(el('div','warn','Activity is not being recorded yet: the database (Upstash Redis) is not connected. Connect it in Vercel → Storage, then redeploy.'));
   const users = D.users || [], ev = D.events || [];
   const stats = el('div','stats');
@@ -92,6 +100,7 @@ function render(){
   stat('Active today', users.filter(u=>u.last&&now-u.last<day).length, 'last 24 hours');
   stat('Active this week', users.filter(u=>u.last&&now-u.last<7*day).length, 'last 7 days');
   stat('Pro subscribers', users.filter(u=>u.plan==='Pro').length, 'active subscriptions');
+  stat('Email opt-ins', users.filter(u=>u.marketing).length, 'agreed to product emails');
   stat('Actions today', ev.filter(e=>now-e.t<day).length+(ev.length>=500?'+':''), 'from the latest 500');
   frag.append(stats);
   if (D.site) frag.append(el('p','note',`Who can sign in: ${D.site.access} · Market data: ${D.site.provider} · Refreshes every 30 s`));
@@ -99,14 +108,19 @@ function render(){
   const grid = el('div','grid');
   // users
   const uBox = el('section'); const uh = el('div','sechead'); uh.append(el('h3',null,'Users'), el('span','sp'));
-  const q = el('input'); q.placeholder='Search name or email'; q.style.width='220px'; uh.append(q);
-  const uw = el('div','tw'); const ut = el('table'); ut.innerHTML='<thead><tr><th>User</th><th>Plan</th><th>Last active</th><th class="n">Sign-ins</th><th class="n">Actions</th><th class="n">Filters</th><th class="n">Watching</th><th>Last action</th><th>Country</th><th>First seen</th></tr></thead>';
+  const q = el('input'); q.placeholder='Search name or email'; q.style.width='220px';
+  const csv = el('button','btn','Export email opt-ins'); csv.title='CSV of users who agreed to product emails, with when and how they agreed';
+  csv.onclick=()=>{ const rows=[['email','name','opted_in_at','how']].concat(users.filter(u=>u.marketing).map(u=>[u.email,u.name||'',u.marketingAt||'',u.marketingHow||'']));
+    const blob=new Blob([rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n')],{type:'text/csv'});
+    const a=el('a'); a.href=URL.createObjectURL(blob); a.download='optionscreener-email-optins.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
+  uh.append(q, csv);
+  const uw = el('div','tw'); const ut = el('table'); ut.innerHTML='<thead><tr><th>User</th><th>Plan</th><th>Emails</th><th>Last active</th><th class="n">Sign-ins</th><th class="n">Actions</th><th class="n">Filters</th><th class="n">Watching</th><th>Last action</th><th>Country</th><th>First seen</th></tr></thead>';
   const ub = el('tbody'); ut.append(ub); uw.append(ut); uBox.append(uh, uw);
   const paintUsers = () => { const s=q.value.trim().toLowerCase(); ub.replaceChildren();
     const list = users.filter(u=>!s||u.email.includes(s)||(u.name||'').toLowerCase().includes(s));
-    if(!list.length){ const tr=el('tr'), td=el('td','empty', D.store?'No users yet':'No data until the database is connected'); td.colSpan=10; tr.append(td); ub.append(tr); return; }
+    if(!list.length){ const tr=el('tr'), td=el('td','empty', D.store?'No users yet':'No data until the database is connected'); td.colSpan=11; tr.append(td); ub.append(tr); return; }
     for (const u of list){ const tr=el('tr','click'); tr.title='Show activity';
-      const c=el('td','u'); c.append(el('b',null,u.name||u.email), el('span',null,u.name?u.email:'')); tr.append(c); tr.append(el('td',u.plan==='Pro'?'g':'m',u.plan||'Free'));
+      const c=el('td','u'); c.append(el('b',null,u.name||u.email), el('span',null,u.name?u.email:'')); tr.append(c); tr.append(el('td',/^Pro/.test(u.plan)?'g':'m',u.plan||'Free')); tr.append(el('td',u.marketing?'g':'d',u.marketing?'Yes':'No'));
       const la=el('td',u.last&&now-u.last<15*60e3?'g':'',ago(u.last)); la.title=fmt(u.last); tr.append(la);
       for (const v of [u.logins,u.events,u.presets,u.tracked]) tr.append(el('td','n',String(v||0)));
       tr.append(el('td','m',act(u.lastType)), el('td','m',u.country||'–'), el('td','d',fmt(u.first)));
@@ -128,6 +142,54 @@ function render(){
   main.replaceChildren(frag);
 }
 
+/* ---------- payments (live from Paddle) ---------- */
+const TXS = { completed:'Paid', paid:'Paid', past_due:'Past due', canceled:'Canceled', billed:'Billed' };
+const SUBS = { active:'Active', past_due:'Past due', canceled:'Canceled', paused:'Paused', trialing:'Trial' };
+function userByEmail(e){ return ((DATA&&DATA.users)||[]).find(u=>u.email===e) || { email:e }; }
+function renderPay(){
+  const frag = document.createDocumentFragment(); frag.append(tabs()); const P = PAY || {};
+  if (P.error){ frag.append(el('p','err','Could not load payments: '+P.error)); main.replaceChildren(frag); return; }
+  if (!P.configured){ frag.append(el('div','warn','Payments cannot be shown: PADDLE_API_KEY is not set in Vercel.')); main.replaceChildren(frag); return; }
+  if (P.env==='sandbox') frag.append(el('div','warn','Sandbox: these are test payments, not real money. Real payments appear here once the site switches to Paddle production.'));
+  const T = P.totals, stats = el('div','stats');
+  const stat = (k,v,s) => { const d=el('div','stat'); d.append(el('div','k',k), el('div','v',String(v))); if(s) d.append(el('div','s',s)); stats.append(d); };
+  stat('Monthly recurring revenue', money(T.mrr), `${T.active} active subscription${T.active===1?'':'s'}`);
+  stat('Active subscribers', T.active, [T.canceling?`${T.canceling} canceling`:'', T.pastDue?`${T.pastDue} past due`:'', T.canceled?`${T.canceled} canceled`:''].filter(Boolean).join(', ')||'none canceling');
+  stat('Revenue this month', money(T.monthRevenue), `${T.monthCount} payment${T.monthCount===1?'':'s'}, incl. ${money(T.monthTax)} tax`);
+  stat('Net this month', money(T.monthEarnings), `after tax and ${money(T.monthFees)} Paddle fees`);
+  stat('All time', money(T.allRevenue), `${money(T.allEarnings)} net${T.refunded?`, ${money(T.refunded)} refunded`:''}`);
+  frag.append(stats);
+  frag.append(el('p','note','Live from Paddle · Paddle pays out the net amount monthly to your bank account · Refreshes every 30 s'));
+  // payments
+  const pBox = el('section'); const ph = el('div','sechead'); ph.append(el('h3',null,'Payments'), el('span','sp'));
+  const q = el('input'); q.placeholder='Search email or invoice'; q.style.width='220px'; ph.append(q);
+  const pw = el('div','tw'); const pt = el('table'); pt.innerHTML='<thead><tr><th>Date</th><th>Customer</th><th>Type</th><th class="n">Amount</th><th class="n">Tax</th><th class="n">Paddle fee</th><th class="n">Net</th><th>Method</th><th>Status</th><th>Invoice</th></tr></thead>';
+  const pb = el('tbody'); pt.append(pb); pw.append(pt); pBox.append(ph, pw);
+  const paint = () => { const f=q.value.trim().toLowerCase(); pb.replaceChildren();
+    const list = P.transactions.filter(t=>!f||t.email.toLowerCase().includes(f)||(t.invoice||'').toLowerCase().includes(f));
+    if(!list.length){ const tr=el('tr'), td=el('td','empty','No payments yet'); td.colSpan=10; tr.append(td); pb.append(tr); return; }
+    for (const t of list){ const tr=el('tr','click'); tr.title='Show customer';
+      const c=el('td','u'); c.append(el('b',null,t.name||t.email||'–'), el('span',null,t.name?t.email:''));
+      const st = t.refunded ? `Refunded ${money(t.refunded,t.currency)}` : (TXS[t.status]||t.status);
+      const inv = el('td'); if (t.invoice && ['paid','completed'].includes(t.status)) { const a=el('a',null,t.invoice); a.href='/api/admin?a=invoice&txn='+encodeURIComponent(t.id); a.target='_blank'; a.rel='noopener'; a.onclick=e=>e.stopPropagation(); inv.append(a); } else inv.textContent='–';
+      tr.append(el('td','d',fmt(Date.parse(t.at))), c, el('td','m',t.origin==='subscription_recurring'?'Renewal':'New'), el('td','n',money(t.total,t.currency)), el('td','n m',money(t.tax,t.currency)),
+        el('td','n m',money(t.fee,t.currency)), el('td','n g',money(t.earnings,t.currency)), el('td','m',t.method||'–'), el('td',t.refunded||t.status==='past_due'?'r':'g',st), inv);
+      tr.onclick=()=>openUser(userByEmail(t.email)); pb.append(tr); } };
+  q.addEventListener('input', paint); paint();
+  // subscriptions
+  const sBox = el('section'); const sh = el('div','sechead'); sh.append(el('h3',null,'Subscriptions'));
+  const sw = el('div','tw'); const stb = el('table'); stb.innerHTML='<thead><tr><th>Customer</th><th>Status</th><th class="n">Price</th><th>Since</th><th>Next payment</th></tr></thead>';
+  const sb = el('tbody'); stb.append(sb); sw.append(stb); sBox.append(sh, sw);
+  if(!P.subscriptions.length){ const tr=el('tr'), td=el('td','empty','No subscriptions yet'); td.colSpan=5; tr.append(td); sb.append(tr); }
+  for (const x of P.subscriptions){ const tr=el('tr','click');
+    const st = x.cancelAt ? `Ends ${day1(x.cancelAt)}` : (SUBS[x.status]||x.status);
+    tr.append(el('td',null,x.email||x.customerId), el('td',x.status==='active'&&!x.cancelAt?'g':x.status==='past_due'?'r':'m',st), el('td','n',`${money(x.amount,x.currency)}/${x.interval}`),
+      el('td','d',day1(x.startedAt)), el('td','d',x.status==='active'&&!x.cancelAt?day1(x.nextBill):'–'));
+    tr.onclick=()=>openUser(userByEmail(x.email)); sb.append(tr); }
+  const grid = el('div','grid'); grid.append(pBox, sBox); frag.append(grid);
+  main.replaceChildren(frag);
+}
+
 /* ---------- one user ---------- */
 const ov=$('#ov'), dr=$('#drawer');
 function closeUser(){ dr.classList.remove('on'); ov.classList.remove('on'); }
@@ -144,6 +206,33 @@ async function openUser(u){
   for (const [k,v] of [['Name',[pr.givenName,pr.familyName].filter(Boolean).join(' ')||u.name||'–'],['Plan',u.plan||'Free'],['First seen',fmt(u.first)],['Last sign-in',pr.lastLogin?fmt(Date.parse(pr.lastLogin)):'–'],['Last active',ago(u.last)],['Sign-ins',u.logins??'–'],['Actions',u.events??'–'],['Location',loc||'–'],['IP address',pr.ip||'–'],['Language',pr.locale||'–'],['Google account ID',pr.googleId||'–'],['Workspace domain',pr.domain||'–'],['Terms accepted',u.consent?`${u.consent.version} · ${u.consent.at?fmt(Date.parse(u.consent.at)):''}`:'Not yet'],['Saved filters',d.presets.length]]){ const x=el('div'); x.append(el('div','k',k), el('div','v',String(v))); kv.append(x); }
   s1.append(kv);
   if (pr.device) s1.append(el('p','m',pr.device));
+  // plan: subscription or free Pro given by the admin
+  const sp = sec('Plan'); const sub = u.sub;
+  if (sub && ['active','trialing','past_due'].includes(sub.status)) sp.append(el('p',null,`Paying subscriber (${sub.status})${sub.cancelAt?`, ends ${day1(sub.cancelAt)}`:sub.nextBill?`, next payment ${day1(sub.nextBill)}`:''}.`));
+  else if (sub) sp.append(el('p','m',`Subscription ${sub.status}.`));
+  const compBox = el('div','comp');
+  const paintComp = c => { compBox.replaceChildren();
+    if (c) { compBox.append(el('p','g',`Free Pro is on${c.until?` until ${day1(c.until)}`:' with no end date'}${c.note?` · ${c.note}`:''}.`));
+      const off=el('button','btn','Remove free Pro'); off.onclick=()=>saveComp(false); compBox.append(off); }
+    else { compBox.append(el('p','m','Give this user Pro without payment. Leave the end date empty for no end.'));
+      const row=el('div','crow'); const until=el('input'); until.type='date'; until.min=new Date(Date.now()+864e5).toISOString().slice(0,10); until.setAttribute('aria-label','End date (optional)');
+      const nt=el('input'); nt.placeholder='Note (optional), e.g. beta tester'; nt.maxLength=200;
+      const on=el('button','btn pri','Give free Pro'); on.onclick=()=>saveComp(true, until.value?new Date(until.value+'T23:59:59Z').toISOString():null, nt.value); row.append(until, nt, on); compBox.append(row); }
+    compBox.append(err); };
+  const err = el('div','err');
+  async function saveComp(on, until, note){ err.textContent='';
+    try { const r = await api('/api/admin?a=comp',{method:'POST',body:JSON.stringify({email:u.email,on,until,note})}); u.comp=r.comp; u.plan=on?'Pro (free)':(u.sub&&['active','trialing','past_due'].includes(u.sub.status)?'Pro':'Free'); paintComp(r.comp); load(); }
+    catch(e){ err.textContent=e.message; } }
+  paintComp(u.comp); sp.append(compBox);
+  const sm = sec('Email updates'); sm.append(el('p',u.marketing?'g':'m', u.marketing?`Agreed to product emails on ${fmt(Date.parse(u.marketingAt))} (${u.marketingHow||'–'}).`:'Has not agreed to product emails. Payment and account emails are still sent.'));
+  const spay = sec('Payments');
+  const mine = PAY && PAY.transactions ? PAY.transactions.filter(t=>t.email===u.email) : null;
+  if (!mine) { const b=el('button','btn','Load payments from Paddle'); b.onclick=async()=>{ b.disabled=true; await loadPay(); openUser(u); }; spay.append(b); }
+  else if (!mine.length) spay.append(el('p','m','No payments'));
+  else { const t=el('table'); t.innerHTML='<thead><tr><th>Date</th><th class="n">Amount</th><th>Status</th><th>Invoice</th></tr></thead>'; const tb=el('tbody');
+    for (const x of mine){ const tr=el('tr'); const inv=el('td'); if(x.invoice){ const a=el('a',null,x.invoice); a.href='/api/admin?a=invoice&txn='+encodeURIComponent(x.id); a.target='_blank'; a.rel='noopener'; inv.append(a); } else inv.textContent='–';
+      tr.append(el('td','d',fmt(Date.parse(x.at))), el('td','n',money(x.total,x.currency)), el('td',x.refunded?'r':'g',x.refunded?'Refunded':(TXS[x.status]||x.status)), inv); tb.append(tr); }
+    t.append(tb); spay.append(t); }
   const s2 = sec('Stock watchlist'); s2.append(d.watch ? chips(d.watch.split(/[,\s]+/).filter(Boolean)) : el('p','m','Default list'));
   const s3 = sec('Saved filters'); s3.append(d.presets.length ? chips(d.presets.map(p=>p.name)) : el('p','m','None'));
   const s4 = sec('Watched contracts'); s4.append(d.tracked.length ? chips(d.tracked.map(t=>t.replace(/^O:/,''))) : el('p','m','None'));

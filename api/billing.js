@@ -2,8 +2,10 @@
 // /api/billing?a=status          (GET, signed in)  -> current plan
 // /api/paddle-webhook            (POST, from Paddle; rewritten here with a=webhook) -> subscription updates
 import { getSession, json } from '../lib/session.js';
-import { verifyWebhook, handleEvent, getSubscription, portalUrl, billingInfo, syncTransaction } from '../lib/billing.js';
-import { storeConfigured } from '../lib/store.js';
+import { verifyWebhook, handleEvent, getSubscription, portalUrl, billingInfo, syncTransaction, accountFrom, emailForCustomer } from '../lib/billing.js';
+import { txnRow } from '../lib/payments.js';
+import { sendPaymentEmailOnce } from '../lib/mail.js';
+import { storeConfigured, cmd } from '../lib/store.js';
 import { logEvent } from '../lib/activity.js';
 
 const action = request => new URL(request.url).searchParams.get('a') || '';
@@ -44,7 +46,25 @@ export async function POST(request) {
   if (!(await verifyWebhook(raw, request.headers.get('paddle-signature')))) return json({ error: 'invalid signature' }, 401);
   if (!storeConfigured()) return json({ error: 'database not connected' }, 503); // Paddle retries later
   let evt; try { evt = JSON.parse(raw); } catch { return json({ error: 'invalid JSON' }, 400); }
+  if (evt.event_type === 'transaction.completed') {
+    try { return json({ ok: true, ...(await onPayment(evt.data || {})) }); }
+    catch (e) { return json({ error: 'email failed: ' + e.message }, 500); } // Paddle retries the webhook
+  }
   const r = await handleEvent(evt);
   if (r.email) await logEvent(r.email, 'settings_saved', `subscription ${r.status}`);
   return json({ ok: true, ...r });
+}
+
+// A payment went through (first payment or monthly renewal): note it and email the customer.
+async function onPayment(d) {
+  const email = (await accountFrom(d.custom_data)) || (await emailForCustomer(d.customer_id));
+  if (!email) return { payment: d.id, error: 'unknown account' };
+  const t = txnRow(d), sub = await getSubscription(email);
+  let name = ''; try { name = (await cmd(['HGET', `os:u:${email}`, 'givenName'])) || (await cmd(['HGET', `os:u:${email}`, 'name'])) || ''; } catch {}
+  await logEvent(email, 'payment', `${t.total != null ? t.total.toFixed(2) : '?'} ${t.currency} ${t.invoice || d.id}`);
+  const m = await sendPaymentEmailOnce(d.id, email, {
+      name, amount: t.total, tax: t.tax, currency: t.currency, paidAt: t.at || new Date().toISOString(),
+      nextBill: sub && sub.nextBill, invoice: t.invoice, method: t.method, renewal: d.origin === 'subscription_recurring',
+    });
+  return { payment: d.id, email, mail: m.id ? 'sent' : m.skipped || 'skipped' };
 }

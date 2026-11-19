@@ -2,7 +2,7 @@ import { getSession, json } from '../lib/session.js';
 import { alpacaConfigured, feedInfo } from '../lib/alpaca.js';
 import { billingInfo } from '../lib/billing.js';
 import { quotaState } from '../lib/quota.js';
-import { consentState } from '../lib/legal.js';
+import { consentState, getMarketing } from '../lib/legal.js';
 
 export async function GET(request) {
   const s = await getSession(request);
@@ -21,5 +21,6 @@ export async function GET(request) {
     billing: await billingInfo(s.email, request.headers.get('x-vercel-ip-country') || ''),
     free: await quotaState(s.email).catch(() => null),
     legal: await consentState(s.email),
+    marketing: await getMarketing(s.email),
   });
 }

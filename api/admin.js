@@ -6,6 +6,8 @@ import { newSecret, otpauthUri, base32Decode } from '../lib/totp.js';
 import { storeConfigured } from '../lib/store.js';
 import { logEvent, overview, userDetail } from '../lib/activity.js';
 import { alpacaConfigured } from '../lib/alpaca.js';
+import { paymentsOverview, invoiceUrl } from '../lib/payments.js';
+import { setComp } from '../lib/billing.js';
 
 const action = request => new URL(request.url).searchParams.get('a') || '';
 
@@ -13,12 +15,15 @@ export async function GET(request) {
   const a = action(request);
   if (a === 'status') return status(request);
   if (a === 'overview') return overviewGet(request);
+  if (a === 'payments') return paymentsGet(request);
+  if (a === 'invoice') return invoiceGet(request);
   return json({ error: 'not found' }, 404);
 }
 export async function POST(request) {
   const a = action(request);
   if (a === 'setup') return setup(request);
   if (a === 'verify') return verifyPost(request);
+  if (a === 'comp') return compPost(request);
   return json({ error: 'not found' }, 404);
 }
 export async function DELETE(request) {
@@ -96,4 +101,32 @@ async function overviewGet(request) {
   } catch {
     return json({ error: 'Could not read the database' }, 502);
   }
+}
+
+// Payments, subscriptions and refunds from Paddle (live).
+async function paymentsGet(request) {
+  if (!(await getVerifiedAdmin(request))) return json({ error: 'forbidden' }, 403);
+  try { return json(await paymentsOverview()); }
+  catch (e) { return json({ error: 'Paddle: ' + e.message }, 502); }
+}
+async function invoiceGet(request) {
+  if (!(await getVerifiedAdmin(request))) return json({ error: 'forbidden' }, 403);
+  try {
+    const url = await invoiceUrl(new URL(request.url).searchParams.get('txn'));
+    if (!url) return json({ error: 'No invoice for this transaction yet' }, 404);
+    return new Response(null, { status: 302, headers: { location: url, 'cache-control': 'no-store' } });
+  } catch (e) { return json({ error: e.message }, e.status === 400 ? 400 : 502); }
+}
+// Give or remove free Pro for a user: { email, on, until?, note? }
+async function compPost(request) {
+  const admin = await getVerifiedAdmin(request);
+  if (!admin) return json({ error: 'forbidden' }, 403);
+  if (!storeConfigured()) return json({ error: 'Database is not connected' }, 503);
+  let b = {}; try { b = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+  const email = String(b.email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: 'Invalid email' }, 400);
+  if (b.until && !(Date.parse(b.until) > Date.now())) return json({ error: 'The end date must be in the future' }, 400);
+  const c = await setComp(email, !!b.on, { by: admin.email || '', note: b.note, until: b.until || null });
+  await logEvent(email, 'comp', b.on ? `Free Pro given${c.until ? ' until ' + c.until.slice(0, 10) : ''}${c.note ? ' (' + c.note + ')' : ''}` : 'Free Pro removed');
+  return json({ ok: true, comp: c });
 }

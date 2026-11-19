@@ -101,7 +101,7 @@ test('tracked endpoint fans out per contract', async () => {
 });
 
 test('google login → callback creates a session only for allowed emails', async () => {
-  const l = await login.GET(req('https://os.example.com/api/auth/login?consent=2026-11-19&next=/x'));
+  const l = await login.GET(req('https://os.example.com/api/auth/login?consent=2026-11-19.2&next=/x'));
   assert.equal(l.status, 302);
   const g = new URL(l.headers.get('location'));
   assert.equal(g.origin, 'https://accounts.google.com');
@@ -127,7 +127,7 @@ test('google login → callback creates a session only for allowed emails', asyn
 });
 
 test('open redirect is blocked', async () => {
-  const l = await login.GET(req('https://os.example.com/api/auth/login?consent=2026-11-19&next=//evil.com'));
+  const l = await login.GET(req('https://os.example.com/api/auth/login?consent=2026-11-19.2&next=//evil.com'));
   assert.equal(l.status, 302);
   assert.equal(login.safeNext('//evil.com'), '/');
   assert.equal(login.safeNext('/ok'), '/ok');

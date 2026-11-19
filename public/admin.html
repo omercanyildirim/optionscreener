@@ -38,7 +38,7 @@ main{padding:24px 28px 48px;max-width:1500px}
 .err{color:var(--put);font-size:13px;min-height:20px;margin:10px 0}
 .qr{background:#fff;padding:14px;border-radius:8px;display:inline-block;margin:4px 0 14px}
 .secret{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--text);border:1px dashed var(--line2);border-radius:5px;padding:8px 10px;word-break:break-all;margin:0 0 18px}
-.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin:4px 0 26px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:4px 0 26px;row-gap:18px}
 .stat{padding:2px 22px;border-left:1px solid var(--line)} .stat:first-child{padding-left:0;border-left:0}
 .stat .k{color:var(--muted);font-size:12.5px}
 .stat .v{font-size:30px;font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums;font-variation-settings:"wdth" 125;line-height:1.15}
@@ -56,7 +56,14 @@ th{position:sticky;top:0;background:var(--bg);color:var(--muted);font-weight:500
 td.n,th.n{text-align:right}
 tbody tr.click{cursor:pointer} tbody tr.click:hover td{background:var(--hover)}
 .u b{font-weight:600;display:block} .u span{color:var(--muted);font-size:12px}
-.m{color:var(--muted)} .d{color:var(--dim)} .g{color:var(--call)}
+.m{color:var(--muted)} .d{color:var(--dim)} .g{color:var(--call)} .r{color:var(--put)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:-6px 0 24px}
+.tabs button{border:0;background:none;padding:10px 14px;font-weight:500;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button:hover{color:var(--text)} .tabs button.on{color:var(--text);border-bottom-color:var(--text)}
+td a{color:var(--text)}
+.comp p{margin:0 0 10px;font-size:13.5px} .crow{display:flex;flex-wrap:wrap;gap:8px} .crow input[type=text],.crow input:not([type]){flex:1;min-width:160px}
+.sec > p{margin:0 0 10px;font-size:13.5px}
+.sec table{margin-top:4px}
 .tag{font-size:12px;border:1px solid var(--line2);border-radius:4px;padding:1px 7px;color:var(--muted)}
 .empty{text-align:center;color:var(--muted);padding:40px!important;white-space:normal}
 .overlay{position:fixed;inset:0;background:rgba(6,7,9,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}

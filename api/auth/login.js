@@ -25,7 +25,8 @@ export async function GET(request) {
     return new Response(null, { status: 302, headers: { location: '/login?consent=required' + (next !== '/' ? '&next=' + encodeURIComponent(next) : ''), 'cache-control': 'no-store' } });
   }
   const state = crypto.randomUUID();
-  const stateToken = await sign({ state, next, consent: LEGAL_VERSION, exp: Math.floor(Date.now() / 1000) + 600 }, env.SESSION_SECRET);
+  const mkt = url.searchParams.get('mkt') === '1';
+  const stateToken = await sign({ state, next, consent: LEGAL_VERSION, mkt, exp: Math.floor(Date.now() / 1000) + 600 }, env.SESSION_SECRET);
 
   const google = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   google.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);

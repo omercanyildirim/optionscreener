@@ -29,6 +29,8 @@ function redis(args) {
     case 'ZREVRANGE': return Object.entries(h()).sort((x, y) => y[1] - x[1]).map(x => x[0]);
     case 'HSETNX': if (h()[a[0]] == null) h()[a[0]] = a[1]; return 1;
     case 'HSET': for (let i = 0; i < a.length; i += 2) h()[a[i]] = a[i + 1]; return 1;
+    case 'SADD': (R[k] ||= new Set()); a.forEach(x => R[k].add(x)); return 1;
+    case 'SREM': if (R[k] instanceof Set) a.forEach(x => R[k].delete(x)); return 1;
     case 'HGET': return (R[k] || {})[a[0]] ?? null;
     case 'HINCRBY': h()[a[0]] = String((+h()[a[0]] || 0) + +a[1]); return 1;
     case 'HGETALL': return Object.entries(R[k] || {}).flat();

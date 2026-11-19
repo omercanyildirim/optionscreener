@@ -648,14 +648,19 @@ let amenu=null;
 function closeAcct(){ if(amenu){ amenu.remove(); amenu=null; } }
 function openAcct(){ closeAcct(); const b=CFG.billing||{}; amenu=el('div','amenu'); amenu.setAttribute('role','menu');
   const who=el('div','who'); who.append(el('b',null,CFG.name||CFG.email||''),el('span',null,CFG.name?CFG.email:''));
-  if(b.configured){ const pro=b.plan==='pro'; const tag=el('span','plan'+(pro?' pro':''),pro?(b.status==='admin'?'Pro (admin)':'Pro'):'Free plan');
-    if(pro&&b.cancelAt) tag.textContent+=` · ends ${new Date(b.cancelAt).toLocaleDateString('en-US')}`; else if(pro&&b.nextBill) tag.textContent+=` · renews ${new Date(b.nextBill).toLocaleDateString('en-US')}`;
+  if(b.configured){ const pro=b.plan==='pro'; const tag=el('span','plan'+(pro?' pro':''),pro?(b.status==='admin'?'Pro (admin)':b.status==='comp'?'Pro (complimentary)':'Pro'):'Free plan');
+    if(pro&&b.status==='comp'&&b.compUntil) tag.textContent+=` · until ${new Date(b.compUntil).toLocaleDateString('en-US')}`; else if(pro&&b.cancelAt) tag.textContent+=` · ends ${new Date(b.cancelAt).toLocaleDateString('en-US')}`; else if(pro&&b.nextBill) tag.textContent+=` · renews ${new Date(b.nextBill).toLocaleDateString('en-US')}`;
     who.append(el('br'),tag); }
   amenu.append(who);
   if(b.configured&&b.plan!=='pro'){ const u=el('button',null,'Upgrade to Pro · $9.99/month'); u.onclick=()=>openGate('upgrade'); amenu.append(u); }
   if(b.configured&&b.plan==='pro'&&b.status==='admin'&&b.paddle&&b.paddle.env==='sandbox'){ const t=el('button',null,'Test checkout (sandbox, no real charge)'); t.onclick=()=>openGate('upgrade'); amenu.append(t); }
   if(b.canManage){ const m=el('a',null,'Manage subscription and card'); m.href='/api/billing?a=portal'; m.target='_blank'; m.rel='noopener'; amenu.append(m); }
   amenu.append(el('hr'));
+  const mk=el('button','sw'); mk.append(el('span',null,'Email updates'), el('i',CFG.marketing?'on':'',CFG.marketing?'On':'Off'));
+  mk.title='Product updates and offers by email. Payment and account emails are always sent.';
+  mk.onclick=async()=>{ const on=!CFG.marketing; try{ const r=await fetch('/api/userdata?a=marketing&on='+(on?1:0),{method:'PUT',credentials:'same-origin'}); if(!r.ok) throw new Error();
+      CFG.marketing=on; note(on?'You will receive product updates by email.':'Product emails are turned off.'); }catch(e){ note('Could not save your email preference.',true); } closeAcct(); };
+  amenu.append(mk);
   const dl=el('a',null,'Download my data'); dl.href='/api/userdata?a=export'; dl.setAttribute('download',''); amenu.append(dl);
   const del=el('button',null,'Delete account'); del.onclick=deleteAccount; amenu.append(del);
   const o=el('a',null,'Sign out'); o.href='/api/auth/logout'; amenu.append(o);
@@ -670,7 +675,7 @@ async function deleteAccount(){ closeAcct();
 function askConsent(){ return new Promise(res=>{ document.body.classList.add('gated'); $('#app').inert=true; $('#legal').hidden=false;
   const box=$('#legalAgree'), okb=$('#legalOk'); box.onchange=()=>{ okb.disabled=!box.checked; };
   okb.onclick=async()=>{ okb.disabled=true; $('#legalErr').textContent='';
-    try{ const r=await fetch('/api/userdata?a=consent',{method:'PUT',credentials:'same-origin'}); if(!r.ok) throw new Error('HTTP '+r.status);
+    try{ const r=await fetch('/api/userdata?a=consent'+($('#legalMkt').checked?'&mkt=1':''),{method:'PUT',credentials:'same-origin'}); if($('#legalMkt').checked) CFG.marketing=true; if(!r.ok) throw new Error('HTTP '+r.status);
       $('#legal').hidden=true; document.body.classList.remove('gated'); $('#app').inert=false; res(); }
     catch(e){ $('#legalErr').textContent='Could not save: '+e.message; okb.disabled=false; } }; }); }
 $('#acctBtn').onclick=e=>{ e.stopPropagation(); amenu?closeAcct():openAcct(); };
@@ -977,7 +982,7 @@ async function init(){
     try{ const c=await getJSON('/api/config'); CFG.pollMs=c.pollMs||CFG.pollMs; CFG.provider=c.provider||null;
       if(CFG.provider==='alpaca'){ CFG.strikePct=100; CFG.maxDte=1100; CFG.fullMs=120000; CFG.maxContracts=40000; }
       $('#avatar').textContent=(c.name||c.email||'?').trim()[0].toUpperCase(); $('#acctBtn').title=`${c.email} · Account`;
-      CFG.name=c.name; CFG.email=c.email; CFG.billing=c.billing||null; CFG.free=c.free||null; paintLocks(); paintFree();
+      CFG.name=c.name; CFG.email=c.email; CFG.billing=c.billing||null; CFG.free=c.free||null; CFG.marketing=!!c.marketing; paintLocks(); paintFree();
       if(c.legal&&!c.legal.accepted) await askConsent();
       if(c.free&&c.free.walled) wallUp(c.free);
       if(c.demo) DEMO=true;
