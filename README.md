@@ -95,3 +95,14 @@ What you get: every listed US stock/ETF (Stocks → All stocks, refreshed every 
 strikes) with greeks/IV and open interest, and a flow built from each contract's latest print (sweeps from OPRA ISO
 conditions S/b/d, multi-leg from f–t, blocks by size/premium). The free plan allows 200 requests/min, stocks come from IEX
 only and option trades from the indicative feed (about 15 minutes delayed).
+
+## Admin portal (`/admin`)
+
+`https://optionscreener.org/admin` shows who signs in and what they do (searches, views, insights, saved filters, watched
+contracts), per user and as a live feed.
+
+- Access: Google sign-in with an address listed in `ADMIN_EMAILS` (comma-separated, set in Vercel) **and** a Google
+  Authenticator code (asked again every 12 hours, 5 wrong codes lock it for 15 minutes, a code cannot be reused).
+- First visit: scan the QR code with Google Authenticator and confirm a code. With the database connected the key is
+  stored there; without it, the page asks you to save it as `ADMIN_TOTP_SECRET` in Vercel.
+- Activity is stored in Upstash Redis (Vercel → Storage). Without it the portal opens but has nothing to show.

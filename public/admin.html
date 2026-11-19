@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin · Options Screener</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#121417; --raise:#171a1e; --hover:#1c2025; --line:#23272d; --line2:#2e333a;
+  --text:#e4e6e9; --muted:#878d96; --dim:#565c64; --call:#4fd1a1; --put:#f0716a; --sweep:#e3bf6b; --focus:#9fb4ff;
+  --font:"Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:400 14px/1.45 var(--font);-webkit-font-smoothing:antialiased}
+a{color:inherit} button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+input,select{background:transparent;border:1px solid var(--line2);border-radius:5px;padding:7px 10px;outline:none}
+input:focus,select:focus{border-color:var(--focus)}
+select option{background:var(--raise)}
+.btn{border:1px solid var(--line2);background:transparent;border-radius:5px;padding:7px 14px;font-weight:500;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--hover);border-color:#454b54}
+.btn.pri{background:var(--text);border-color:var(--text);color:var(--bg)} .btn.pri:hover{background:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+header{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+header svg{width:24px;height:24px}
+header h1{font-size:17px;font-weight:600;margin:0;font-variation-settings:"wdth" 112;letter-spacing:-.01em}
+header .who{color:var(--muted);font-size:13px;margin-left:auto}
+main{padding:24px 28px 48px;max-width:1500px}
+.gate{max-width:440px;margin:9vh auto 0;padding:0 4px}
+.gate h2{font-size:24px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em;font-variation-settings:"wdth" 112}
+.gate p{color:var(--muted);margin:0 0 18px}
+.gate ol{color:var(--muted);padding-left:20px;margin:0 0 20px} .gate li{margin-bottom:6px} .gate li b{color:var(--text);font-weight:500}
+.code{font-size:28px;letter-spacing:.4em;text-align:center;width:100%;padding:12px;font-variant-numeric:tabular-nums;font-variation-settings:"wdth" 115}
+.err{color:var(--put);font-size:13px;min-height:20px;margin:10px 0}
+.qr{background:#fff;padding:14px;border-radius:8px;display:inline-block;margin:4px 0 14px}
+.secret{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--text);border:1px dashed var(--line2);border-radius:5px;padding:8px 10px;word-break:break-all;margin:0 0 18px}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin:4px 0 26px}
+.stat{padding:2px 22px;border-left:1px solid var(--line)} .stat:first-child{padding-left:0;border-left:0}
+.stat .k{color:var(--muted);font-size:12.5px}
+.stat .v{font-size:30px;font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums;font-variation-settings:"wdth" 125;line-height:1.15}
+.stat .s{color:var(--muted);font-size:12px;margin-top:4px}
+.note{color:var(--muted);font-size:13px;margin:-10px 0 22px}
+.warn{border-left:2px solid var(--sweep);padding:8px 12px;color:var(--text);font-size:13px;margin:0 0 22px;background:rgba(227,191,107,.06)}
+h3{font-size:15px;font-weight:600;margin:0;display:flex;align-items:center;gap:10px}
+.sechead{display:flex;align-items:center;gap:12px;margin:8px 0 12px;flex-wrap:wrap}
+.sechead .sp{flex:1}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:40px}
+.tw{overflow:auto;max-height:62vh;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums;font-variation-settings:"wdth" 94}
+th,td{padding:8px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{position:sticky;top:0;background:var(--bg);color:var(--muted);font-weight:500;font-size:12px;box-shadow:inset 0 -1px 0 var(--line2);border-bottom:0}
+td.n,th.n{text-align:right}
+tbody tr.click{cursor:pointer} tbody tr.click:hover td{background:var(--hover)}
+.u b{font-weight:600;display:block} .u span{color:var(--muted);font-size:12px}
+.m{color:var(--muted)} .d{color:var(--dim)} .g{color:var(--call)}
+.tag{font-size:12px;border:1px solid var(--line2);border-radius:4px;padding:1px 7px;color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:40px!important;white-space:normal}
+.overlay{position:fixed;inset:0;background:rgba(6,7,9,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.overlay.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:var(--raise);border-left:1px solid var(--line2);z-index:30;transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.7,.2,1);display:flex;flex-direction:column}
+.drawer.on{transform:none}
+@media (prefers-reduced-motion:reduce){.drawer,.overlay{transition:none}}
+.dh{display:flex;align-items:center;gap:10px;padding:16px 24px;border-bottom:1px solid var(--line)}
+.dh h2{margin:0;font-size:17px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis}
+.db{overflow:auto;padding:4px 24px 24px}
+.sec{padding:18px 0;border-bottom:1px solid var(--line)} .sec:last-child{border-bottom:0}
+.sec h4{margin:0 0 10px;font-size:13px;font-weight:600}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px}
+.kv .k{color:var(--muted);font-size:12px} .kv .v{font-size:15px;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.x{border:0;background:none;color:var(--muted);width:30px;height:30px;border-radius:5px;cursor:pointer;font-size:18px}
+.x:hover{background:var(--hover);color:var(--text)}
+@media (max-width:1100px){ .grid{grid-template-columns:1fr} }
+@media (max-width:760px){ header,main{padding-left:16px;padding-right:16px} .stats{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:18px} .stat:nth-child(odd){padding-left:0;border-left:0} .kv{grid-template-columns:repeat(2,1fr)} header .who{display:none} }
+</style>
+</head>
+<body>
+<header>
+  <svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>
+  <h1>Admin</h1>
+  <span class="who" id="who"></span>
+  <a class="btn" href="/">Open app</a>
+  <button class="btn" id="lock" hidden>Lock</button>
+  <a class="btn" href="/api/auth/logout">Sign out</a>
+</header>
+<main id="main"><p class="m">Loading…</p></main>
+
+<div class="overlay" id="ov"></div>
+<aside class="drawer" id="drawer" aria-label="User details">
+  <div class="dh"><h2 id="dTitle"></h2><button class="x" id="dClose" aria-label="Close">×</button></div>
+  <div class="db" id="dBody"></div>
+</aside>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
+async function api(path, opt){
+  const r = await fetch(path, { credentials:'same-origin', cache:'no-store', ...(opt||{}), headers:{'content-type':'application/json'} });
+  if (r.status === 401) { location.href = '/login?next=/admin'; throw new Error('Signed out'); }
+  let j = {}; try { j = await r.json(); } catch {}
+  if (!r.ok) { const e = new Error(j.error || r.statusText); e.status = r.status; throw e; }
+  return j;
+}
+const fmt = t => t ? new Date(t).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '–';
+function ago(t){ if(!t) return '–'; const d=(Date.now()-t)/1000; if(d<60) return 'just now'; if(d<3600) return Math.round(d/60)+' min ago'; if(d<86400) return Math.round(d/3600)+' h ago'; return Math.round(d/86400)+' d ago'; }
+const ACT = { login:'Signed in', logout:'Signed out', session:'Opened the app', view:'Opened view', search:'Searched', chain:'Opened chain',
+  insight:'Opened insights', all_stocks:'Browsed all stocks', filter_save:'Saved a filter', filter_load:'Loaded a filter', filter_delete:'Deleted a filter',
+  filter_default:'Set default filter', watch_add:'Watched a contract', watch_remove:'Stopped watching', settings_saved:'Saved settings' };
+const act = t => ACT[t] || t;
+const main = $('#main');
+let ST = null, DATA = null, timer = null;
+
+async function start(){
+  try { ST = await api('/api/admin/status'); } catch (e) { main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
+  $('#who').textContent = ST.email || '';
+  if (!ST.admin) return noAccess();
+  if (!ST.totpConfigured) return setup();
+  if (!ST.verified) return codeGate();
+  $('#lock').hidden = false;
+  dashboard();
+}
+
+function gate(title, text){ const g=el('section','gate'); g.append(el('h2',null,title)); if(text) g.append(el('p',null,text)); main.replaceChildren(g); return g; }
+function noAccess(){
+  const g = gate('No access', `${ST.email} is not an admin of this site.`);
+  const a = el('a','btn','Back to the app'); a.href='/'; g.append(a);
+}
+
+function codeInput(){ const i=el('input','code'); i.inputMode='numeric'; i.autocomplete='one-time-code'; i.maxLength=6; i.placeholder='000000'; i.setAttribute('aria-label','6-digit code');
+  i.addEventListener('input',()=>{ i.value=i.value.replace(/\D/g,'').slice(0,6); }); return i; }
+
+function codeGate(){
+  const g = gate('Enter your code', 'Open Google Authenticator on your phone and enter the 6-digit code for Options Screener.');
+  const i = codeInput(), err = el('div','err'), b = el('button','btn pri','Verify'); b.style.width='100%'; b.style.justifyContent='center';
+  const go = async () => { if (i.value.length !== 6) { err.textContent='Enter all 6 digits.'; return; }
+    b.disabled = true; err.textContent='';
+    try { await api('/api/admin/verify',{method:'POST',body:JSON.stringify({code:i.value})}); start(); }
+    catch(e){ err.textContent=e.message; i.value=''; i.focus(); } finally { b.disabled=false; } };
+  i.addEventListener('input',()=>{ if(i.value.length===6) go(); }); b.onclick=go;
+  g.append(i, err, b); i.focus();
+}
+
+async function setup(){
+  const g = gate('Set up Google Authenticator', 'The admin portal asks for a code from your phone every 12 hours. Set it up once:');
+  let s; try { s = await api('/api/admin/setup',{method:'POST',body:'{}'}); } catch(e){ g.append(el('p','err',e.message)); return; }
+  const ol = el('ol');
+  for (const [b,t] of [['Install Google Authenticator',' on your phone (App Store / Google Play).'],['Tap +, then “Scan a QR code”',' and scan the code below. Or choose “Enter a setup key” and type the key.'],['Enter the 6-digit code',' the app shows for Options Screener.']]){ const li=el('li'); li.append(el('b',null,b), t); ol.append(li); }
+  const qr = el('div','qr'); const key = el('div','secret', s.secret.replace(/(.{4})/g,'$1 ').trim());
+  const i = codeInput(), err = el('div','err'), b = el('button','btn pri','Confirm and finish'); b.style.width='100%'; b.style.justifyContent='center';
+  g.append(ol, qr, key, i, err, b);
+  try { new QRCode(qr, { text: s.uri, width: 184, height: 184, colorDark:'#000000', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M }); }
+  catch { qr.replaceWith(el('p','m','The QR code could not be drawn here; use the setup key instead.')); }
+  const go = async () => { if (i.value.length !== 6) { err.textContent='Enter all 6 digits.'; return; }
+    b.disabled = true; err.textContent='';
+    try { const r = await api('/api/admin/setup',{method:'POST',body:JSON.stringify({secret:s.secret,code:i.value})});
+      if (r.stored) { start(); return; }
+      // No database yet: the key goes into Vercel.
+      const done = gate('One more step', 'The code works. Because the database is not connected yet, save the key in Vercel:');
+      const ol2 = el('ol'); for (const t of ['Open Vercel → optionscreener → Settings → Environment Variables.', 'Add a variable named ADMIN_TOTP_SECRET with the setup key you scanned (without spaces).', 'Save and redeploy. Then open this page again and enter a code.']) ol2.append(el('li',null,t));
+      done.append(ol2, el('div','secret', s.secret));
+    } catch(e){ err.textContent=e.message; i.value=''; i.focus(); } finally { b.disabled=false; } };
+  b.onclick=go; i.focus();
+}
+
+$('#lock').onclick = async () => { await api('/api/admin/verify',{method:'DELETE'}).catch(()=>{}); clearInterval(timer); $('#lock').hidden=true; start(); };
+
+/* ---------- dashboard ---------- */
+async function dashboard(){
+  main.replaceChildren(el('p','m','Loading activity…'));
+  await load(); clearInterval(timer); timer = setInterval(() => { if(!document.hidden) load(); }, 30000);
+}
+async function load(){
+  try { DATA = await api('/api/admin/overview'); }
+  catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
+  render();
+}
+function render(){
+  const D = DATA, now = Date.now(), day = 864e5;
+  const frag = document.createDocumentFragment();
+  if (!D.store) frag.append(el('div','warn','Activity is not being recorded yet: the database (Upstash Redis) is not connected. Connect it in Vercel → Storage, then redeploy.'));
+  const users = D.users || [], ev = D.events || [];
+  const stats = el('div','stats');
+  const stat = (k,v,s) => { const d=el('div','stat'); d.append(el('div','k',k), el('div','v',String(v))); if(s) d.append(el('div','s',s)); stats.append(d); };
+  stat('Users', users.length, 'signed in at least once');
+  stat('Active today', users.filter(u=>u.last&&now-u.last<day).length, 'last 24 hours');
+  stat('Active this week', users.filter(u=>u.last&&now-u.last<7*day).length, 'last 7 days');
+  stat('New this week', users.filter(u=>u.first&&now-u.first<7*day).length, 'first sign-in');
+  stat('Actions today', ev.filter(e=>now-e.t<day).length+(ev.length>=500?'+':''), 'from the latest 500');
+  frag.append(stats);
+  if (D.site) frag.append(el('p','note',`Who can sign in: ${D.site.access} · Market data: ${D.site.provider} · Refreshes every 30 s`));
+
+  const grid = el('div','grid');
+  // users
+  const uBox = el('section'); const uh = el('div','sechead'); uh.append(el('h3',null,'Users'), el('span','sp'));
+  const q = el('input'); q.placeholder='Search name or email'; q.style.width='220px'; uh.append(q);
+  const uw = el('div','tw'); const ut = el('table'); ut.innerHTML='<thead><tr><th>User</th><th>Last active</th><th class="n">Sign-ins</th><th class="n">Actions</th><th class="n">Filters</th><th class="n">Watching</th><th>Last action</th><th>Country</th><th>First seen</th></tr></thead>';
+  const ub = el('tbody'); ut.append(ub); uw.append(ut); uBox.append(uh, uw);
+  const paintUsers = () => { const s=q.value.trim().toLowerCase(); ub.replaceChildren();
+    const list = users.filter(u=>!s||u.email.includes(s)||(u.name||'').toLowerCase().includes(s));
+    if(!list.length){ const tr=el('tr'), td=el('td','empty', D.store?'No users yet':'No data until the database is connected'); td.colSpan=9; tr.append(td); ub.append(tr); return; }
+    for (const u of list){ const tr=el('tr','click'); tr.title='Show activity';
+      const c=el('td','u'); c.append(el('b',null,u.name||u.email), el('span',null,u.name?u.email:'')); tr.append(c);
+      const la=el('td',u.last&&now-u.last<15*60e3?'g':'',ago(u.last)); la.title=fmt(u.last); tr.append(la);
+      for (const v of [u.logins,u.events,u.presets,u.tracked]) tr.append(el('td','n',String(v||0)));
+      tr.append(el('td','m',act(u.lastType)), el('td','m',u.country||'–'), el('td','d',fmt(u.first)));
+      tr.onclick=()=>openUser(u); ub.append(tr); } };
+  q.addEventListener('input', paintUsers); paintUsers();
+  // activity
+  const aBox = el('section'); const ah = el('div','sechead'); ah.append(el('h3',null,'Latest activity'), el('span','sp'));
+  const sel = el('select'); sel.append(new Option('All actions','')); for (const [k,v] of Object.entries(ACT)) sel.append(new Option(v,k)); ah.append(sel);
+  const aw = el('div','tw'); const at = el('table'); at.innerHTML='<thead><tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th></tr></thead>';
+  const ab = el('tbody'); at.append(ab); aw.append(at); aBox.append(ah, aw);
+  const nameOf = e => (users.find(u=>u.email===e)||{}).name || e;
+  const paintEv = () => { ab.replaceChildren(); const list = ev.filter(e=>!sel.value||e.type===sel.value);
+    if(!list.length){ const tr=el('tr'), td=el('td','empty','Nothing yet'); td.colSpan=4; tr.append(td); ab.append(tr); return; }
+    for (const e of list){ const tr=el('tr','click'); const t=el('td','d',ago(e.t)); t.title=fmt(e.t);
+      tr.append(t, el('td',null,nameOf(e.e)), el('td',null,act(e.type)), el('td','m',e.d||''));
+      tr.onclick=()=>openUser(users.find(u=>u.email===e.e)||{email:e.e}); ab.append(tr); } };
+  sel.onchange = paintEv; paintEv();
+  grid.append(uBox, aBox); frag.append(grid);
+  main.replaceChildren(frag);
+}
+
+/* ---------- one user ---------- */
+const ov=$('#ov'), dr=$('#drawer');
+function closeUser(){ dr.classList.remove('on'); ov.classList.remove('on'); }
+ov.onclick=closeUser; $('#dClose').onclick=closeUser; document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeUser(); });
+async function openUser(u){
+  $('#dTitle').textContent = u.name || u.email; const body=$('#dBody'); body.replaceChildren(el('p','m','Loading…'));
+  dr.classList.add('on'); ov.classList.add('on');
+  let d; try { d = await api('/api/admin/overview?email='+encodeURIComponent(u.email)); } catch(e){ body.replaceChildren(el('p','err',e.message)); return; }
+  const sec = t => { const s=el('div','sec'); s.append(el('h4',null,t)); body.append(s); return s; };
+  body.replaceChildren();
+  const s1 = sec(u.email); const kv=el('div','kv');
+  for (const [k,v] of [['First seen',fmt(u.first)],['Last active',ago(u.last)],['Sign-ins',u.logins??'–'],['Actions',u.events??'–'],['Country',u.country||'–'],['Saved filters',d.presets.length]]){ const x=el('div'); x.append(el('div','k',k), el('div','v',String(v))); kv.append(x); }
+  s1.append(kv);
+  const s2 = sec('Stock watchlist'); s2.append(d.watch ? chips(d.watch.split(/[,\s]+/).filter(Boolean)) : el('p','m','Default list'));
+  const s3 = sec('Saved filters'); s3.append(d.presets.length ? chips(d.presets.map(p=>p.name)) : el('p','m','None'));
+  const s4 = sec('Watched contracts'); s4.append(d.tracked.length ? chips(d.tracked.map(t=>t.replace(/^O:/,''))) : el('p','m','None'));
+  const s5 = sec('Activity'); const t=el('table'); t.innerHTML='<thead><tr><th>Time</th><th>Action</th><th>Detail</th></tr></thead>'; const tb=el('tbody');
+  for (const e of d.events){ const tr=el('tr'); tr.append(el('td','d',fmt(e.t)), el('td',null,act(e.type)), el('td','m',e.d||'')); tb.append(tr); }
+  if(!d.events.length){ const tr=el('tr'), td=el('td','empty','No activity recorded'); td.colSpan=3; tr.append(td); tb.append(tr); }
+  t.append(tb); s5.append(t);
+}
+function chips(list){ const c=el('div','chips'); for (const x of list) c.append(el('span','tag',x)); return c; }
+
+start();
+})();
+</script>
+</body>
+</html>

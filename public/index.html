@@ -438,6 +438,14 @@ const symSet = s => new Set(String(s||'').toUpperCase().split(/[,\s]+/).filter(B
 function setStatus(st,text){ const m={demo:['Sample data','demo'],loading:['Loading',''],live:['Live','live'],delayed:['15-min delayed','delayed'],error:['Connection problem','err'],paused:['Paused','']};
   let [t,c]=m[st]||[st,'']; if(st==='delayed'&&CFG.provider==='alpaca'){ t='Free data feed'; }
   $('#status').textContent=text||t; $('#status').title=CFG.provider==='alpaca'&&(st==='delayed')?'Alpaca free plan: stock prices from IEX, option prices from the indicative feed (trades delayed about 15 min).':''; $('#dot').className='dot '+c; }
+/* ---------- activity log (shown to admins; nothing is sent in sample mode) ---------- */
+const TQ=[]; let tLast='';
+function track(type,detail){ if(DEMO) return; const k=type+'|'+(detail||''); if(k===tLast) return; tLast=k; TQ.push({type,detail:String(detail||'').slice(0,120)}); if(TQ.length>=20) flushTrack(); }
+function flushTrack(beacon){ if(!TQ.length) return; const body=JSON.stringify({events:TQ.splice(0,30)});
+  if(beacon&&navigator.sendBeacon){ navigator.sendBeacon('/api/track',new Blob([body],{type:'application/json'})); return; }
+  fetch('/api/track',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body,keepalive:true}).catch(()=>{}); }
+setInterval(()=>flushTrack(),10000);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) flushTrack(true); });
 function note(msg,err){ const e=$('#msg'); e.textContent=msg||''; e.className=err?'err':''; }
 
 /* ---------- server API (Massive key stays on the server) ---------- */
@@ -494,6 +502,7 @@ async function fetchStocks(){ const syms=[...new Set(watchList().concat(trackedU
 const trackedUnderlyings = () => [...new Set(P.tracked.map(t=>(parseTicker(t)||{}).und).filter(Boolean))];
 const isTracked = t => P.tracked.includes(t);
 function toggleTrack(t, contract){
+  track(isTracked(t)?'watch_remove':'watch_add',String(t).replace(/^O:/,''));
   if(isTracked(t)) P.tracked=P.tracked.filter(x=>x!==t);
   else { if(P.tracked.length>=50){ note('You can watch at most 50 contracts.',true); return; } P.tracked.push(t); }
   saveP(true); for(const td of S.starMap.get(t)||[]) paintStar(td,t);
@@ -733,18 +742,18 @@ function renderPresetSel(){
   paintPresetDirty(); paintSaveState(); }
 function paintPresetDirty(){ const p=currentPreset(); const dirty=p&&(JSON.stringify({...FLOW0,...p.flow})!==JSON.stringify(P.flow)||JSON.stringify({...SCR0,...p.screener})!==JSON.stringify(P.scr));
   $('#pSave').textContent=dirty?'Save changes •':'Save changes'; }
-function applyPreset(id){ const p=P.presets.find(x=>x.id===id); if(!p) return;
+function applyPreset(id){ const p=P.presets.find(x=>x.id===id); if(!p) return; track('filter_load',p.name);
   P.flow={...FLOW0,...p.flow}; P.scr={...SCR0,...p.screener}; P.activePreset=id; fillScr(); flowChanged(); S.scrForce=true; renderPresetSel(); note(`Applied "${p.name}".`); }
 $('#pLoad').onclick=()=>{ const id=$('#presetSel').value; if(id) applyPreset(id); };
 $('#presetSel').onchange=e=>{ if(e.target.value) applyPreset(e.target.value); };
 $('#quickPreset').onchange=e=>{ if(e.target.value) applyPreset(e.target.value); else { P.activePreset=null; renderPresetSel(); } };
-$('#pNew').onclick=()=>{ const name=$('#pName').value.trim(); if(!name){ $('#pName').focus(); $('#pName').placeholder='Enter a name first'; return; }
+$('#pNew').onclick=()=>{ const name=$('#pName').value.trim(); if(!name){ $('#pName').focus(); $('#pName').placeholder='Enter a name first'; return; } track('filter_save',name);
   if(P.presets.length>=50){ note('You can save at most 50 filters.',true); return; }
   const p={id:newId(),name,flow:{...P.flow},screener:{...P.scr},updatedAt:Date.now()}; P.presets.push(p); P.activePreset=p.id; $('#pName').value='';
   saveP(true); renderPresetSel(); note(`Saved "${name}".`); };
-$('#pSave').onclick=()=>{ const p=currentPreset(); if(!p) return; p.flow={...P.flow}; p.screener={...P.scr}; p.updatedAt=Date.now(); saveP(true); renderPresetSel(); note(`Updated "${p.name}".`); };
-$('#pDelete').onclick=()=>{ const p=currentPreset(); if(!p) return; P.presets=P.presets.filter(x=>x.id!==p.id); if(P.defaultPreset===p.id) P.defaultPreset=null; P.activePreset=null; saveP(true); renderPresetSel(); note(`Deleted "${p.name}".`); };
-$('#pDefault').onclick=()=>{ const p=currentPreset(); if(!p) return; P.defaultPreset = P.defaultPreset===p.id ? null : p.id; saveP(true); renderPresetSel(); };
+$('#pSave').onclick=()=>{ const p=currentPreset(); if(!p) return; track('filter_save',p.name); p.flow={...P.flow}; p.screener={...P.scr}; p.updatedAt=Date.now(); saveP(true); renderPresetSel(); note(`Updated "${p.name}".`); };
+$('#pDelete').onclick=()=>{ const p=currentPreset(); if(!p) return; track('filter_delete',p.name); P.presets=P.presets.filter(x=>x.id!==p.id); if(P.defaultPreset===p.id) P.defaultPreset=null; P.activePreset=null; saveP(true); renderPresetSel(); note(`Deleted "${p.name}".`); };
+$('#pDefault').onclick=()=>{ const p=currentPreset(); if(!p) return; track('filter_default',p.name); P.defaultPreset = P.defaultPreset===p.id ? null : p.id; saveP(true); renderPresetSel(); };
 
 /* ============================================================
    CHAIN / SCREENER / TRACKED / STOCKS / CHARTS
@@ -869,7 +878,7 @@ function updStock(sym){ const s=S.stocks.get(sym), r=S.stRows.get(sym); if(!s||!
 /* ---------- all stocks (whole market, from /api/universe) ---------- */
 const UNI_COLS=[{k:'s',h:'Ticker'},{k:'n',h:'Name'},{k:'p',h:'Price',n:1,f:f2},{k:'c',h:'%',n:1,f:fSPct},{k:'v',h:'Volume',n:1,f:fInt},{k:'dv',h:'$ volume',n:1,f:v=>v?fMoney(v):'–'},{k:'o',h:'Options',n:1,f:v=>v?'Yes':''}];
 const UNI_MAX=400; let uniSort={k:'dv',d:-1}, uniTimer=null;
-function stMode(all){ P.stAll=!!all; saveP(); $('#stModeW').classList.toggle('on',!all); $('#stModeA').classList.toggle('on',all);
+function stMode(all){ if(all&&!P.stAll) track('all_stocks'); P.stAll=!!all; saveP(); $('#stModeW').classList.toggle('on',!all); $('#stModeA').classList.toggle('on',all);
   $('#stWatchL').hidden=all; $('#stAllCtl').hidden=!all; $('#stWrap').hidden=all; $('#uniWrap').hidden=!all;
   clearInterval(uniTimer); if(all){ loadUni(); uniTimer=setInterval(()=>{ if(cur==='stocks'&&P.stAll&&!document.hidden) loadUni(); },90e3); } }
 async function loadUni(){
@@ -920,7 +929,7 @@ function renderCharts(){
 /* ---------- views + render loop ---------- */
 const VTITLE={flow:'Options flow',chain:'Option chain',screener:'Contract screener',tracked:'My watchlist',stocks:'Stocks',charts:'Charts'};
 let cur='flow';
-function view(v){ cur=v; P.view=v; saveP(); document.querySelectorAll('.rail [data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+function view(v){ if(cur!==v) track('view',VTITLE[v]||v); cur=v; P.view=v; saveP(); document.querySelectorAll('.rail [data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
   document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v)); $('#vtitle').textContent=VTITLE[v];
   $('#app').classList.toggle('nofeed',v!=='flow'); $('#openFilters').style.display=v==='flow'?'':'none';
   if(v==='screener') S.scrForce=true; if(v==='charts') S.lastCharts=0; if(v==='tracked') S.trkForce=true; if(v==='flow') S.flowDirty=true; if(v==='chain') renderUStats(); }
@@ -1030,7 +1039,7 @@ function startDemoChain(){
 async function load(und){
   und=(und||'').trim().toUpperCase(); if(!und) return;
   S.gen++; const gen=S.gen; S.timers.forEach(clearInterval); S.timers=[];
-  S.und=und; P.und=und; saveP(); $('#tk').value='';
+  S.und=und; P.und=und; saveP(); track('chain',und); $('#tk').value='';
   S.contracts.clear(); S.dirty.clear(); S.scrRows.clear(); $('#scrBody').innerHTML=''; S.scrTop=[]; S.selExp=null;
   S.uPrice=null; S.uChg=null; S.uChgPct=null; S.delayed=null; S.optT=0;
   buildStocks(); S.trkForce=true;
@@ -1086,7 +1095,7 @@ function payoffSvg(c,prem,spot){
   s+=`<text x="${pad}" y="${H-6}" fill="#878d96" font-size="11">Max loss ${fMoney(prem*100)}</text></svg>`;
   const d=el('div'); d.innerHTML=s; return d; }
 
-function openInsight(o){
+function openInsight(o){ track('insight', o.kind==='stock'?o.sym:String(o.t||'').replace(/^O:/,''));
   closeMenu(); insState=o; const body=$('#insBody'); body.innerHTML='';
   $('#insight').classList.add('on'); $('#overlay').classList.add('on');
   const sym = o.kind==='stock' ? o.sym : (parseTicker(o.t)||{}).und || (o.f&&o.f.sym);
@@ -1197,7 +1206,7 @@ function renderNews(sym,box,brief,d){
 $('#searchForm').onsubmit=e=>{ e.preventDefault(); const v=$('#tk').value.trim().toUpperCase(); if(!v) return;
   // Search always opens the symbol (chain); flow filtering by ticker lives in the Filters drawer.
   if(!/^[A-Z][A-Z0-9.]{0,9}$/.test(v)){ note(`"${v}" is not a valid ticker.`,true); return; }
-  if(!['chain','screener','tracked'].includes(cur)) view('chain'); load(v); };
+  track('search',v); if(!['chain','screener','tracked'].includes(cur)) view('chain'); load(v); };
 $('#expSel').onchange=e=>{ S.selExp=e.target.value; buildChain(true); S.lastCharts=0; if(!DEMO) poll(); };
 const wi=$('#watchInp'); wi.value=P.watch;
 wi.addEventListener('change',()=>{ P.watch=wi.value||PDEF.watch; saveP(true); buildStocks(); if(!DEMO) fetchStocks().catch(()=>{}); });
@@ -1213,7 +1222,7 @@ async function init(){
       if(c.demo) DEMO=true;
       else if(!c.keyConfigured){ setStatus('error'); note('No market data key is set on the server (ALPACA_KEY_ID / ALPACA_SECRET_KEY).',true); } }
     catch(e){ setStatus('error'); note('Could not read server configuration: '+e.message,true); return; }
-    await cloudLoad();
+    await cloudLoad(); track('session', (navigator.userAgent.match(/(iPhone|iPad|Android|Mac OS X|Windows)/)||[''])[0]);
   }
   paintSaveState(); wi.value=P.watch; stMode(!!P.stAll);
   if(P.defaultPreset&&!P.activePreset) applyPreset(P.defaultPreset);

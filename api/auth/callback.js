@@ -1,5 +1,6 @@
 import { sign, verify, readCookie, cookie, isAllowed, STATE_COOKIE, SESSION_COOKIE, SESSION_MAX_AGE } from '../../lib/session.js';
 import { appOrigin, safeNext } from './login.js';
+import { logEvent } from '../../lib/activity.js';
 
 function decodeJwtPayload(jwt) {
   const part = jwt.split('.')[1];
@@ -52,6 +53,7 @@ export async function GET(request) {
   }
 
   const session = await sign({ email, name: c.name || '', exp: now + SESSION_MAX_AGE }, env.SESSION_SECRET);
+  await logEvent(email, 'login', (request.headers.get('user-agent') || '').slice(0, 120), { name: c.name || '', country: request.headers.get('x-vercel-ip-country') || '' });
   const headers = new Headers({ location: safeNext(st.next), 'cache-control': 'no-store' });
   headers.append('set-cookie', cookie(SESSION_COOKIE, session, SESSION_MAX_AGE));
   headers.append('set-cookie', cookie(STATE_COOKIE, '', 0));

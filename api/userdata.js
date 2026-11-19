@@ -1,5 +1,6 @@
 import { getSession, json } from '../lib/session.js';
 import { storeConfigured, getUserData, setUserData, sanitizeUserData } from '../lib/store.js';
+import { logEvent } from '../lib/activity.js';
 
 // Each signed-in user's saved filters (presets), tracked contracts and watchlist.
 export async function GET(request) {
@@ -30,5 +31,6 @@ export async function PUT(request) {
   } catch {
     return json({ error: 'Could not write to the database' }, 502);
   }
+  await logEvent(s.email, 'settings_saved', `${clean.presets.length} filters, ${clean.tracked.length} watched contracts`);
   return json({ ok: true, data: clean });
 }
