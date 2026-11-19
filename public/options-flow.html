@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Options Flow: How to Read Sweeps, Blocks and Big Trades</title>
+<meta name="description" content="What options flow is and how to read it: sweeps vs blocks, buying at the ask vs selling at the bid, premium, size vs open interest, and live options flow for US stocks.">
+<link rel="canonical" href="https://optionscreener.org/options-flow">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Options Screener">
+<meta property="og:title" content="Options Flow: How to Read Sweeps, Blocks and Big Trades">
+<meta property="og:description" content="What options flow is and how to read it: sweeps vs blocks, buying at the ask vs selling at the bid, premium, size vs open interest, and live options flow for US stocks.">
+<meta property="og:url" content="https://optionscreener.org/options-flow">
+<meta property="og:image" content="https://optionscreener.org/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Options Screener: options flow, option chains and a contract screener">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Options Flow: How to Read Sweeps, Blocks and Big Trades">
+<meta name="twitter:description" content="What options flow is and how to read it: sweeps vs blocks, buying at the ask vs selling at the bid, premium, size vs open interest, and live options flow for US stocks.">
+<meta name="twitter:image" content="https://optionscreener.org/og.png">
+<meta name="theme-color" content="#121417">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/site.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"Options flow: how to read sweeps, blocks and big trades","description":"What options flow is and how to read it: sweeps vs blocks, buying at the ask vs selling at the bid, premium, size vs open interest, and live options flow for US stocks.","url":"https://optionscreener.org/options-flow","mainEntityOfPage":"https://optionscreener.org/options-flow","inLanguage":"en","datePublished":"2026-11-19","dateModified":"2026-11-19","author":{"@id":"https://optionscreener.org/#org"},"publisher":{"@id":"https://optionscreener.org/#org"},"image":"https://optionscreener.org/og.png"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Options Screener","item":"https://optionscreener.org/"},{"@type":"ListItem","position":2,"name":"Options flow: how to read sweeps, blocks and big trades","item":"https://optionscreener.org/options-flow"}]},{"@type":"Organization","@id":"https://optionscreener.org/#org","name":"Options Screener","url":"https://optionscreener.org/","logo":"https://optionscreener.org/apple-touch-icon.png"},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is options flow a reliable signal?","acceptedAnswer":{"@type":"Answer","text":"Options flow shows what large traders are doing, not why. Many big trades are hedges or parts of spreads. It is most useful as context, combined with price action, open interest changes and repeated orders in the same contract."}},{"@type":"Question","name":"What does buying at the ask mean?","acceptedAnswer":{"@type":"Answer","text":"The trade printed at or above the ask price, so the buyer paid the full offer to get filled immediately. It suggests urgency and a buyer-initiated trade."}},{"@type":"Question","name":"Is options flow real time?","acceptedAnswer":{"@type":"Answer","text":"Exchange prints are published in real time to licensed feeds. On the data feed Options Screener currently uses, option trades can arrive about 15 minutes late; the app labels this on screen."}}]}]}</script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/"><svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>Options Screener</a>
+  <nav class="nav" aria-label="Guides"><a href="/options-flow" aria-current="page">Options flow</a><a href="/unusual-options-activity">Unusual options activity</a><a href="/options-screener">Options screener</a><a href="/option-chain">Option chain</a><a href="/#pricing">Pricing</a></nav>
+  <a class="btn" href="/login">Sign in</a><a class="btn pri" href="/login">Start free</a>
+</div></header>
+<main class="wrap"><article class="article">
+<div class="crumbs"><a href="/">Options Screener</a> / Options flow: how to read sweeps, blocks and big trades</div>
+<h1>Options flow: how to read sweeps, blocks and big trades</h1>
+<p class="lede">Options flow is the stream of option trades as they print on the exchanges. Reading it well tells you where large traders are putting money: which ticker, calls or puts, which strike and expiry, and how urgently they wanted the trade filled.</p>
+<h2>What is options flow?</h2>
+<p>Every option trade in the US prints to the consolidated tape (OPRA) with a price, a size, an exchange and a condition code. Options flow tools collect those prints, add context such as the bid and ask at the moment of the trade, the open interest of the contract and the stock price, and show the biggest and most aggressive ones first.</p>
+<p>Most of the tape is noise: market makers hedging, small retail orders and spreads. The trades worth reading are the large, aggressive, single-direction orders, because someone paid real premium and accepted a worse price to get filled now.</p>
+<h2>The columns that matter</h2>
+<div class="tw"><table><thead><tr><th>Column</th><th>What it tells you</th></tr></thead><tbody>
+<tr><td>Premium</td><td>Price × size × 100. The money at risk. $1M+ in a single print is significant for most stocks.</td></tr>
+<tr><td>Side</td><td>Where the trade printed against the quote. <b>At or above the ask</b> means the buyer was aggressive; <b>at or below the bid</b> means the seller was.</td></tr>
+<tr><td>Type</td><td><b>Sweep</b>: one order split across several exchanges to fill fast. <b>Block</b>: one large negotiated print. <b>Split</b>: one order filled in pieces on the same exchange.</td></tr>
+<tr><td>Size vs OI</td><td>When the size is larger than open interest, the trade is very likely opening a new position rather than closing one.</td></tr>
+<tr><td>Expiry and strike</td><td>Short-dated, out-of-the-money contracts are leveraged bets on a move soon; far-dated, in-the-money ones are often stock replacement or hedges.</td></tr>
+</tbody></table></div>
+<h2>Sweeps vs blocks</h2>
+<p>A <b>sweep</b> takes liquidity from several exchanges at once, paying up at each one. It signals urgency: the trader cared more about getting filled now than about price. Bullish call sweeps at the ask are the classic flow signal.</p>
+<p>A <b>block</b> is a single large trade, often negotiated off-screen and printed in one piece. Blocks can be directional, but they are also used for hedges and for closing or rolling positions, so the side (bid or ask) and the open interest matter more.</p>
+<h2>Bullish or bearish?</h2>
+<p>Calls bought at the ask and puts sold at the bid lean bullish; puts bought at the ask and calls sold at the bid lean bearish. Trades in the middle of the spread are ambiguous. A flow sentiment gauge simply adds up the premium on each side.</p>
+<p>Keep in mind that a single print never tells you the trader's full position. A large put purchase may hedge a stock position; a call sale may be part of a covered call. Look for repetition: the same contract bought again and again across the day is stronger than one big trade.</p>
+<h2>How to use options flow in Options Screener</h2>
+<ul><li>The flow table lists the latest prints for your watchlist and the 20 most active stocks, newest first, with premium, side, type, size, volume and open interest.</li>
+<li>Filters narrow it down by ticker, minimum premium, calls or puts, side, type, days to expiry and moneyness. Save filter sets and switch between them.</li>
+<li>The big-trades feed highlights $250K, $500K, $1M or $5M+ prints.</li>
+<li>Click any trade for the contract's details, the stock's move and related news.</li></ul>
+<h2>Questions</h2><div class="faq"><details><summary>Is options flow a reliable signal?</summary><p>Options flow shows what large traders are doing, not why. Many big trades are hedges or parts of spreads. It is most useful as context, combined with price action, open interest changes and repeated orders in the same contract.</p></details><details><summary>What does buying at the ask mean?</summary><p>The trade printed at or above the ask price, so the buyer paid the full offer to get filled immediately. It suggests urgency and a buyer-initiated trade.</p></details><details><summary>Is options flow real time?</summary><p>Exchange prints are published in real time to licensed feeds. On the data feed Options Screener currently uses, option trades can arrive about 15 minutes late; the app labels this on screen.</p></details></div>
+<div class="callout"><p>Try it on live data: open the options flow, any option chain and the screener in Options Screener. Free plan, no card needed; Pro is $9.99 a month.</p><a class="btn pri" href="/login">Start free with Google</a></div>
+<p class="note">For information only. Not investment advice. Options involve substantial risk.</p>
+<h2>More guides</h2><div class="related"><a href="/unusual-options-activity"><b>Unusual options activity</b><span>When volume runs ahead of open interest</span></a><a href="/options-screener"><b>Options screener</b><span>Filter every contract by volume, OI and IV</span></a><a href="/option-chain"><b>Option chain</b><span>Bid, ask, greeks and IV for every strike</span></a></div>
+</article></main>
+<footer class="foot"><div class="wrap cols">
+  <div><a class="brand" href="/"><svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>Options Screener</a>
+    <p class="disc">Market data and tools for information only. Nothing on this site is investment advice. Options involve substantial risk and are not suitable for every investor.</p></div>
+  <div><h4>Guides</h4><ul><li><a href="/options-flow">Options flow</a></li><li><a href="/unusual-options-activity">Unusual options activity</a></li><li><a href="/options-screener">Options screener</a></li><li><a href="/option-chain">Option chain</a></li></ul></div>
+  <div><h4>Company</h4><ul><li><a href="/#pricing">Pricing</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/refund">Refund Policy</a></li><li><a href="/privacy#contact">Contact</a></li></ul></div>
+</div></footer>
+</body>
+</html>

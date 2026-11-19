@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unusual Options Activity: How to Find It and What It Means</title>
+<meta name="description" content="Unusual options activity explained: volume vs open interest, aggressive buying, short-dated out-of-the-money contracts, repeat orders, and a free scanner for US stocks.">
+<link rel="canonical" href="https://optionscreener.org/unusual-options-activity">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Options Screener">
+<meta property="og:title" content="Unusual Options Activity: How to Find It and What It Means">
+<meta property="og:description" content="Unusual options activity explained: volume vs open interest, aggressive buying, short-dated out-of-the-money contracts, repeat orders, and a free scanner for US stocks.">
+<meta property="og:url" content="https://optionscreener.org/unusual-options-activity">
+<meta property="og:image" content="https://optionscreener.org/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Options Screener: options flow, option chains and a contract screener">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Unusual Options Activity: How to Find It and What It Means">
+<meta name="twitter:description" content="Unusual options activity explained: volume vs open interest, aggressive buying, short-dated out-of-the-money contracts, repeat orders, and a free scanner for US stocks.">
+<meta name="twitter:image" content="https://optionscreener.org/og.png">
+<meta name="theme-color" content="#121417">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/site.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"Unusual options activity: how to find it and what it means","description":"Unusual options activity explained: volume vs open interest, aggressive buying, short-dated out-of-the-money contracts, repeat orders, and a free scanner for US stocks.","url":"https://optionscreener.org/unusual-options-activity","mainEntityOfPage":"https://optionscreener.org/unusual-options-activity","inLanguage":"en","datePublished":"2026-11-19","dateModified":"2026-11-19","author":{"@id":"https://optionscreener.org/#org"},"publisher":{"@id":"https://optionscreener.org/#org"},"image":"https://optionscreener.org/og.png"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Options Screener","item":"https://optionscreener.org/"},{"@type":"ListItem","position":2,"name":"Unusual options activity: how to find it and what it means","item":"https://optionscreener.org/unusual-options-activity"}]},{"@type":"Organization","@id":"https://optionscreener.org/#org","name":"Options Screener","url":"https://optionscreener.org/","logo":"https://optionscreener.org/apple-touch-icon.png"},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is a good volume to open interest ratio?","acceptedAnswer":{"@type":"Answer","text":"A ratio above 1 means today's volume exceeds all open contracts from previous days, which suggests new positions. Many traders look for 2\u20133\u00d7 or more together with large premium and ask-side trades."}},{"@type":"Question","name":"Does unusual options activity predict stock moves?","acceptedAnswer":{"@type":"Answer","text":"Sometimes, but not reliably. Many unusual trades are hedges or spreads. It is best used to find stocks worth a closer look."}}]}]}</script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/"><svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>Options Screener</a>
+  <nav class="nav" aria-label="Guides"><a href="/options-flow">Options flow</a><a href="/unusual-options-activity" aria-current="page">Unusual options activity</a><a href="/options-screener">Options screener</a><a href="/option-chain">Option chain</a><a href="/#pricing">Pricing</a></nav>
+  <a class="btn" href="/login">Sign in</a><a class="btn pri" href="/login">Start free</a>
+</div></header>
+<main class="wrap"><article class="article">
+<div class="crumbs"><a href="/">Options Screener</a> / Unusual options activity: how to find it and what it means</div>
+<h1>Unusual options activity: how to find it and what it means</h1>
+<p class="lede">Unusual options activity is option trading that stands out from a contract's normal behaviour: far more volume than usual, more volume than open interest, or large aggressive orders in contracts that rarely trade. Traders watch it because informed money often moves through options first.</p>
+<h2>The classic signals</h2>
+<h3>1. Volume far above open interest</h3>
+<p>Open interest is the number of contracts still open from previous days. When today's volume is several times the open interest, new positions are being opened. A volume/OI ratio above 1 is the single most common unusual activity filter.</p>
+<h3>2. Volume far above average</h3>
+<p>A contract that normally trades 200 lots and suddenly trades 8,000 is unusual even if open interest is large. Compare today's volume with the contract's recent average.</p>
+<h3>3. Aggressive side</h3>
+<p>Trades at or above the ask (or at or below the bid) show urgency. A cluster of ask-side call sweeps is far more meaningful than the same volume printed mid-market.</p>
+<h3>4. Short-dated, out-of-the-money contracts</h3>
+<p>Buying cheap, out-of-the-money options that expire within days or weeks is a leveraged bet on a quick move. It costs little if wrong and pays many times over if right, which is why it shows up before news.</p>
+<h3>5. Repeat orders</h3>
+<p>The same contract bought again and again through the day, often in similar sizes, suggests one trader building a position.</p>
+<h2>A simple checklist</h2>
+<div class="tw"><table><thead><tr><th>Check</th><th>Stronger signal</th><th>Weaker signal</th></tr></thead><tbody>
+<tr><td>Volume / open interest</td><td>Above 2–3×</td><td>Below 1×</td></tr>
+<tr><td>Premium</td><td>$500K+ in one name</td><td>Small, scattered lots</td></tr>
+<tr><td>Side</td><td>At or above the ask</td><td>Mid-market</td></tr>
+<tr><td>Expiry</td><td>Days to a few weeks</td><td>LEAPS (hedges, stock replacement)</td></tr>
+<tr><td>Repetition</td><td>Same strike repeatedly</td><td>One-off print</td></tr>
+<tr><td>Context</td><td>No obvious scheduled event</td><td>Right before earnings (expected)</td></tr>
+</tbody></table></div>
+<h2>Why it is not a guarantee</h2>
+<p>Most unusual activity does not lead to a big move. Large orders may hedge a stock or futures position, be one leg of a spread, or close an older position. Earnings and other scheduled events naturally inflate volume. Treat unusual activity as a reason to look closer, not as a trade signal.</p>
+<h2>Finding unusual activity in Options Screener</h2>
+<ul><li>In the options flow, filter for size above open interest, ask-side trades and your minimum premium; repeat orders are counted per contract.</li>
+<li>In the contract screener, use the unusual volume filter (volume above open interest) together with days to expiry and delta.</li>
+<li>The option chain shows volume and open interest for every strike, so you can see where today's activity is concentrated.</li></ul>
+<h2>Questions</h2><div class="faq"><details><summary>What is a good volume to open interest ratio?</summary><p>A ratio above 1 means today&#x27;s volume exceeds all open contracts from previous days, which suggests new positions. Many traders look for 2–3× or more together with large premium and ask-side trades.</p></details><details><summary>Does unusual options activity predict stock moves?</summary><p>Sometimes, but not reliably. Many unusual trades are hedges or spreads. It is best used to find stocks worth a closer look.</p></details></div>
+<div class="callout"><p>Try it on live data: open the options flow, any option chain and the screener in Options Screener. Free plan, no card needed; Pro is $9.99 a month.</p><a class="btn pri" href="/login">Start free with Google</a></div>
+<p class="note">For information only. Not investment advice. Options involve substantial risk.</p>
+<h2>More guides</h2><div class="related"><a href="/options-flow"><b>Options flow</b><span>Read the tape: sweeps, blocks and big premium</span></a><a href="/options-screener"><b>Options screener</b><span>Filter every contract by volume, OI and IV</span></a><a href="/option-chain"><b>Option chain</b><span>Bid, ask, greeks and IV for every strike</span></a></div>
+</article></main>
+<footer class="foot"><div class="wrap cols">
+  <div><a class="brand" href="/"><svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>Options Screener</a>
+    <p class="disc">Market data and tools for information only. Nothing on this site is investment advice. Options involve substantial risk and are not suitable for every investor.</p></div>
+  <div><h4>Guides</h4><ul><li><a href="/options-flow">Options flow</a></li><li><a href="/unusual-options-activity">Unusual options activity</a></li><li><a href="/options-screener">Options screener</a></li><li><a href="/option-chain">Option chain</a></li></ul></div>
+  <div><h4>Company</h4><ul><li><a href="/#pricing">Pricing</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/refund">Refund Policy</a></li><li><a href="/privacy#contact">Contact</a></li></ul></div>
+</div></footer>
+</body>
+</html>

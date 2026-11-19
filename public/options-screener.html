@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Options Screener: Filter by Volume, Open Interest, IV, Delta</title>
+<meta name="description" content="Filter every option contract by days to expiry, delta, volume, open interest, implied volatility and spread. A free options screener for US stocks.">
+<link rel="canonical" href="https://optionscreener.org/options-screener">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Options Screener">
+<meta property="og:title" content="Options Screener: Filter by Volume, Open Interest, IV, Delta">
+<meta property="og:description" content="Filter every option contract by days to expiry, delta, volume, open interest, implied volatility and spread. A free options screener for US stocks.">
+<meta property="og:url" content="https://optionscreener.org/options-screener">
+<meta property="og:image" content="https://optionscreener.org/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Options Screener: options flow, option chains and a contract screener">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Options Screener: Filter by Volume, Open Interest, IV, Delta">
+<meta name="twitter:description" content="Filter every option contract by days to expiry, delta, volume, open interest, implied volatility and spread. A free options screener for US stocks.">
+<meta name="twitter:image" content="https://optionscreener.org/og.png">
+<meta name="theme-color" content="#121417">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/site.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"How to use an options screener","description":"Filter every option contract by days to expiry, delta, volume, open interest, implied volatility and spread. A free options screener for US stocks.","url":"https://optionscreener.org/options-screener","mainEntityOfPage":"https://optionscreener.org/options-screener","inLanguage":"en","datePublished":"2026-11-19","dateModified":"2026-11-19","author":{"@id":"https://optionscreener.org/#org"},"publisher":{"@id":"https://optionscreener.org/#org"},"image":"https://optionscreener.org/og.png"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Options Screener","item":"https://optionscreener.org/"},{"@type":"ListItem","position":2,"name":"How to use an options screener","item":"https://optionscreener.org/options-screener"}]},{"@type":"Organization","@id":"https://optionscreener.org/#org","name":"Options Screener","url":"https://optionscreener.org/","logo":"https://optionscreener.org/apple-touch-icon.png"},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is there a free options screener?","acceptedAnswer":{"@type":"Answer","text":"Yes. Options Screener has a free plan with option chains for up to 3 symbols a day. The full contract screener, options flow and charts are part of Pro at $9.99 a month."}},{"@type":"Question","name":"What is a good bid-ask spread for options?","acceptedAnswer":{"@type":"Answer","text":"For liquid stocks and ETFs, spreads of a few cents or under 5% of the option's mid price are common. Wider spreads make the option more expensive to trade."}}]}]}</script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/"><svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>Options Screener</a>
+  <nav class="nav" aria-label="Guides"><a href="/options-flow">Options flow</a><a href="/unusual-options-activity">Unusual options activity</a><a href="/options-screener" aria-current="page">Options screener</a><a href="/option-chain">Option chain</a><a href="/#pricing">Pricing</a></nav>
+  <a class="btn" href="/login">Sign in</a><a class="btn pri" href="/login">Start free</a>
+</div></header>
+<main class="wrap"><article class="article">
+<div class="crumbs"><a href="/">Options Screener</a> / How to use an options screener</div>
+<h1>How to use an options screener</h1>
+<p class="lede">An options screener filters thousands of option contracts down to the few that match what you are looking for: the right expiry, the right delta, enough liquidity and the volatility you want. Here is how to set one up.</p>
+<h2>Why screen options?</h2>
+<p>A single stock like SPY or NVDA can have thousands of listed contracts across dozens of expiries. Scrolling chains one expiry at a time misses most of them. A screener applies the same rules to every contract at once and ranks what is left.</p>
+<h2>The filters that matter</h2>
+<div class="tw"><table><thead><tr><th>Filter</th><th>Use it to</th><th>Typical setting</th></tr></thead><tbody>
+<tr><td>Days to expiry (DTE)</td><td>Choose the time horizon</td><td>0–7 for short-term trades, 30–60 for swing trades, 180+ for LEAPS</td></tr>
+<tr><td>Delta</td><td>Choose how far in or out of the money</td><td>0.30–0.50 for directional calls; 0.15–0.30 for premium selling</td></tr>
+<tr><td>Volume</td><td>Make sure the contract trades today</td><td>100+ contracts</td></tr>
+<tr><td>Open interest</td><td>Make sure there is depth</td><td>500+ contracts</td></tr>
+<tr><td>Bid-ask spread %</td><td>Avoid contracts that are expensive to trade</td><td>Below 5–10% of the mid price</td></tr>
+<tr><td>Implied volatility</td><td>Find cheap or rich options</td><td>Compare with the stock's usual IV</td></tr>
+<tr><td>Unusual volume</td><td>Find new positioning</td><td>Volume above open interest</td></tr>
+</tbody></table></div>
+<h2>Example screens</h2>
+<h3>Liquid swing-trade calls</h3>
+<p>DTE 30–60, delta 0.40–0.60, volume above 500, open interest above 1,000, spread below 5%. Sort by volume.</p>
+<h3>Short-term unusual activity</h3>
+<p>DTE 0–14, unusual volume on, volume above 1,000. Sort by volume and compare with open interest.</p>
+<h3>Premium selling candidates</h3>
+<p>DTE 20–45, delta 0.15–0.30 (puts: −0.30 to −0.15), IV in the upper part of its range, spread below 5%.</p>
+<h2>Liquidity first</h2>
+<p>Whatever the strategy, start with liquidity. A contract with a wide spread or no open interest can be costly to enter and hard to exit. Volume, open interest and spread filters remove most of the contracts you should not trade anyway.</p>
+<h2>The Options Screener contract screener</h2>
+<ul><li>Screens every contract of a symbol across all expiries and strikes.</li>
+<li>Filters: type, DTE range, delta range, minimum open interest, minimum volume, maximum spread %, IV range and unusual volume.</li>
+<li>Sort by any column; click a contract for details and news, or star it to add it to your watchlist.</li>
+<li>Save filter sets to your account and load them on any device.</li></ul>
+<h2>Questions</h2><div class="faq"><details><summary>Is there a free options screener?</summary><p>Yes. Options Screener has a free plan with option chains for up to 3 symbols a day. The full contract screener, options flow and charts are part of Pro at $9.99 a month.</p></details><details><summary>What is a good bid-ask spread for options?</summary><p>For liquid stocks and ETFs, spreads of a few cents or under 5% of the option&#x27;s mid price are common. Wider spreads make the option more expensive to trade.</p></details></div>
+<div class="callout"><p>Try it on live data: open the options flow, any option chain and the screener in Options Screener. Free plan, no card needed; Pro is $9.99 a month.</p><a class="btn pri" href="/login">Start free with Google</a></div>
+<p class="note">For information only. Not investment advice. Options involve substantial risk.</p>
+<h2>More guides</h2><div class="related"><a href="/options-flow"><b>Options flow</b><span>Read the tape: sweeps, blocks and big premium</span></a><a href="/unusual-options-activity"><b>Unusual options activity</b><span>When volume runs ahead of open interest</span></a><a href="/option-chain"><b>Option chain</b><span>Bid, ask, greeks and IV for every strike</span></a></div>
+</article></main>
+<footer class="foot"><div class="wrap cols">
+  <div><a class="brand" href="/"><svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>Options Screener</a>
+    <p class="disc">Market data and tools for information only. Nothing on this site is investment advice. Options involve substantial risk and are not suitable for every investor.</p></div>
+  <div><h4>Guides</h4><ul><li><a href="/options-flow">Options flow</a></li><li><a href="/unusual-options-activity">Unusual options activity</a></li><li><a href="/options-screener">Options screener</a></li><li><a href="/option-chain">Option chain</a></li></ul></div>
+  <div><h4>Company</h4><ul><li><a href="/#pricing">Pricing</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/refund">Refund Policy</a></li><li><a href="/privacy#contact">Contact</a></li></ul></div>
+</div></footer>
+</body>
+</html>

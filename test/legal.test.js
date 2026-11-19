@@ -122,3 +122,23 @@ test('legal pages are public (outside the sign-in middleware)', async () => {
   for (const p of ['/terms', '/privacy', '/refund']) assert.equal(re.test(p), false, p);
   for (const p of ['/', '/admin', '/api/config']) assert.equal(re.test(p), true, p);
 });
+
+test('SEO: public pages, sitemap and robots are open to crawlers; the app is not indexed', async () => {
+  const fs = await import('node:fs');
+  const { config } = await import('../middleware.js');
+  const re = new RegExp('^' + config.matcher[0] + '$');
+  for (const p of ['/home', '/options-flow', '/options-screener', '/option-chain', '/unusual-options-activity', '/sitemap.xml', '/robots.txt', '/og.png', '/css/site.css', '/favicon.svg', '/apple-touch-icon.png'])
+    assert.equal(re.test(p), false, p);
+  const robots = fs.readFileSync('public/robots.txt', 'utf8');
+  assert.match(robots, /Allow: \//); assert.doesNotMatch(robots, /Disallow: \/\s*$/m); assert.match(robots, /Sitemap: https:\/\/optionscreener\.org\/sitemap\.xml/);
+  const sm = fs.readFileSync('public/sitemap.xml', 'utf8');
+  for (const p of ['/', '/options-flow', '/unusual-options-activity']) assert.ok(sm.includes(`<loc>https://optionscreener.org${p}</loc>`), p);
+  for (const f of ['home', 'options-flow', 'options-screener', 'option-chain', 'unusual-options-activity']) {
+    const h = fs.readFileSync(`public/${f}.html`, 'utf8');
+    assert.match(h, /<link rel="canonical" href="https:\/\/optionscreener\.org\//, f);
+    assert.equal((h.match(/<h1>/g) || []).length, 1, f + ' has one h1');
+    const d = h.match(/<meta name="description" content="([^"]+)"/)[1]; assert.ok(d.length >= 110 && d.length <= 170, `${f} description length ${d.length}`);
+    JSON.parse(h.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
+  }
+  assert.match(fs.readFileSync('public/index.html', 'utf8'), /<meta name="robots" content="noindex">/);
+});

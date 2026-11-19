@@ -1,2 +1,7 @@
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /unsubscribe
+
+Sitemap: https://optionscreener.org/sitemap.xml

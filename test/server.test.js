@@ -45,11 +45,13 @@ test('ALLOWED_EMAILS="*" lets any signed-in Google account in', async () => {
 });
 
 test('middleware redirects pages, 401s APIs, passes signed-in users', async () => {
+  // visitors and search engines get the public home page at "/" (also with ?utm_... links)
   const r0 = await middleware(req('https://os.example.com/'));
-  assert.equal(new URL(r0.headers.get('location')).pathname + new URL(r0.headers.get('location')).search, '/login');
-  const r1 = await middleware(req('https://os.example.com/?a=1'));
+  assert.equal(r0.headers.get('x-middleware-rewrite'), 'https://os.example.com/home');
+  assert.equal((await middleware(req('https://os.example.com/?utm_source=x'))).headers.get('x-middleware-rewrite'), 'https://os.example.com/home');
+  const r1 = await middleware(req('https://os.example.com/admin'));
   assert.equal(r1.status, 302);
-  assert.match(r1.headers.get('location'), /\/login\?next=%2F%3Fa%3D1$/);
+  assert.match(r1.headers.get('location'), /\/login\?next=%2Fadmin$/);
   const r2 = await middleware(req('https://os.example.com/api/massive?path=x'));
   assert.equal(r2.status, 401);
   assert.equal(await middleware(req('https://os.example.com/', await sessionCookie())), undefined);
@@ -146,7 +148,8 @@ test('pages have no inline scripts (strict Content-Security-Policy)', async () =
   const fs = await import('node:fs');
   for (const f of fs.readdirSync('public').filter(f => f.endsWith('.html'))) {
     const html = fs.readFileSync('public/' + f, 'utf8');
-    assert.ok(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(html), `${f} has an inline <script>`);
+    // JSON-LD data blocks are not executed, so they are fine under the CSP
+    assert.ok(!/<script(?![^>]*\bsrc=)(?![^>]*type="application\/ld\+json")[^>]*>/i.test(html), `${f} has an inline <script>`);
     assert.ok(!/\son[a-z]+\s*=\s*"/i.test(html), `${f} has an inline event handler`);
   }
   const csp = JSON.parse(fs.readFileSync('vercel.json', 'utf8')).headers[0].headers.find(h => h.key === 'Content-Security-Policy').value;
