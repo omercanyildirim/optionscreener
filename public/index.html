@@ -254,7 +254,7 @@ tr.grp:hover td{background:none}
     <div class="topbar">
       <span class="vtitle" id="vtitle">Options flow</span>
       <span class="status"><span class="dot" id="dot"></span><span id="status">Connecting</span></span>
-      <span class="status" id="rate"></span>
+      <span class="status" id="rate"></span><span class="status" id="asof"></span>
       <span class="spacer"></span>
       <form class="search" id="searchForm"><input id="tk" placeholder="Search symbol" autocomplete="off" aria-label="Symbol"><button aria-label="Search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5" stroke-linecap="round"/></svg></button></form>
       <select id="quickPreset" aria-label="Saved filter" title="Saved filters"></select>
@@ -469,6 +469,7 @@ function ingestOption(r,map){
   set('chgPct',day.change_percent); set('be',r.break_even_price);
   if(q.timeframe) S.delayed = q.timeframe!=='REAL-TIME';
   if(tr.sip_timestamp){ c.tradeT=tr.sip_timestamp/1e6; c.tradeSize=tr.size; c.cond=(tr.conditions||[])[0]||''; }
+  if(map===S.contracts||map===S.trk){ const ot=Math.max(tsMs(q.sip_timestamp||q.last_updated)||0, c.tradeT||0); if(ot&&ot<=Date.now()+60e3&&ot>(S.optT||0)) S.optT=ot; }
   const ua=r.underlying_asset; if(ua&&ok(ua.price)){ c.spot=ua.price; if(c.und===S.und && !S.stocks.get(S.und)?.price) S.uPrice=ua.price; const u=S.trkU.get(c.und)||{}; u.price=ua.price; S.trkU.set(c.und,u); }
   if(ch){ S.upd+=ch; S.dirty.add(t); }
   return c;
@@ -479,6 +480,7 @@ const watchList = () => [...new Set(P.watch.split(/[,\s]+/).map(s=>s.trim().toUp
 function ingestStock(t){ const sym=t.ticker; if(!sym) return; let s=S.stocks.get(sym); if(!s){ s={sym}; S.stocks.set(sym,s); }
   const lt=t.lastTrade||{}, lq=t.lastQuote||{}, day=t.day||{}, pd=t.prevDay||{}, mn=t.min||{};
   const before=s.price, price=lt.p||mn.c||day.c||pd.c; if(ok(price)) s.price=price;
+  const lts=tsMs(lt.t); if(lts&&lts<=Date.now()+60e3&&lts>(S.stockT||0)) S.stockT=lts;
   if(ok(pd.c)) s.prev=pd.c; if(ok(lq.p)) s.bid=lq.p; if(ok(lq.P)) s.ask=lq.P;
   if(day.v>0) s.vol=day.v; if(day.h>0) s.high=day.h; if(day.l>0) s.low=day.l; if(day.vw>0) s.vwap=day.vw;
   if(before!==s.price) S.upd++; stockDerived(s); }
@@ -936,7 +938,15 @@ function flush(){ const now=performance.now();
   if(cur==='tracked'&&S.trkForce){ renderTracked(); S.trkForce=false; }
   if(cur==='charts'&&now-S.lastCharts>3000){ FILTERED=S.flows.filter(f=>passFlow(f,P.flow)); renderCharts(); S.lastCharts=now; } }
 setInterval(flush,250);
-setInterval(()=>{ S.rate=S.upd; S.upd=0; $('#rate').textContent=S.lastUpd?`Updated ${new Date(S.lastUpd).toLocaleTimeString('en-US')}`:''; if(cur==='chain') renderUStats(); },1000);
+setInterval(()=>{ S.rate=S.upd; S.upd=0; $('#rate').textContent=S.lastUpd?`Refreshed ${new Date(S.lastUpd).toLocaleTimeString('en-US')}`:''; paintAsOf(); if(cur==='chain') renderUStats(); },1000);
+// When the data itself is from: newest stock trade and newest option quote/trade seen, in New York time.
+const tsMs = t => t==null?null : typeof t==='string'?Date.parse(t) : t>1e15?t/1e6 : t>1e12?t : t*1e3;
+function paintAsOf(){ const e=$('#asof'); if(DEMO){ e.textContent=''; return; }
+  const parts=[], stale=t=>etDay(t)!==etDay(Date.now())||Date.now()-t>30*60e3;
+  if(S.stockT) parts.push(`<span class="${stale(S.stockT)?'c-yellow':''}">Stocks ${fTime(S.stockT)} ET</span>`);
+  if(S.optT) parts.push(`<span class="${stale(S.optT)?'c-yellow':''}">Options ${fTime(S.optT)} ET</span>`);
+  const h=parts.join('<span class="t-dim"> · </span>'); if(e._h!==h){ e.innerHTML=h; e._h=h; }
+  e.title='Time of the newest price received from the data feed (New York time). Yellow = older than 30 minutes or from a previous day.'; }
 setInterval(()=>dteCache.clear(),3600e3);
 
 /* ---------- live polling for the selected symbol ---------- */
@@ -1022,7 +1032,7 @@ async function load(und){
   S.gen++; const gen=S.gen; S.timers.forEach(clearInterval); S.timers=[];
   S.und=und; P.und=und; saveP(); $('#tk').value='';
   S.contracts.clear(); S.dirty.clear(); S.scrRows.clear(); $('#scrBody').innerHTML=''; S.scrTop=[]; S.selExp=null;
-  S.uPrice=null; S.uChg=null; S.uChgPct=null; S.delayed=null;
+  S.uPrice=null; S.uChg=null; S.uChgPct=null; S.delayed=null; S.optT=0;
   buildStocks(); S.trkForce=true;
   if(DEMO){ S.uPrice=DSPOT[und]||UNIV[und]||100+Math.random()*200; startDemoChain(); takePending(); buildExpSel(); buildChain(true); S.scrForce=true; buildStocks(); return; }
   $('#chainBody').innerHTML='<tr><td colspan="17" class="empty">Loading…</td></tr>';
