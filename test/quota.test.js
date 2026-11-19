@@ -19,6 +19,7 @@ function redis(args) {
     case 'GET': return R[k] ?? null;
     case 'SET': R[k] = a[0]; return 'OK';
     case 'EXPIRE': return 1;
+    case 'INCR': R[k] = String((+R[k] || 0) + 1); return +R[k];
     case 'SADD': a.forEach(x => st().add(x)); return 1;
     case 'SISMEMBER': return R[k] instanceof Set && R[k].has(a[0]) ? 1 : 0;
     case 'SCARD': return R[k] instanceof Set ? R[k].size : 0;
@@ -107,4 +108,13 @@ test('Google sign-in saves the profile for the admin portal', async () => {
   assert.equal(h.ip, '203.0.113.9'); assert.equal(h.device, 'Mozilla/5.0 Test'); assert.ok(h.lastLogin);
   const ov = await activity.overview();
   assert.equal(ov.users[0].profile.givenName, 'Ada');
+});
+
+test('every signed-in user is rate limited per minute (anti-scraping), Pro included', async () => {
+  process.env.USER_RPM = '60';
+  for (let i = 0; i < 60; i++) assert.equal((await massiveApi.GET(await req('/api/massive?path=v3/snapshot/options/SPY', 'admin@example.com'))).status, 200);
+  const r = await massiveApi.GET(await req('/api/massive?path=v3/snapshot/options/SPY', 'admin@example.com'));
+  assert.equal(r.status, 429); assert.equal((await r.json()).error, 'rate_limited');
+  assert.equal((await massiveApi.GET(await req('/api/massive?path=v3/snapshot/options/SPY'))).status, 200); // other users unaffected
+  delete process.env.USER_RPM;
 });

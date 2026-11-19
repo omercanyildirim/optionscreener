@@ -7,8 +7,12 @@ export const config = {
   matcher: ['/((?!api/auth/|api/paddle-webhook|login|js/login\\.js|privacy|terms|refund|unsubscribe|home|options-flow|options-screener|option-chain|unusual-options-activity|css/|og\\.png|icon-|apple-touch-icon|site\\.webmanifest|sitemap\\.xml|favicon|robots\\.txt|\\.well-known/).*)'],
 };
 
+// Probes for files and admin panels this site does not have (also blocked at the edge by the Vercel Firewall).
+const SCANNER = /(\.(php|asp|aspx|jsp|cgi|env|git|svn|htaccess|htpasswd|bak|sql|ini|log|DS_Store)(\/|$)|\/wp-|\/wordpress|\/phpmyadmin|\/xmlrpc|\/cgi-bin|\/\.aws|\/\.ssh|\/\.git|\/vendor\/|\/actuator|\/server-status|\/owa\/|\/autodiscover|\/boaform|\/HNAP1)/i;
+
 export default async function middleware(request) {
   const url = new URL(request.url);
+  if (SCANNER.test(url.pathname)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain', 'cache-control': 'public, max-age=3600' } });
   // Paddle's webhook: no session, verified by its signature inside the function.
   if (request.method === 'POST' && (url.pathname === '/api/paddle-webhook' || (url.pathname === '/api/billing' && url.searchParams.get('a') === 'webhook'))) return;
   // Cross-site request forgery: state-changing API calls must come from this site's own pages.

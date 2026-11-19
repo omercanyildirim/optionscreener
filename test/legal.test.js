@@ -142,3 +142,10 @@ test('SEO: public pages, sitemap and robots are open to crawlers; the app is not
   }
   assert.match(fs.readFileSync('public/index.html', 'utf8'), /<meta name="robots" content="noindex">/);
 });
+
+test('scanner probes get a plain 404 before any other work', async () => {
+  for (const p of ['/.env', '/wp-login.php', '/.git/config', '/phpmyadmin/', '/api/x.php', '/cgi-bin/x']) {
+    const r = await middleware(new Request('https://os.example.com' + p)); assert.equal(r.status, 404, p);
+  }
+  const r = await middleware(new Request('https://os.example.com/admin')); assert.equal(r.status, 302);
+});

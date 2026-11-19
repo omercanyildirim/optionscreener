@@ -16,7 +16,7 @@ export async function GET(request) {
   // Free plan: opening an option chain uses one of the day's free symbols.
   const chainOf = (path.match(/^v3\/snapshot\/options\/([A-Za-z0-9.]{1,10})(?:\/|$)/) || [])[1];
   const over = await checkQuota(s.email, chainOf ? chainOf.toUpperCase() : null);
-  if (over) return json(over, 402);
+  if (over) return json(over, over.status || 402);
   const params = [...url.searchParams].filter(([k]) => k !== 'path');
 
   // Alpaca keys take precedence; the response is converted to the same shape.

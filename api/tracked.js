@@ -10,7 +10,7 @@ export async function GET(request) {
   const s = await getSession(request);
   if (!s) return json({ error: 'unauthorized' }, 401);
   const over = await checkQuota(s.email, null);
-  if (over) return json(over, 402);
+  if (over) return json(over, over.status || 402);
   const list = [...new Set((new URL(request.url).searchParams.get('c') || '').split(',').map(s => s.trim()).filter(Boolean))].slice(0, MAX);
   if (alpacaConfigured()) {
     try { return json(await contractsMassive(list)); }
