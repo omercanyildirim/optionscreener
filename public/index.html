@@ -416,7 +416,8 @@ const fK = v => ok(v) ? (Number.isInteger(v)? String(v) : v.toFixed(2)) : '–';
 const fMoney = v => !ok(v)?'–': v>=1e9?'$'+(v/1e9).toFixed(1)+'B': v>=1e6?'$'+(v/1e6).toFixed(1)+'M': v>=1e3?'$'+Math.round(v/1e3)+'K':'$'+Math.round(v);
 const fExp = e => { const [y,m,d]=e.split('-'); return `${MONTHS[+m-1]} ${+d} '${y.slice(2)}`; };
 const fExpN = e => { const [y,m,d]=e.split('-'); return `${+m}/${+d}/${y.slice(2)}`; };
-const fTime = t => new Date(t).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit'});
+const etDay = t => new Date(t).toLocaleDateString('en-US',{timeZone:'America/New_York',month:'numeric',day:'numeric'});
+const fTime = t => (etDay(t)!==etDay(Date.now())?etDay(t)+' ':'')+new Date(t).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit'});
 const fDate = t => new Date(t).toLocaleDateString('en-US',{timeZone:'America/New_York'});
 const iso = d => d.toISOString().slice(0,10);
 const dteCache = new Map();
@@ -645,7 +646,8 @@ async function liveFlowTick(){
       if(prevT!=null&&c.tradeT<=prevT) continue;
       if(CANCEL_C.has(c.cond)) continue;
       const size=c.tradeSize, price=c.last, prem=size*price*100;
-      if(first&&(now-c.tradeT>6*3600e3||prem<25000)) continue; // first scan: only today's larger prints
+      S.newestTrade=Math.max(S.newestTrade||0,c.tradeT);
+      if(first&&(now-c.tradeT>30*3600e3||prem<25000)) continue; // first scan: larger prints from the last session
       const type=SWEEP_C.has(c.cond)?'Sweep':MULTI_C.has(c.cond)?'Multi-leg':(size>=500||prem>=250000)?'Block':'Other';
       addFlow({t:c.tradeT,sym,exp:c.exp,strike:c.strike,cp:c.type,spot:c.spot||st.price||0,size,price,side:sideOf(price,c),type,vol:c.vol||0,oi:c.oi||0,earn:null,ticker:c.t},!first);
       continue; }
@@ -654,6 +656,8 @@ async function liveFlowTick(){
     const prem=size*price*100;
     addFlow({t:now,sym,exp:c.exp,strike:c.strike,cp:c.type,spot:c.spot||st.price||0,size,price,side:sideOf(price,c),type:(size>=500||prem>=250000)?'Block':'Other',vol:c.vol,oi:c.oi||0,earn:null,ticker:c.t},true); }
   if(first) S.flows.sort((x,y)=>y.t-x.t);
+  if(CFG.provider==='alpaca'&&S.newestTrade&&etDay(S.newestTrade)!==etDay(now)&&cur==='flow')
+    note(`Alpaca's free options feed has not sent today's trades yet. Showing the latest available prints (${etDay(S.newestTrade)}).`);
 }
 
 /* ============================================================
@@ -1181,7 +1185,9 @@ function renderNews(sym,box,brief,d){
 
 /* ---------- wiring ---------- */
 $('#searchForm').onsubmit=e=>{ e.preventDefault(); const v=$('#tk').value.trim().toUpperCase(); if(!v) return;
-  if(cur==='flow'){ P.flow.sym=v; flowChanged(); $('#tk').value=''; } else load(v); };
+  // Search always opens the symbol (chain); flow filtering by ticker lives in the Filters drawer.
+  if(!/^[A-Z][A-Z0-9.]{0,9}$/.test(v)){ note(`"${v}" is not a valid ticker.`,true); return; }
+  if(!['chain','screener','tracked'].includes(cur)) view('chain'); load(v); };
 $('#expSel').onchange=e=>{ S.selExp=e.target.value; buildChain(true); S.lastCharts=0; if(!DEMO) poll(); };
 const wi=$('#watchInp'); wi.value=P.watch;
 wi.addEventListener('change',()=>{ P.watch=wi.value||PDEF.watch; saveP(true); buildStocks(); if(!DEMO) fetchStocks().catch(()=>{}); });
