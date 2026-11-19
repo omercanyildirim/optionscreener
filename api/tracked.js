@@ -1,12 +1,16 @@
 import { getSession, json } from '../lib/session.js';
 import { massiveGet, parseOptionTicker } from '../lib/massive.js';
 import { alpacaConfigured, contractsMassive } from '../lib/alpaca.js';
+import { checkQuota } from '../lib/quota.js';
 
 const MAX = 50;
 
 // GET /api/tracked?c=O:SPY261218C00600000,O:AAPL...  -> snapshots for the tracked contracts
 export async function GET(request) {
-  if (!(await getSession(request))) return json({ error: 'unauthorized' }, 401);
+  const s = await getSession(request);
+  if (!s) return json({ error: 'unauthorized' }, 401);
+  const over = await checkQuota(s.email, null);
+  if (over) return json(over, 402);
   const list = [...new Set((new URL(request.url).searchParams.get('c') || '').split(',').map(s => s.trim()).filter(Boolean))].slice(0, MAX);
   if (alpacaConfigured()) {
     try { return json(await contractsMassive(list)); }

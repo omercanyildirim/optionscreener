@@ -106,11 +106,13 @@ function note(msg,err){ const e=$('#msg'); e.textContent=msg||''; e.className=er
 async function getJSON(u){
   let r; try{ r=await fetch(u,{credentials:'same-origin',cache:'no-store'}); }catch(e){ throw new Error('Could not reach the server'); }
   if(r.status===401){ location.href='/login?next='+encodeURIComponent(location.pathname+location.search); throw new Error('Session expired'); }
+  if(r.status===402){ let j={}; try{ j=await r.json(); }catch(e){} if(j.error==='free_limit'){ wallUp(j); throw new Error('Free plan limit reached'); } throw new Error(j.error||'Pro feature'); }
   if(!r.ok){ let m=r.statusText; try{ const j=await r.json(); m=j.message||j.error||m; }catch(e){} if(r.status===403) m+=' (your data plan may not include this)'; throw new Error(`${r.status}: ${m}`); }
   return r.json();
 }
 function massive(path,params){ const u=new URL('/api/massive',location.origin); u.searchParams.set('path',path);
-  if(params) for(const [k,v] of Object.entries(params)) if(v!==''&&v!=null) u.searchParams.set(k,v); return getJSON(u); }
+  if(params) for(const [k,v] of Object.entries(params)) if(v!==''&&v!=null) u.searchParams.set(k,v);
+  return getJSON(u).then(j=>{ const m=path.match(/^v3\/snapshot\/options\/([^/]+)$/); if(m) countFree(m[1]); return j; }); }
 async function fetchChainFor(und,ref,exp,maxC,win){
   const now=new Date(), p={limit:250}, dte=win?win.dte:CFG.maxDte, pct=win?win.pct:CFG.strikePct;
   if(exp) p.expiration_date=exp; else { p['expiration_date.gte']=iso(now); p['expiration_date.lte']=iso(new Date(now.getTime()+dte*864e5)); }
@@ -597,13 +599,13 @@ function loadPaddle(){ if(paddleReady) return paddleReady; const b=CFG.billing.p
       Paddle.Initialize({ token:b.token, eventCallback:e=>{ if(e&&e.name==='checkout.completed') afterCheckout(); } }); res(); }catch(e){ rej(e); } };
     document.head.appendChild(sc); }); return paddleReady; }
 async function upgrade(){ const b=CFG.billing; if(!b||!b.paddle){ note('Payments are not set up yet.',true); return; }
-  track('view','Upgrade'); $('#proBuy').disabled=true;
+  track('view','Upgrade'); $('#proBuy').disabled=true; $('#wallBuy').disabled=true;
   try{ await loadPaddle(); Paddle.Checkout.open({ items:[{priceId:b.paddle.priceId,quantity:1}], customer:{email:b.paddle.customData.email}, customData:b.paddle.customData,
       settings:{ displayMode:'overlay', theme:'dark', locale:'en', allowLogout:false } }); }
-  catch(e){ $('#proErr').textContent='Checkout could not open: '+e.message; } finally{ $('#proBuy').disabled=false; } }
+  catch(e){ $('#proErr').textContent=$('#wallErr').textContent='Checkout could not open: '+e.message; } finally{ $('#proBuy').disabled=false; $('#wallBuy').disabled=false; } }
 async function afterCheckout(){ note('Payment received. Activating Pro…');
   for(let i=0;i<30;i++){ await new Promise(r=>setTimeout(r,2000));
-    try{ const b=await getJSON('/api/billing?a=status'); if(b.plan==='pro'){ CFG.billing=b; paintLocks(); note('Welcome to Pro. Everything is unlocked.'); view(P.view==='chain'?'flow':P.view); return; } }catch(e){} }
+    try{ const b=await getJSON('/api/billing?a=status'); if(b.plan==='pro'){ if(S.walled){ location.reload(); return; } CFG.billing=b; CFG.free=null; paintFree(); paintLocks(); note('Welcome to Pro. Everything is unlocked.'); view(P.view==='chain'?'flow':P.view); return; } }catch(e){} }
   note('Payment received, but activation is taking longer than usual. Refresh the page in a minute.',true); }
 let amenu=null;
 function closeAcct(){ if(amenu){ amenu.remove(); amenu=null; } }
@@ -621,7 +623,17 @@ function openAcct(){ closeAcct(); const b=CFG.billing||{}; amenu=el('div','amenu
 $('#acctBtn').onclick=e=>{ e.stopPropagation(); amenu?closeAcct():openAcct(); };
 document.addEventListener('click',e=>{ if(amenu&&!amenu.contains(e.target)) closeAcct(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAcct(); });
-$('#proBuy').onclick=upgrade;
+$('#proBuy').onclick=upgrade; $('#wallBuy').onclick=upgrade;
+/* ---------- free plan: a few symbols a day, then the data is blurred and the upgrade screen shows ---------- */
+function countFree(sym){ const f=CFG.free; if(!f||f.used.includes(sym)) return; f.used.push(sym); f.left=Math.max(0,f.limit-f.used.length); paintFree(); }
+function paintFree(){ const e=$('#freeLeft'), f=CFG.free; if(!f||S.walled){ e.hidden=true; return; } e.hidden=false;
+  e.textContent=f.left>0?`${f.left} of ${f.limit} free symbols left today`:`No free symbols left today`;
+  e.title=`The free plan includes ${f.limit} symbols a day (option chains). Opening another symbol needs Pro, $9.99/month.`; }
+$('#freeLeft').onclick=()=>{ showPro('Unlimited symbols'); upgrade(); };
+function wallUp(j){ if(S.walled) return; S.walled=true; const lim=(j&&j.limit)||(CFG.free&&CFG.free.limit)||3;
+  $('#wallLead').textContent=`The free plan includes ${lim} symbols a day. Upgrade to Pro for unlimited options data, live flow, the contract screener and charts.`;
+  document.body.classList.add('walled'); $('#app').setAttribute('aria-hidden','true'); $('#app').inert=true; $('#wall').hidden=false; $('#wallBuy').focus();
+  closeAcct(); setStatus('paused','Free plan limit reached'); note(''); paintFree(); track('view','Paywall'); }
 let cur='flow';
 function view(v){ if(cur!==v) track('view',VTITLE[v]||v); cur=v; P.view=v; saveP(); document.querySelectorAll('.rail [data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
   $('#vtitle').textContent=VTITLE[v]; if(locked(v)){ showPro(VTITLE[v]); return; }
@@ -655,7 +667,7 @@ setInterval(()=>dteCache.clear(),3600e3);
 
 /* ---------- live polling for the selected symbol ---------- */
 async function poll(){
-  if(DEMO||S.polling) return; if(document.hidden){ setStatus('paused','Paused in background'); return; }
+  if(DEMO||S.polling||S.walled) return; if(document.hidden){ setStatus('paused','Paused in background'); return; }
   S.polling=true; const gen=S.gen;
   const jobs=[fetchStocks(), S.selExp?fetchChain(S.selExp).then(r=>{ if(gen===S.gen) r.forEach(x=>ingestOption(x,S.contracts)); }):Promise.resolve(), fetchTracked()];
   const res=await Promise.allSettled(jobs); S.polling=false; if(gen!==S.gen) return;
@@ -664,7 +676,7 @@ async function poll(){
   S.fails=0; S.lastUpd=Date.now(); setStatus(S.delayed?'delayed':'live');
   if(err) note('Some data could not be loaded: '+err.reason.message,true);
   if(expiries().length!==$('#expSel').options.length) buildExpSel(); }
-async function fullRefresh(){ if(DEMO||S.loadingFull||document.hidden) return; S.loadingFull=true; const gen=S.gen;
+async function fullRefresh(){ if(DEMO||S.loadingFull||document.hidden||S.walled) return; S.loadingFull=true; const gen=S.gen;
   try{ const r=await fetchChain(); if(gen===S.gen){ r.forEach(x=>ingestOption(x,S.contracts)); if(expiries().length!==$('#expSel').options.length) buildExpSel(); S.scrForce=true; } }
   catch(e){ note('Could not refresh the chain: '+e.message,true); } finally{ S.loadingFull=false; } }
 
@@ -746,7 +758,7 @@ async function load(und){
     const res=await fetchChain(); if(gen!==S.gen) return; res.forEach(x=>ingestOption(x,S.contracts));
     if(!res.length) note(`No options found for ${und}.`,true);
     S.lastUpd=Date.now(); setStatus(S.delayed?'delayed':'live');
-  }catch(e){ if(gen!==S.gen) return; setStatus('error'); note('Could not load data: '+e.message,true); $('#chainBody').innerHTML='<tr><td colspan="17" class="empty">No data</td></tr>'; return; }
+  }catch(e){ if(gen!==S.gen) return; if(S.walled){ $('#chainBody').innerHTML=''; return; } setStatus('error'); note('Could not load data: '+e.message,true); $('#chainBody').innerHTML='<tr><td colspan="17" class="empty">No data</td></tr>'; return; }
   takePending(); buildExpSel(); buildChain(true); S.scrForce=true; buildStocks();
   fetchTracked().catch(()=>{});
   S.timers.push(setInterval(poll,CFG.pollMs), setInterval(fullRefresh,CFG.fullMs));
@@ -914,7 +926,8 @@ async function init(){
     try{ const c=await getJSON('/api/config'); CFG.pollMs=c.pollMs||CFG.pollMs; CFG.provider=c.provider||null;
       if(CFG.provider==='alpaca'){ CFG.strikePct=100; CFG.maxDte=1100; CFG.fullMs=120000; CFG.maxContracts=40000; }
       $('#avatar').textContent=(c.name||c.email||'?').trim()[0].toUpperCase(); $('#acctBtn').title=`${c.email} · Account`;
-      CFG.name=c.name; CFG.email=c.email; CFG.billing=c.billing||null; paintLocks();
+      CFG.name=c.name; CFG.email=c.email; CFG.billing=c.billing||null; CFG.free=c.free||null; paintLocks(); paintFree();
+      if(c.free&&c.free.walled) wallUp(c.free);
       if(c.demo) DEMO=true;
       else if(!c.keyConfigured){ setStatus('error'); note('No market data key is set on the server (ALPACA_KEY_ID / ALPACA_SECRET_KEY).',true); } }
     catch(e){ setStatus('error'); note('Could not read server configuration: '+e.message,true); return; }
@@ -929,7 +942,7 @@ async function init(){
     if(CFG.provider==='alpaca'){ note('Flow shows the latest print of each contract for your watchlist and the 20 most active stocks. On the free Alpaca plan option trades arrive about 15 minutes late.'); refreshActive(); S.flowTimers.push(setInterval(refreshActive,300e3)); }
     else note('Live flow is derived from volume changes in your watchlist\'s option chains (approximate; sweeps and splits cannot be told apart).');
     S.flowTimers.push(setInterval(liveFlowTick,CFG.provider==='alpaca'?Math.max(4000,CFG.pollMs*1.5):CFG.pollMs)); }
-  load(P.und);
+  if(!S.walled) load(P.und);
 }
 init();
 })();

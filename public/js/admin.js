@@ -138,9 +138,12 @@ async function openUser(u){
   let d; try { d = await api('/api/admin?a=overview&email='+encodeURIComponent(u.email)); } catch(e){ body.replaceChildren(el('p','err',e.message)); return; }
   const sec = t => { const s=el('div','sec'); s.append(el('h4',null,t)); body.append(s); return s; };
   body.replaceChildren();
-  const s1 = sec(u.email); const kv=el('div','kv');
-  for (const [k,v] of [['First seen',fmt(u.first)],['Last active',ago(u.last)],['Sign-ins',u.logins??'–'],['Actions',u.events??'–'],['Country',u.country||'–'],['Saved filters',d.presets.length]]){ const x=el('div'); x.append(el('div','k',k), el('div','v',String(v))); kv.append(x); }
+  const s1 = sec(u.email); const kv=el('div','kv'); const pr=u.profile||{};
+  if (pr.picture && /^https:\/\//.test(pr.picture)) { const im=el('img','pic'); im.src=pr.picture; im.alt=''; im.referrerPolicy='no-referrer'; im.onerror=()=>im.remove(); s1.append(im); }
+  const loc=[pr.city,pr.region,u.country].filter(Boolean).join(', ');
+  for (const [k,v] of [['Name',[pr.givenName,pr.familyName].filter(Boolean).join(' ')||u.name||'–'],['Plan',u.plan||'Free'],['First seen',fmt(u.first)],['Last sign-in',pr.lastLogin?fmt(Date.parse(pr.lastLogin)):'–'],['Last active',ago(u.last)],['Sign-ins',u.logins??'–'],['Actions',u.events??'–'],['Location',loc||'–'],['IP address',pr.ip||'–'],['Language',pr.locale||'–'],['Google account ID',pr.googleId||'–'],['Workspace domain',pr.domain||'–'],['Saved filters',d.presets.length]]){ const x=el('div'); x.append(el('div','k',k), el('div','v',String(v))); kv.append(x); }
   s1.append(kv);
+  if (pr.device) s1.append(el('p','m',pr.device));
   const s2 = sec('Stock watchlist'); s2.append(d.watch ? chips(d.watch.split(/[,\s]+/).filter(Boolean)) : el('p','m','Default list'));
   const s3 = sec('Saved filters'); s3.append(d.presets.length ? chips(d.presets.map(p=>p.name)) : el('p','m','None'));
   const s4 = sec('Watched contracts'); s4.append(d.tracked.length ? chips(d.tracked.map(t=>t.replace(/^O:/,''))) : el('p','m','None'));
