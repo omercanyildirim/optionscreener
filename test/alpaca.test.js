@@ -6,7 +6,7 @@ const { sign, SESSION_COOKIE } = await import('../lib/session.js');
 const alp = await import('../lib/alpaca.js');
 const massiveApi = await import('../api/massive.js');
 const trackedApi = await import('../api/tracked.js');
-const uniApi = await import('../api/universe.js');
+const uniApi = await import('../lib/handlers/universe.js');
 const configApi = await import('../api/config.js');
 
 const SNAP = {
@@ -120,4 +120,13 @@ test('config reports provider and slower polling on Alpaca', async () => {
   assert.equal(j.provider, 'alpaca');
   assert.equal(j.keyConfigured, true);
   assert.equal(j.pollMs, 3000);
+});
+
+test('rewritten routes: /api/universe -> massive?fn=universe', async () => {
+  const m = await import('../api/massive.js');
+  const j = await (await m.GET(await req('/api/massive?fn=universe&active=2'))).json();
+  assert.deepEqual(j.symbols, ['NVDA', 'TSLA']);
+  const vj = JSON.parse((await import('node:fs')).readFileSync('vercel.json', 'utf8'));
+  assert.ok(vj.rewrites.some(r => r.source === '/api/universe' && r.destination === '/api/massive?fn=universe'));
+  assert.ok(vj.rewrites.some(r => r.source === '/api/track' && r.destination === '/api/userdata'));
 });

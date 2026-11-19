@@ -1,6 +1,8 @@
 import { getSession, json } from '../lib/session.js';
 import { storeConfigured, getUserData, setUserData, sanitizeUserData } from '../lib/store.js';
 import { logEvent } from '../lib/activity.js';
+// POST = activity events from the app (/api/track is rewritten here in vercel.json).
+export { POST } from '../lib/handlers/track.js';
 
 // Each signed-in user's saved filters (presets), tracked contracts and watchlist.
 export async function GET(request) {

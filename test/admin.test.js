@@ -6,7 +6,7 @@ const { sign, SESSION_COOKIE, isAllowed } = await import('../lib/session.js');
 const totp = await import('../lib/totp.js');
 const adminApi = await import('../api/admin.js');
 const status = { GET: adminApi.GET }, setup = { POST: adminApi.POST }, verifyApi = { POST: adminApi.POST }, overviewApi = { GET: adminApi.GET };
-const trackApi = await import('../api/track.js');
+const trackApi = await import('../lib/handlers/track.js');
 
 // Tiny in-memory Redis behind Upstash's REST shape.
 let R;

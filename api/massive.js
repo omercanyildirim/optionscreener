@@ -1,9 +1,12 @@
 import { getSession, json } from '../lib/session.js';
 import { isAllowedPath, massiveGet } from '../lib/massive.js';
 import { alpacaConfigured, alpacaRoute } from '../lib/alpaca.js';
+import { GET as universeGET } from '../lib/handlers/universe.js';
 
 // GET /api/massive?path=v3/snapshot/options/SPY&limit=250&...
 export async function GET(request) {
+  // /api/universe is rewritten here (vercel.json) to stay within the Hobby plan's function limit.
+  if (new URL(request.url).searchParams.get('fn') === 'universe') return universeGET(request);
   if (!(await getSession(request))) return json({ error: 'unauthorized' }, 401);
   const url = new URL(request.url);
   const path = (url.searchParams.get('path') || '').replace(/^\/+/, '');

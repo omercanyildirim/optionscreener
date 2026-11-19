@@ -80,6 +80,14 @@
     {
       "source": "/api/paddle-webhook",
       "destination": "/api/billing?a=webhook"
+    },
+    {
+      "source": "/api/universe",
+      "destination": "/api/massive?fn=universe"
+    },
+    {
+      "source": "/api/track",
+      "destination": "/api/userdata"
     }
   ]
 }
