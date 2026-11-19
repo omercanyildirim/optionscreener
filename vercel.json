@@ -31,5 +31,12 @@
       ]
     }
   ],
-  "cleanUrls": true
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/api/auth/signed-out",
+      "destination": "/login?signedout=1",
+      "permanent": false
+    }
+  ]
 }

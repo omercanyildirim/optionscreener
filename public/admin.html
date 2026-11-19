@@ -116,7 +116,7 @@ const main = $('#main');
 let ST = null, DATA = null, timer = null;
 
 async function start(){
-  try { ST = await api('/api/admin/status'); } catch (e) { main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
+  try { ST = await api('/api/admin?a=status'); } catch (e) { main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
   $('#who').textContent = ST.email || '';
   if (!ST.admin) return noAccess();
   if (!ST.totpConfigured) return setup();
@@ -139,7 +139,7 @@ function codeGate(){
   const i = codeInput(), err = el('div','err'), b = el('button','btn pri','Verify'); b.style.width='100%'; b.style.justifyContent='center';
   const go = async () => { if (i.value.length !== 6) { err.textContent='Enter all 6 digits.'; return; }
     b.disabled = true; err.textContent='';
-    try { await api('/api/admin/verify',{method:'POST',body:JSON.stringify({code:i.value})}); start(); }
+    try { await api('/api/admin?a=verify',{method:'POST',body:JSON.stringify({code:i.value})}); start(); }
     catch(e){ err.textContent=e.message; i.value=''; i.focus(); } finally { b.disabled=false; } };
   i.addEventListener('input',()=>{ if(i.value.length===6) go(); }); b.onclick=go;
   g.append(i, err, b); i.focus();
@@ -147,7 +147,7 @@ function codeGate(){
 
 async function setup(){
   const g = gate('Set up Google Authenticator', 'The admin portal asks for a code from your phone every 12 hours. Set it up once:');
-  let s; try { s = await api('/api/admin/setup',{method:'POST',body:'{}'}); } catch(e){ g.append(el('p','err',e.message)); return; }
+  let s; try { s = await api('/api/admin?a=setup',{method:'POST',body:'{}'}); } catch(e){ g.append(el('p','err',e.message)); return; }
   const ol = el('ol');
   for (const [b,t] of [['Install Google Authenticator',' on your phone (App Store / Google Play).'],['Tap +, then “Scan a QR code”',' and scan the code below. Or choose “Enter a setup key” and type the key.'],['Enter the 6-digit code',' the app shows for Options Screener.']]){ const li=el('li'); li.append(el('b',null,b), t); ol.append(li); }
   const qr = el('div','qr'); const key = el('div','secret', s.secret.replace(/(.{4})/g,'$1 ').trim());
@@ -157,7 +157,7 @@ async function setup(){
   catch { qr.replaceWith(el('p','m','The QR code could not be drawn here; use the setup key instead.')); }
   const go = async () => { if (i.value.length !== 6) { err.textContent='Enter all 6 digits.'; return; }
     b.disabled = true; err.textContent='';
-    try { const r = await api('/api/admin/setup',{method:'POST',body:JSON.stringify({secret:s.secret,code:i.value})});
+    try { const r = await api('/api/admin?a=setup',{method:'POST',body:JSON.stringify({secret:s.secret,code:i.value})});
       if (r.stored) { start(); return; }
       // No database yet: the key goes into Vercel.
       const done = gate('One more step', 'The code works. Because the database is not connected yet, save the key in Vercel:');
@@ -167,7 +167,7 @@ async function setup(){
   b.onclick=go; i.focus();
 }
 
-$('#lock').onclick = async () => { await api('/api/admin/verify',{method:'DELETE'}).catch(()=>{}); clearInterval(timer); $('#lock').hidden=true; start(); };
+$('#lock').onclick = async () => { await api('/api/admin?a=verify',{method:'DELETE'}).catch(()=>{}); clearInterval(timer); $('#lock').hidden=true; start(); };
 
 /* ---------- dashboard ---------- */
 async function dashboard(){
@@ -175,7 +175,7 @@ async function dashboard(){
   await load(); clearInterval(timer); timer = setInterval(() => { if(!document.hidden) load(); }, 30000);
 }
 async function load(){
-  try { DATA = await api('/api/admin/overview'); }
+  try { DATA = await api('/api/admin?a=overview'); }
   catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
   render();
 }
@@ -233,7 +233,7 @@ ov.onclick=closeUser; $('#dClose').onclick=closeUser; document.addEventListener(
 async function openUser(u){
   $('#dTitle').textContent = u.name || u.email; const body=$('#dBody'); body.replaceChildren(el('p','m','Loading…'));
   dr.classList.add('on'); ov.classList.add('on');
-  let d; try { d = await api('/api/admin/overview?email='+encodeURIComponent(u.email)); } catch(e){ body.replaceChildren(el('p','err',e.message)); return; }
+  let d; try { d = await api('/api/admin?a=overview&email='+encodeURIComponent(u.email)); } catch(e){ body.replaceChildren(el('p','err',e.message)); return; }
   const sec = t => { const s=el('div','sec'); s.append(el('h4',null,t)); body.append(s); return s; };
   body.replaceChildren();
   const s1 = sec(u.email); const kv=el('div','kv');

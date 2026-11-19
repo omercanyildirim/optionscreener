@@ -4,10 +4,8 @@ import assert from 'node:assert/strict';
 const SECRET = 'x'.repeat(40);
 const { sign, SESSION_COOKIE, isAllowed } = await import('../lib/session.js');
 const totp = await import('../lib/totp.js');
-const status = await import('../api/admin/status.js');
-const setup = await import('../api/admin/setup.js');
-const verifyApi = await import('../api/admin/verify.js');
-const overviewApi = await import('../api/admin/overview.js');
+const adminApi = await import('../api/admin.js');
+const status = { GET: adminApi.GET }, setup = { POST: adminApi.POST }, verifyApi = { POST: adminApi.POST }, overviewApi = { GET: adminApi.GET };
 const trackApi = await import('../api/track.js');
 
 // Tiny in-memory Redis behind Upstash's REST shape.
@@ -68,52 +66,52 @@ test('admins can always sign in; others see no admin access', async () => {
   process.env.ALLOWED_EMAILS = 'someone@example.com';
   assert.ok(isAllowed('admin@example.com'));
   process.env.ALLOWED_EMAILS = '*';
-  const j = await (await status.GET(await req('/api/admin/status', { email: 'user@example.com' }))).json();
+  const j = await (await status.GET(await req('/api/admin?a=status', { email: 'user@example.com' }))).json();
   assert.equal(j.admin, false);
-  assert.equal((await setup.POST(await req('/api/admin/setup', { email: 'user@example.com', method: 'POST', body: {} }))).status, 403);
-  assert.equal((await overviewApi.GET(await req('/api/admin/overview', { email: 'user@example.com' }))).status, 403);
+  assert.equal((await setup.POST(await req('/api/admin?a=setup', { email: 'user@example.com', method: 'POST', body: {} }))).status, 403);
+  assert.equal((await overviewApi.GET(await req('/api/admin?a=overview', { email: 'user@example.com' }))).status, 403);
 });
 
 test('setup -> code -> dashboard; wrong and reused codes are refused', async () => {
-  let st = await (await status.GET(await req('/api/admin/status'))).json();
+  let st = await (await status.GET(await req('/api/admin?a=status'))).json();
   assert.equal(st.admin, true); assert.equal(st.totpConfigured, false);
-  const s = await (await setup.POST(await req('/api/admin/setup', { method: 'POST', body: {} }))).json();
+  const s = await (await setup.POST(await req('/api/admin?a=setup', { method: 'POST', body: {} }))).json();
   assert.match(s.uri, /^otpauth:\/\/totp\//);
-  assert.equal((await setup.POST(await req('/api/admin/setup', { method: 'POST', body: { secret: s.secret, code: '000000' } }))).status, 400);
+  assert.equal((await setup.POST(await req('/api/admin?a=setup', { method: 'POST', body: { secret: s.secret, code: '000000' } }))).status, 400);
   const code = await totp.totpAt(s.secret, Math.floor(Date.now() / 30000));
-  const ok = await setup.POST(await req('/api/admin/setup', { method: 'POST', body: { secret: s.secret, code } }));
+  const ok = await setup.POST(await req('/api/admin?a=setup', { method: 'POST', body: { secret: s.secret, code } }));
   assert.equal(ok.status, 200); assert.equal((await ok.json()).stored, true);
   const adminC = cookieOf(ok);
   // a second setup cannot replace the authenticator
-  assert.equal((await setup.POST(await req('/api/admin/setup', { method: 'POST', body: {} }))).status, 409);
+  assert.equal((await setup.POST(await req('/api/admin?a=setup', { method: 'POST', body: {} }))).status, 409);
   // dashboard needs the admin cookie
-  assert.equal((await overviewApi.GET(await req('/api/admin/overview'))).status, 403);
-  const ov = await overviewApi.GET(await req('/api/admin/overview', { extraCookie: adminC }));
+  assert.equal((await overviewApi.GET(await req('/api/admin?a=overview'))).status, 403);
+  const ov = await overviewApi.GET(await req('/api/admin?a=overview', { extraCookie: adminC }));
   assert.equal(ov.status, 200);
   // the same code cannot be used again
-  assert.equal((await verifyApi.POST(await req('/api/admin/verify', { method: 'POST', body: { code } }))).status, 400);
-  st = await (await status.GET(await req('/api/admin/status', { extraCookie: adminC }))).json();
+  assert.equal((await verifyApi.POST(await req('/api/admin?a=verify', { method: 'POST', body: { code } }))).status, 400);
+  st = await (await status.GET(await req('/api/admin?a=status', { extraCookie: adminC }))).json();
   assert.equal(st.verified, true);
 });
 
 test('too many wrong codes lock verification for a while', async () => {
   process.env.ADMIN_TOTP_SECRET = totp.newSecret();
-  for (let i = 0; i < 5; i++) assert.equal((await verifyApi.POST(await req('/api/admin/verify', { method: 'POST', body: { code: '123456' } }))).status, 400);
+  for (let i = 0; i < 5; i++) assert.equal((await verifyApi.POST(await req('/api/admin?a=verify', { method: 'POST', body: { code: '123456' } }))).status, 400);
   const good = await totp.totpAt(process.env.ADMIN_TOTP_SECRET, Math.floor(Date.now() / 30000));
-  assert.equal((await verifyApi.POST(await req('/api/admin/verify', { method: 'POST', body: { code: good } }))).status, 429);
+  assert.equal((await verifyApi.POST(await req('/api/admin?a=verify', { method: 'POST', body: { code: good } }))).status, 429);
 });
 
 test('activity is recorded and shown per user', async () => {
   await trackApi.POST(await req('/api/track', { email: 'user@example.com', method: 'POST', body: { events: [{ type: 'search', detail: 'NVDA' }, { type: 'hack', detail: 'x' }, { type: 'watch_add', detail: 'SPY261218C00600000' }] } }));
   process.env.ADMIN_TOTP_SECRET = totp.newSecret();
   const code = await totp.totpAt(process.env.ADMIN_TOTP_SECRET, Math.floor(Date.now() / 30000));
-  const v = await verifyApi.POST(await req('/api/admin/verify', { method: 'POST', body: { code } }));
+  const v = await verifyApi.POST(await req('/api/admin?a=verify', { method: 'POST', body: { code } }));
   const c = cookieOf(v);
-  const j = await (await overviewApi.GET(await req('/api/admin/overview', { extraCookie: c }))).json();
+  const j = await (await overviewApi.GET(await req('/api/admin?a=overview', { extraCookie: c }))).json();
   assert.equal(j.users.length, 1);
   assert.equal(j.users[0].email, 'user@example.com');
   assert.equal(j.users[0].events, 2);
   assert.deepEqual(j.events.map(e => e.type).sort(), ['search', 'watch_add']);
-  const d = await (await overviewApi.GET(await req('/api/admin/overview?email=user@example.com', { extraCookie: c }))).json();
+  const d = await (await overviewApi.GET(await req('/api/admin?a=overview&email=user@example.com', { extraCookie: c }))).json();
   assert.equal(d.events.length, 2);
 });
