@@ -106,3 +106,16 @@ contracts), per user and as a live feed.
 - First visit: scan the QR code with Google Authenticator and confirm a code. With the database connected the key is
   stored there; without it, the page asks you to save it as `ADMIN_TOTP_SECRET` in Vercel.
 - Activity is stored in Upstash Redis (Vercel → Storage). Without it the portal opens but has nothing to show.
+
+## Security
+
+- **Access:** Google sign-in only (`ALLOWED_EMAILS`), admin portal needs `ADMIN_EMAILS` + Google Authenticator.
+- **Headers (vercel.json):** strict Content-Security-Policy (no inline scripts; scripts only from this site and two pinned
+  cdnjs files), HSTS (2 years, includeSubDomains, preload), X-Frame-Options DENY, nosniff, Referrer-Policy,
+  Permissions-Policy, COOP/CORP, `noindex` on `/admin` and `/api`, `robots.txt` disallows everything.
+- **App:** cross-site POST/PUT/DELETE to `/api/*` are rejected (Origin / Sec-Fetch-Site), HttpOnly+Secure cookies,
+  admin cookie `SameSite=Strict`, keys only on the server, per-user limits on activity logging and news.
+- **Vercel Firewall (dashboard → Firewall):** deny common scanner paths (`.env`, `.git`, `wp-*`, `.php`…), rate limit
+  `/api/*` to 600 requests/min per IP, Bot Protection = Challenge, AI crawlers and assistants = Deny.
+  The Hobby plan allows two custom rules; OWASP managed rules need Enterprise.
+- `*.vercel.app` deployment URLs require a Vercel login (only optionscreener.org is public).
