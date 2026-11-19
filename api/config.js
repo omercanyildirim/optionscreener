@@ -2,6 +2,7 @@ import { getSession, json } from '../lib/session.js';
 import { alpacaConfigured, feedInfo } from '../lib/alpaca.js';
 import { billingInfo } from '../lib/billing.js';
 import { quotaState } from '../lib/quota.js';
+import { consentState } from '../lib/legal.js';
 
 export async function GET(request) {
   const s = await getSession(request);
@@ -19,5 +20,6 @@ export async function GET(request) {
     demo: process.env.DEMO_DATA === 'true' && !alpacaConfigured(),
     billing: await billingInfo(s.email),
     free: await quotaState(s.email).catch(() => null),
+    legal: await consentState(s.email),
   });
 }

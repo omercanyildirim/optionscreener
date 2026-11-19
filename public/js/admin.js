@@ -12,7 +12,7 @@ const fmt = t => t ? new Date(t).toLocaleString('en-GB',{day:'2-digit',month:'sh
 function ago(t){ if(!t) return '–'; const d=(Date.now()-t)/1000; if(d<60) return 'just now'; if(d<3600) return Math.round(d/60)+' min ago'; if(d<86400) return Math.round(d/3600)+' h ago'; return Math.round(d/86400)+' d ago'; }
 const ACT = { login:'Signed in', logout:'Signed out', session:'Opened the app', view:'Opened view', search:'Searched', chain:'Opened chain',
   insight:'Opened insights', all_stocks:'Browsed all stocks', filter_save:'Saved a filter', filter_load:'Loaded a filter', filter_delete:'Deleted a filter',
-  filter_default:'Set default filter', watch_add:'Watched a contract', watch_remove:'Stopped watching', settings_saved:'Saved settings' };
+  filter_default:'Set default filter', watch_add:'Watched a contract', watch_remove:'Stopped watching', settings_saved:'Saved settings', consent:'Accepted terms', data_export:'Downloaded own data' };
 const act = t => ACT[t] || t;
 const main = $('#main');
 let ST = null, DATA = null, timer = null;
@@ -141,7 +141,7 @@ async function openUser(u){
   const s1 = sec(u.email); const kv=el('div','kv'); const pr=u.profile||{};
   if (pr.picture && /^https:\/\//.test(pr.picture)) { const im=el('img','pic'); im.src=pr.picture; im.alt=''; im.referrerPolicy='no-referrer'; im.onerror=()=>im.remove(); s1.append(im); }
   const loc=[pr.city,pr.region,u.country].filter(Boolean).join(', ');
-  for (const [k,v] of [['Name',[pr.givenName,pr.familyName].filter(Boolean).join(' ')||u.name||'–'],['Plan',u.plan||'Free'],['First seen',fmt(u.first)],['Last sign-in',pr.lastLogin?fmt(Date.parse(pr.lastLogin)):'–'],['Last active',ago(u.last)],['Sign-ins',u.logins??'–'],['Actions',u.events??'–'],['Location',loc||'–'],['IP address',pr.ip||'–'],['Language',pr.locale||'–'],['Google account ID',pr.googleId||'–'],['Workspace domain',pr.domain||'–'],['Saved filters',d.presets.length]]){ const x=el('div'); x.append(el('div','k',k), el('div','v',String(v))); kv.append(x); }
+  for (const [k,v] of [['Name',[pr.givenName,pr.familyName].filter(Boolean).join(' ')||u.name||'–'],['Plan',u.plan||'Free'],['First seen',fmt(u.first)],['Last sign-in',pr.lastLogin?fmt(Date.parse(pr.lastLogin)):'–'],['Last active',ago(u.last)],['Sign-ins',u.logins??'–'],['Actions',u.events??'–'],['Location',loc||'–'],['IP address',pr.ip||'–'],['Language',pr.locale||'–'],['Google account ID',pr.googleId||'–'],['Workspace domain',pr.domain||'–'],['Terms accepted',u.consent?`${u.consent.version} · ${u.consent.at?fmt(Date.parse(u.consent.at)):''}`:'Not yet'],['Saved filters',d.presets.length]]){ const x=el('div'); x.append(el('div','k',k), el('div','v',String(v))); kv.append(x); }
   s1.append(kv);
   if (pr.device) s1.append(el('p','m',pr.device));
   const s2 = sec('Stock watchlist'); s2.append(d.watch ? chips(d.watch.split(/[,\s]+/).filter(Boolean)) : el('p','m','Default list'));

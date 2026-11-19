@@ -618,8 +618,24 @@ function openAcct(){ closeAcct(); const b=CFG.billing||{}; amenu=el('div','amenu
   if(b.configured&&b.plan!=='pro'){ const u=el('button',null,'Upgrade to Pro · $9.99/month'); u.onclick=()=>{ closeAcct(); showPro('Pro features'); upgrade(); }; amenu.append(u); }
   if(b.configured&&b.plan==='pro'&&b.status==='admin'&&b.paddle&&b.paddle.env==='sandbox'){ const t=el('button',null,'Test checkout (sandbox, no real charge)'); t.onclick=()=>{ closeAcct(); upgrade(); }; amenu.append(t); }
   if(b.canManage){ const m=el('a',null,'Manage subscription and card'); m.href='/api/billing?a=portal'; m.target='_blank'; m.rel='noopener'; amenu.append(m); }
+  amenu.append(el('hr'));
+  const dl=el('a',null,'Download my data'); dl.href='/api/userdata?a=export'; dl.setAttribute('download',''); amenu.append(dl);
+  const del=el('button',null,'Delete account'); del.onclick=deleteAccount; amenu.append(del);
   const o=el('a',null,'Sign out'); o.href='/api/auth/logout'; amenu.append(o);
+  const lg=el('div','legal'); for(const [t,h] of [['Terms','/terms'],['Privacy','/privacy'],['Refunds','/refund']]){ const a=el('a',null,t); a.href=h; a.target='_blank'; lg.append(a); } amenu.append(lg);
   document.body.appendChild(amenu); }
+async function deleteAccount(){ closeAcct();
+  if(!confirm('Delete your account? Your saved filters, watchlist and history will be erased. This cannot be undone.')) return;
+  try{ const r=await fetch('/api/userdata',{method:'DELETE',credentials:'same-origin'}); const j=await r.json().catch(()=>({}));
+    if(!r.ok){ note(j.error||'Could not delete the account.',true); return; } location.href='/login?deleted=1'; }
+  catch(e){ note('Could not reach the server.',true); } }
+// Users who signed in before the current Terms / Privacy / Refund Policy accept them once before continuing.
+function askConsent(){ return new Promise(res=>{ document.body.classList.add('gated'); $('#app').inert=true; $('#legal').hidden=false;
+  const box=$('#legalAgree'), okb=$('#legalOk'); box.onchange=()=>{ okb.disabled=!box.checked; };
+  okb.onclick=async()=>{ okb.disabled=true; $('#legalErr').textContent='';
+    try{ const r=await fetch('/api/userdata?a=consent',{method:'PUT',credentials:'same-origin'}); if(!r.ok) throw new Error('HTTP '+r.status);
+      $('#legal').hidden=true; document.body.classList.remove('gated'); $('#app').inert=false; res(); }
+    catch(e){ $('#legalErr').textContent='Could not save: '+e.message; okb.disabled=false; } }; }); }
 $('#acctBtn').onclick=e=>{ e.stopPropagation(); amenu?closeAcct():openAcct(); };
 document.addEventListener('click',e=>{ if(amenu&&!amenu.contains(e.target)) closeAcct(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAcct(); });
@@ -927,6 +943,7 @@ async function init(){
       if(CFG.provider==='alpaca'){ CFG.strikePct=100; CFG.maxDte=1100; CFG.fullMs=120000; CFG.maxContracts=40000; }
       $('#avatar').textContent=(c.name||c.email||'?').trim()[0].toUpperCase(); $('#acctBtn').title=`${c.email} · Account`;
       CFG.name=c.name; CFG.email=c.email; CFG.billing=c.billing||null; CFG.free=c.free||null; paintLocks(); paintFree();
+      if(c.legal&&!c.legal.accepted) await askConsent();
       if(c.free&&c.free.walled) wallUp(c.free);
       if(c.demo) DEMO=true;
       else if(!c.keyConfigured){ setStatus('error'); note('No market data key is set on the server (ALPACA_KEY_ID / ALPACA_SECRET_KEY).',true); } }

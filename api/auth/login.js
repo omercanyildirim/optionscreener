@@ -1,4 +1,5 @@
 import { sign, cookie, STATE_COOKIE, json } from '../../lib/session.js';
+import { LEGAL_VERSION } from '../../lib/legal.js';
 
 export function safeNext(n) {
   return typeof n === 'string' && n.startsWith('/') && !n.startsWith('//') && !n.startsWith('/\\') ? n : '/';
@@ -18,9 +19,13 @@ export async function GET(request) {
     return json({ error: 'GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and SESSION_SECRET must be set' }, 500);
   }
   const url = new URL(request.url);
-  const state = crypto.randomUUID();
   const next = safeNext(url.searchParams.get('next'));
-  const stateToken = await sign({ state, next, exp: Math.floor(Date.now() / 1000) + 600 }, env.SESSION_SECRET);
+  // Sign-in needs the visitor to accept the current Terms, Privacy and Refund Policy on the sign-in page.
+  if (url.searchParams.get('consent') !== LEGAL_VERSION) {
+    return new Response(null, { status: 302, headers: { location: '/login?consent=required' + (next !== '/' ? '&next=' + encodeURIComponent(next) : ''), 'cache-control': 'no-store' } });
+  }
+  const state = crypto.randomUUID();
+  const stateToken = await sign({ state, next, consent: LEGAL_VERSION, exp: Math.floor(Date.now() / 1000) + 600 }, env.SESSION_SECRET);
 
   const google = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   google.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);

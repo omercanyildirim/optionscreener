@@ -3,7 +3,7 @@
 import { getSession, json } from './lib/session.js';
 
 export const config = {
-  matcher: ['/((?!api/auth/|api/paddle-webhook|login|js/login\\.js|privacy|terms|favicon\\.ico|robots\\.txt|\\.well-known/).*)'],
+  matcher: ['/((?!api/auth/|api/paddle-webhook|login|js/login\\.js|privacy|terms|refund|favicon\\.ico|robots\\.txt|\\.well-known/).*)'],
 };
 
 export default async function middleware(request) {

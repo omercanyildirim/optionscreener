@@ -1,6 +1,7 @@
 import { sign, verify, readCookie, cookie, isAllowed, STATE_COOKIE, SESSION_COOKIE, SESSION_MAX_AGE } from '../../lib/session.js';
 import { appOrigin, safeNext } from './login.js';
 import { logEvent, saveProfile } from '../../lib/activity.js';
+import { recordConsent, LEGAL_VERSION } from '../../lib/legal.js';
 
 function decodeJwtPayload(jwt) {
   const part = jwt.split('.')[1];
@@ -60,6 +61,7 @@ export async function GET(request) {
     googleId: c.sub, domain: c.hd, country: h('x-vercel-ip-country'), region: dec(h('x-vercel-ip-country-region')), city: dec(h('x-vercel-ip-city')),
     ip: (h('x-forwarded-for').split(',')[0] || h('x-real-ip')).trim(), device: h('user-agent'), lastLogin: new Date().toISOString(),
   });
+  if (st.consent === LEGAL_VERSION) await recordConsent(email, { ip: (h('x-forwarded-for').split(',')[0] || h('x-real-ip')).trim(), how: 'sign-in' });
   await logEvent(email, 'login', (request.headers.get('user-agent') || '').slice(0, 120), { name: c.name || '', country: request.headers.get('x-vercel-ip-country') || '' });
   const headers = new Headers({ location: safeNext(st.next), 'cache-control': 'no-store' });
   headers.append('set-cookie', cookie(SESSION_COOKIE, session, SESSION_MAX_AGE));
