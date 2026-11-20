@@ -104,7 +104,8 @@ function note(msg,err){ const e=$('#msg'); e.textContent=msg||''; e.className=er
 
 /* ---------- server API (Massive key stays on the server) ---------- */
 async function getJSON(u){
-  let r; try{ r=await fetch(u,{credentials:'same-origin',cache:'no-store'}); }catch(e){ throw new Error('Could not reach the server'); }
+  // One quick retry on a dropped connection (Wi-Fi blip, laptop waking up, a deploy switching over).
+  let r; for(let i=0;i<2&&!r;i++){ try{ r=await fetch(u,{credentials:'same-origin',cache:'no-store'}); }catch(e){ if(i) throw new Error('Could not reach the server'); await new Promise(z=>setTimeout(z,800)); } }
   if(r.status===401){ location.href='/login?next='+encodeURIComponent(location.pathname+location.search); throw new Error('Session expired'); }
   if(r.status===402){ let j={}; try{ j=await r.json(); }catch(e){} if(j.error==='free_limit'){ wallUp(j); throw new Error('Free plan limit reached'); } throw new Error(j.error||'Pro feature'); }
   if(!r.ok){ let m=r.statusText; try{ const j=await r.json(); m=j.message||j.error||m; }catch(e){} if(r.status===403) m+=' (your data plan may not include this)'; throw new Error(`${r.status}: ${m}`); }
@@ -732,7 +733,10 @@ async function poll(){
   const err=res.find(r=>r.status==='rejected');
   if(err&&res.every(r=>r.status==='rejected')){ S.fails++; setStatus('error'); if(S.fails>2) note('Cannot load data: '+err.reason.message,true); return; }
   S.fails=0; S.lastUpd=Date.now(); setStatus(S.delayed?'delayed':'live');
-  if(err) note('Some data could not be loaded: '+err.reason.message,true);
+  // A single failed request is retried on the next refresh; only say something if it keeps failing, and clear it once it works.
+  S.partFails=err?(S.partFails||0)+1:0;
+  if(err&&S.partFails>2) note('Some data could not be loaded: '+err.reason.message,true);
+  else if(!err&&/could not be loaded|Cannot load data|Could not reach/.test($('#msg').textContent)) note('');
   if(expiries().length!==$('#expSel').options.length) buildExpSel(); }
 async function fullRefresh(){ if(DEMO||S.loadingFull||document.hidden||S.walled) return; S.loadingFull=true; const gen=S.gen;
   try{ const r=await fetchChain(); if(gen===S.gen){ r.forEach(x=>ingestOption(x,S.contracts)); if(expiries().length!==$('#expSel').options.length) buildExpSel(); S.scrForce=true; } }
