@@ -59,7 +59,7 @@ def head(path, title, desc, ld, kind='website'):
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="/">{LOGO}{NAME}</a>
-  <nav class="nav" aria-label="Guides">{nav(path)}<a href="/#pricing">Pricing</a></nav>
+  <nav class="nav" aria-label="Guides">{nav(path)}<a href="/pricing">Pricing</a></nav>
   <a class="btn" href="/login">Sign in</a><a class="btn pri" href="/login">{GLOGO}Start free</a>
 </div></header>
 '''
@@ -69,7 +69,7 @@ FOOT = f'''<footer class="foot"><div class="wrap cols">
   <div><a class="brand" href="/">{LOGO}{NAME}</a>
     <p class="disc">Market data and tools for information only. Nothing on this site is investment advice. Options involve substantial risk and are not suitable for every investor.</p></div>
   <div><h4>Guides</h4><ul>{GLIST}</ul></div>
-  <div><h4>Company</h4><ul><li><a href="/#pricing">Pricing</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/refund">Refund Policy</a></li><li><a href="/privacy#contact">Contact</a></li></ul></div>
+  <div><h4>Company</h4><ul><li><a href="/pricing">Pricing</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/refund">Refund Policy</a></li><li><a href="/privacy#contact">Contact</a></li></ul></div>
 </div></footer>
 </body>
 </html>
@@ -98,6 +98,42 @@ FAQ = [
     ('How do I cancel Pro?', 'Open the account menu in the app and choose Manage subscription and card. Pro stays active until the end of the period you paid for and is not renewed.'),
     ('Is this investment advice?', 'No. Options Screener provides market data and tools for information only. It is not a broker or investment adviser and does not recommend buying or selling any security.'),
 ]
+
+def plans_html():
+    return f'''  <div class="plans">
+    <div class="plan"><h3>Free</h3><div class="price">$0</div><div class="per">forever, no card needed</div>
+      <ul><li>3 symbols a day</li><li>Full option chains with greeks and IV</li><li>Stock quotes for every listed US stock</li><li>Watchlist and saved filters</li></ul>
+      <a class="btn" href="/login">{GLOGO}Start free with Google</a></div>
+    <div class="plan pro"><h3>Pro</h3><div class="price">$9.99</div><div class="per">per month, cancel anytime</div>
+      <ul><li>Unlimited symbols, every day</li><li>Live options flow with big-trade highlights</li><li>Contract screener across every expiry and strike</li><li>IV smile, open interest and volume charts</li><li>Stock and contract insights with news</li></ul>
+      <a class="btn pri" href="/login">Get Pro</a></div>
+  </div>'''
+
+def pricing():
+    ld = {'@context': 'https://schema.org', '@graph': [ORG, {'@type': 'Product', 'name': 'Options Screener Pro', 'description': 'Monthly subscription to Options Screener, US options market data software.',
+          'brand': {'@type': 'Brand', 'name': 'Options Screener'}, 'url': SITE + '/pricing',
+          'offers': {'@type': 'Offer', 'price': '9.99', 'priceCurrency': 'USD', 'availability': 'https://schema.org/InStock', 'url': SITE + '/pricing'}}]}
+    body = f"""<main class="wrap"><article class="article">
+<h1>Pricing</h1>
+<p class="lede">Options Screener has a free plan and one paid plan, Pro, at $9.99 a month. No setup fees and no long-term contract.</p>
+{plans_html()}
+<h2>Billing details</h2>
+<ul>
+<li><b>Price:</b> Pro costs $9.99 (USD) per month. Any sales tax or VAT that applies in your country is included in that price.</li>
+<li><b>Billing:</b> you are charged when you subscribe and then automatically every month on the same date until you cancel.</li>
+<li><b>Cancel anytime:</b> open the account menu in the app and choose Manage subscription and card. After you cancel, Pro stays active until the end of the month you have paid for, and you are not charged again.</li>
+<li><b>Refunds:</b> full refund of any payment, first or renewal, if you ask within 14 days of that payment. See the <a href="/refund">Refund Policy</a>.</li>
+<li><b>Payment methods:</b> card, PayPal, Google Pay and Apple Pay.</li>
+<li><b>Who charges you:</b> our order process is conducted by our online reseller Paddle.com. Paddle.com is the Merchant of Record for all our orders and handles billing, invoices and customer service inquiries about payments.</li>
+<li><b>Free plan:</b> no card needed. It includes 3 symbols a day and stays free.</li>
+</ul>
+<h2>What you get</h2>
+<p>Options Screener is software for viewing US options market data: option chains with greeks and implied volatility, a contract screener, charts and a feed of large option trades. It is an information tool. It does not place trades, connect to brokerage accounts or give investment advice.</p>
+<p class="note">Questions about billing? Email us from the contact details in the <a href="/privacy#contact">Privacy Policy</a>. By subscribing you agree to the <a href="/terms">Terms of Service</a>.</p>
+</article></main>
+"""
+    return head('/pricing', 'Pricing: Options Screener Pro $9.99/month',
+                'Options Screener pricing: free plan with 3 symbols a day, or Pro for $9.99 a month with live options flow, the contract screener and charts. Cancel anytime.', ld) + body + FOOT
 
 def home():
     ld = {'@context': 'https://schema.org', '@graph': [ORG, WEBSITE, APP, faq_ld(FAQ)]}
@@ -135,15 +171,8 @@ def home():
 <section class="band" id="pricing"><div class="wrap">
   <h2>Simple pricing</h2>
   <p class="intro">Start free. Upgrade when you want the full flow. One plan, billed monthly, cancel anytime.</p>
-  <div class="plans">
-    <div class="plan"><h3>Free</h3><div class="price">$0</div><div class="per">forever, no card needed</div>
-      <ul><li>3 symbols a day</li><li>Full option chains with greeks and IV</li><li>Stock quotes for every listed US stock</li><li>Watchlist and saved filters</li></ul>
-      <a class="btn" href="/login">{GLOGO}Start free with Google</a></div>
-    <div class="plan pro"><h3>Pro</h3><div class="price">$9.99</div><div class="per">per month, cancel anytime</div>
-      <ul><li>Unlimited symbols, every day</li><li>Live options flow with big-trade highlights</li><li>Contract screener across every expiry and strike</li><li>IV smile, open interest and volume charts</li><li>Stock and contract insights with news</li></ul>
-      <a class="btn pri" href="/login">Get Pro</a></div>
-  </div>
-  <p class="note" style="margin-top:18px">Secure checkout by Paddle, our reseller. Card, PayPal, Google Pay and Apple Pay. 14-day money-back guarantee.</p>
+{plans_html()}
+  <p class="note" style="margin-top:18px">Secure checkout by Paddle, our reseller. Card, PayPal, Google Pay and Apple Pay. 14-day money-back guarantee. <a href="/pricing">Full pricing and billing details</a></p>
 </div></section>
 
 <section class="band"><div class="wrap">
@@ -176,7 +205,7 @@ def guide(path, title, h1, desc, lede, sections, faq=()):
 '''
     return head(path, title, desc, {'@context': 'https://schema.org', '@graph': graph}, 'article') + body + FOOT
 
-PAGES = {'home': home()}
+PAGES = {'home': home(), 'pricing': pricing()}
 
 PAGES['options-flow'] = guide('/options-flow',
  'Options Flow: How to Read Sweeps, Blocks and Big Trades',
@@ -312,7 +341,7 @@ PAGES['option-chain'] = guide('/option-chain',
   ('What is the difference between volume and open interest?', 'Volume counts contracts traded today. Open interest counts contracts that remain open from previous days and is updated once a day.')])
 
 def sitemap():
-    urls = [('/', '1.0', 'daily')] + [(p, '0.8', 'weekly') for p, _, _ in GUIDES] + [('/terms', '0.2', 'yearly'), ('/privacy', '0.2', 'yearly'), ('/refund', '0.2', 'yearly')]
+    urls = [('/', '1.0', 'daily'), ('/pricing', '0.6', 'monthly')] + [(p, '0.8', 'weekly') for p, _, _ in GUIDES] + [('/terms', '0.2', 'yearly'), ('/privacy', '0.2', 'yearly'), ('/refund', '0.2', 'yearly')]
     items = ''.join(f'<url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod><changefreq>{f}</changefreq><priority>{p}</priority></url>' for u, p, f in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>\n'
 
