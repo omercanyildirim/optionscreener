@@ -84,7 +84,7 @@ FOOT = f'''<footer class="foot"><div class="wrap cols">
 </html>
 '''
 
-ORG = {'@type': 'Organization', '@id': SITE + '/#org', 'name': NAME, 'url': SITE + '/', 'logo': SITE + '/apple-touch-icon.png'}
+ORG = {'@type': 'Organization', '@id': SITE + '/#org', 'name': NAME, 'url': SITE + '/', 'logo': SITE + '/icon-512.png', 'sameAs': ['https://x.com/optionscreener'], 'email': 'info@optionscreener.org'}
 WEBSITE = {'@type': 'WebSite', '@id': SITE + '/#website', 'name': NAME, 'alternateName': ['OptionScreener', 'optionscreener.org'], 'url': SITE + '/', 'publisher': {'@id': SITE + '/#org'}, 'inLanguage': 'en'}
 APP = {'@type': 'SoftwareApplication', '@id': SITE + '/#app', 'name': NAME, 'url': SITE + '/', 'applicationCategory': 'FinanceApplication', 'operatingSystem': 'Web browser',
        'description': 'Web app for US stock options: live options flow, option chains with greeks and IV, and a contract screener.',
@@ -175,6 +175,12 @@ def home():
     <div class="feat"><h3>Charts</h3><p>IV smile, open interest and volume by strike, and call versus put premium minute by minute.</p></div>
     <div class="feat"><h3>Every listed US stock</h3><p>Browse all listed US stocks and ETFs with price, change and volume, and open the chain of any symbol with options in one click.</p></div>
   </div>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <h2>Learn options</h2>
+  <p class="intro">Plain-English guides to the numbers you see in the options flow and the option chain.</p>
+  <div class="related">{''.join(f'<a href="{p}"><b>{t}</b><span>{d}</span></a>' for p, t, d in ALL_GUIDES)}</div>
 </div></section>
 
 <section class="band" id="pricing"><div class="wrap">
