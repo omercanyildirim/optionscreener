@@ -379,7 +379,9 @@ function buildDrawer(){
 function fillDrawer(){ $('#dbody').querySelectorAll('[data-k]').forEach(i=>{ const v=P.flow[i.dataset.k]; if(i.type==='checkbox') i.checked=!!v; else i.value=v??''; }); }
 function activeCount(F){ let n=0; for(const k in FLOW0){ if(JSON.stringify(F[k])!==JSON.stringify(FLOW0[k])) n++; } return n; }
 function flowChanged(fromDrawer){ saveP(); S.flowDirty=true; if(!fromDrawer) fillDrawer(); const n=activeCount(P.flow);
-  $('#fcount').hidden=!n; $('#fcount').textContent=n; $('#dcount').textContent=n?`${n} active filter${n>1?'s':''}`:'No filters'; paintPresetDirty(); }
+  $('#fcount').hidden=!n; $('#fcount').textContent=n; $('#dcount').textContent=n?`${n} active filter${n>1?'s':''}`:'No filters'; paintPresetDirty();
+  // When the flow is narrowed to one stock, the price chart above follows it.
+  const one=[...symSet(P.flow.sym||'')]; if(one.length===1&&/^[A-Z][A-Z0-9.]{0,9}$/.test(one[0])&&one[0]!==S.und&&!S.walled&&typeof load==='function'&&S.ready) load(one[0]); }
 function openDrawer(){ fillDrawer(); renderPresetSel(); $('#drawer').classList.add('on'); $('#overlay').classList.add('on'); }
 function closeDrawer(){ $('#drawer').classList.remove('on'); $('#overlay').classList.remove('on'); }
 $('#openFilters').onclick=openDrawer; $('#dClose').onclick=closeDrawer; $('#overlay').onclick=()=>{ closeDrawer(); closeInsight(); };
@@ -1144,7 +1146,7 @@ async function init(){
     if(cur==='flow') note(S.flowNote);
     S.flowTimers.push(setInterval(liveFlowTick,CFG.provider==='alpaca'?Math.max(4000,CFG.pollMs*1.5):CFG.pollMs)); }
   try{ if(sessionStorage.getItem('os_welcome')){ sessionStorage.removeItem('os_welcome'); note('Welcome to Pro. Everything is unlocked.'); } }catch(e){}
-  if(!S.walled) load(P.und);
+  S.ready=true; if(!S.walled) load(P.und);
 }
 init();
 })();
