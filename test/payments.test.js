@@ -146,7 +146,28 @@ test('admin payments view: totals, transactions and subscriptions from Paddle', 
   assert.equal(j.totals.mrr, 9.99); assert.equal(j.totals.active, 1); assert.equal(j.totals.canceled, 1);
   assert.equal(j.totals.monthRevenue, 19.98); assert.equal(j.totals.monthEarnings, 16.32); assert.equal(j.totals.refunded, 9.99);
   assert.equal(j.subscriptions[0].email, 'a@example.com');
+  assert.equal(j.upcoming.length, 1); assert.equal(j.upcoming[0].email, 'a@example.com'); assert.equal(j.upcoming[0].amount, 9.99);
+  assert.equal(j.totals.next30, 9.99); assert.equal(j.totals.next7Count, 1);
   paddle['/transactions/txn_01abcdefghij/invoice'] = { data: { url: 'https://invoice.example/x.pdf' } };
   const inv = await adminApi.GET(await req('/api/admin?a=invoice&txn=txn_01abcdefghij', { email: 'admin@example.com', cookie: c }));
   assert.equal(inv.status, 302); assert.equal(inv.headers.get('location'), 'https://invoice.example/x.pdf');
+});
+
+test('upcoming payments: renewals in date order; canceling subscriptions listed as ending, not as income', async () => {
+  const { paymentsOverview } = await import('../lib/payments.js');
+  const day = n => new Date(Date.now() + n * 864e5).toISOString();
+  const item = { quantity: 1, price: { unit_price: { amount: '999', currency_code: 'USD' }, billing_cycle: { interval: 'month', frequency: 1 } } };
+  paddle['/transactions?'] = { data: [], meta: { pagination: { has_more: false } } };
+  paddle['/subscriptions?'] = { data: [
+    { id: 'sub_a', status: 'active', customer_id: 'c1', custom_data: { email: 'late@example.com' }, items: [item], next_billed_at: day(20) },
+    { id: 'sub_b', status: 'active', customer_id: 'c2', custom_data: { email: 'soon@example.com' }, items: [item], next_billed_at: day(3) },
+    { id: 'sub_c', status: 'past_due', customer_id: 'c3', custom_data: { email: 'retry@example.com' }, items: [item], next_billed_at: day(1) },
+    { id: 'sub_d', status: 'active', customer_id: 'c4', custom_data: { email: 'leaving@example.com' }, items: [item], next_billed_at: day(5), scheduled_change: { action: 'cancel', effective_at: day(5) } },
+    { id: 'sub_e', status: 'active', customer_id: 'c5', custom_data: { email: 'far@example.com' }, items: [item], next_billed_at: day(45) },
+  ], meta: { pagination: { has_more: false } } };
+  const j = await paymentsOverview();
+  assert.deepEqual(j.upcoming.map(x => x.email), ['retry@example.com', 'soon@example.com', 'late@example.com', 'far@example.com']);
+  assert.equal(j.upcoming[0].retry, true);
+  assert.equal(j.totals.next7, 19.98); assert.equal(j.totals.next30, 29.97); assert.equal(j.totals.upcomingCount, 4);
+  assert.deepEqual(j.ending.map(x => x.email), ['leaving@example.com']); assert.equal(j.totals.endingLost, 9.99);
 });

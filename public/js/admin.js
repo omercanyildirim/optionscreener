@@ -157,8 +157,24 @@ function renderPay(){
   stat('Active subscribers', T.active, [T.canceling?`${T.canceling} canceling`:'', T.pastDue?`${T.pastDue} past due`:'', T.canceled?`${T.canceled} canceled`:''].filter(Boolean).join(', ')||'none canceling');
   stat('Revenue this month', money(T.monthRevenue), `${T.monthCount} payment${T.monthCount===1?'':'s'}, incl. ${money(T.monthTax)} tax`);
   stat('Net this month', money(T.monthEarnings), `after tax and ${money(T.monthFees)} Paddle fees`);
+  stat('Expected next 30 days', money(T.next30||0), `${T.next30Count||0} renewal${T.next30Count===1?'':'s'}, ${money(T.next7||0)} in the next 7 days`);
   stat('All time', money(T.allRevenue), `${money(T.allEarnings)} net${T.refunded?`, ${money(T.refunded)} refunded`:''}`);
   frag.append(stats);
+  // upcoming payments (renewals Paddle will charge)
+  const uBox = el('section'); const uh = el('div','sechead'); uh.append(el('h3',null,'Upcoming payments'), el('span','sp'),
+    el('span','m',(T.upcomingCount||0)+' scheduled'+(T.endingCount?` · ${T.endingCount} ending (${money(T.endingLost)}/mo less)`:'')));
+  const uw = el('div','tw'); const ut = el('table'); ut.innerHTML='<thead><tr><th>Date</th><th>When</th><th>Customer</th><th class="n">Amount</th><th>Plan</th><th>Status</th></tr></thead>';
+  const ub = el('tbody'); ut.append(ub); uw.append(ut); uBox.append(uh, uw);
+  const inDays = a => { const d = Math.round((Date.parse(a) - Date.now()) / 864e5); return d < 0 ? 'overdue' : d === 0 ? 'today' : d === 1 ? 'tomorrow' : `in ${d} days`; };
+  const upRows = [...(P.upcoming||[]).map(x=>({...x, kind:x.retry?'retry':'renew'})), ...(P.ending||[]).map(x=>({...x, kind:'end'}))].sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
+  if(!upRows.length){ const tr=el('tr'), td=el('td','empty','No upcoming payments yet. Renewals show here once someone subscribes.'); td.colSpan=6; tr.append(td); ub.append(tr); }
+  for (const x of upRows){ const tr=el('tr','click'); tr.title='Show customer';
+    const st = x.kind==='end' ? 'Ends, will not renew' : x.kind==='retry' ? 'Past due, Paddle retrying' : 'Will renew';
+    tr.append(el('td','d',day1(x.at)), el('td','m',inDays(x.at)), el('td',null,x.email||x.customerId||'–'),
+      el('td',x.kind==='end'?'n m':'n',x.kind==='end'?'–':money(x.amount,x.currency)), el('td','m',x.kind==='end'?'–':'Pro, '+(x.interval==='month'?'monthly':x.interval)), el('td',x.kind==='renew'?'g':'r',st));
+    tr.onclick=()=>openUser(userByEmail(x.email)); ub.append(tr); }
+  const un = el('p','note','Amounts are the plan price before any sales tax Paddle adds for the customer’s country.'); un.style.marginTop='10px';
+  uBox.append(un); uBox.style.marginBottom='30px'; frag.append(uBox);
   frag.append(el('p','note','Live from Paddle · Paddle pays out the net amount monthly to your bank account · Refreshes every 30 s'));
   // payments
   const pBox = el('section'); const ph = el('div','sechead'); ph.append(el('h3',null,'Payments'), el('span','sp'));
