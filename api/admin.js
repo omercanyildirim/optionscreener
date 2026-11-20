@@ -6,7 +6,7 @@ import { newSecret, otpauthUri, base32Decode } from '../lib/totp.js';
 import { storeConfigured } from '../lib/store.js';
 import { logEvent, overview, userDetail } from '../lib/activity.js';
 import { alpacaConfigured } from '../lib/alpaca.js';
-import { paymentsOverview, invoiceUrl } from '../lib/payments.js';
+import { paymentsOverview, invoiceUrl, liveCheck } from '../lib/payments.js';
 import { setComp } from '../lib/billing.js';
 
 const action = request => new URL(request.url).searchParams.get('a') || '';
@@ -17,6 +17,7 @@ export async function GET(request) {
   if (a === 'overview') return overviewGet(request);
   if (a === 'payments') return paymentsGet(request);
   if (a === 'invoice') return invoiceGet(request);
+  if (a === 'livecheck') return liveCheckGet(request);
   return json({ error: 'not found' }, 404);
 }
 export async function POST(request) {
@@ -108,6 +109,10 @@ async function paymentsGet(request) {
   if (!(await getVerifiedAdmin(request))) return json({ error: 'forbidden' }, 403);
   try { return json(await paymentsOverview()); }
   catch (e) { return json({ error: 'Paddle: ' + e.message }, 502); }
+}
+async function liveCheckGet(request) {
+  if (!(await getVerifiedAdmin(request))) return json({ error: 'forbidden' }, 403);
+  return json(await liveCheck());
 }
 async function invoiceGet(request) {
   if (!(await getVerifiedAdmin(request))) return json({ error: 'forbidden' }, 403);

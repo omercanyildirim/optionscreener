@@ -2,7 +2,7 @@
 // /api/billing?a=status          (GET, signed in)  -> current plan
 // /api/paddle-webhook            (POST, from Paddle; rewritten here with a=webhook) -> subscription updates
 import { getSession, json } from '../lib/session.js';
-import { verifyWebhook, handleEvent, getSubscription, portalUrl, billingInfo, syncTransaction, accountFrom, emailForCustomer } from '../lib/billing.js';
+import { verifyWebhook, handleEvent, getSubscription, portalUrl, billingInfo, syncTransaction, accountFrom, emailForCustomer, paddleVar } from '../lib/billing.js';
 import { txnRow, invoicePdf } from '../lib/payments.js';
 import { sendPaymentEmailOnce } from '../lib/mail.js';
 import { storeConfigured, cmd } from '../lib/store.js';
@@ -28,7 +28,7 @@ export async function GET(request) {
   if (a === 'portal') {
     const sub = await getSubscription(s.email);
     if (!sub || !sub.customerId) return json({ error: 'No subscription yet.' }, 404);
-    if (!process.env.PADDLE_API_KEY) return json({ error: 'Billing portal is not configured.' }, 503);
+    if (!paddleVar('PADDLE_API_KEY')) return json({ error: 'Billing portal is not configured.' }, 503);
     try {
       const url = await portalUrl(sub.customerId, sub.id);
       return new Response(null, { status: 302, headers: { location: url, 'cache-control': 'no-store' } });
