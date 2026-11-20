@@ -9,6 +9,7 @@ import { alpacaConfigured } from '../lib/alpaca.js';
 import { paymentsOverview, invoiceUrl, liveCheck } from '../lib/payments.js';
 import { setComp } from '../lib/billing.js';
 import { getDiscount, createDiscount, removeDiscount, describe } from '../lib/discounts.js';
+import { adminOverview as communityOverview, resolveReports, setMuted } from '../lib/social.js';
 
 const action = request => new URL(request.url).searchParams.get('a') || '';
 
@@ -20,6 +21,7 @@ export async function GET(request) {
   if (a === 'invoice') return invoiceGet(request);
   if (a === 'livecheck') return liveCheckGet(request);
   if (a === 'discount') return discountGet(request);
+  if (a === 'community') return communityGet(request);
   return json({ error: 'not found' }, 404);
 }
 export async function POST(request) {
@@ -28,6 +30,7 @@ export async function POST(request) {
   if (a === 'verify') return verifyPost(request);
   if (a === 'comp') return compPost(request);
   if (a === 'discount') return discountPost(request);
+  if (a === 'community') return communityPost(request);
   return json({ error: 'not found' }, 404);
 }
 export async function DELETE(request) {
@@ -144,6 +147,21 @@ async function discountPost(request) {
     const d = await createDiscount(email, { type: b.type, amount: b.amount, months, days, note: b.note, by: admin.email || '' });
     await logEvent(email, 'discount', `Discount ${d.code}: ${describe(d)}${d.note ? ' (' + d.note + ')' : ''}`);
     return json({ ok: true, discount: { ...d, label: describe(d) } });
+  } catch (e) { return json({ error: e.message }, e.status || 500); }
+}
+// Community moderation: reports, recent posts, members; delete or keep reported posts, mute or unmute members.
+async function communityGet(request) {
+  if (!(await getVerifiedAdmin(request))) return json({ error: 'forbidden' }, 403);
+  try { return json(await communityOverview()); } catch (e) { return json({ error: e.message }, e.status || 500); }
+}
+async function communityPost(request) {
+  const admin = await getVerifiedAdmin(request);
+  if (!admin) return json({ error: 'forbidden' }, 403);
+  let b = {}; try { b = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+  try {
+    if (b.username) return json(await setMuted(b.username, !!b.mute));
+    if (b.postId) return json(await resolveReports(admin.email || 'admin', b.postId, b.action));
+    return json({ error: 'Nothing to do' }, 400);
   } catch (e) { return json({ error: e.message }, e.status || 500); }
 }
 async function compPost(request) {

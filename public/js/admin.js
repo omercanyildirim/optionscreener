@@ -12,7 +12,7 @@ const fmt = t => t ? new Date(t).toLocaleString('en-GB',{day:'2-digit',month:'sh
 function ago(t){ if(!t) return '–'; const d=(Date.now()-t)/1000; if(d<60) return 'just now'; if(d<3600) return Math.round(d/60)+' min ago'; if(d<86400) return Math.round(d/3600)+' h ago'; return Math.round(d/86400)+' d ago'; }
 const ACT = { login:'Signed in', logout:'Signed out', session:'Opened the app', view:'Opened view', search:'Searched', chain:'Opened chain',
   insight:'Opened insights', all_stocks:'Browsed all stocks', filter_save:'Saved a filter', filter_load:'Loaded a filter', filter_delete:'Deleted a filter',
-  filter_default:'Set default filter', watch_add:'Watched a contract', watch_remove:'Stopped watching', settings_saved:'Saved settings', consent:'Accepted terms', data_export:'Downloaded own data', payment:'Payment', marketing:'Email preference', comp:'Free Pro' };
+  filter_default:'Set default filter', watch_add:'Watched a contract', watch_remove:'Stopped watching', settings_saved:'Saved settings', consent:'Accepted terms', data_export:'Downloaded own data', payment:'Payment', marketing:'Email preference', comp:'Free Pro', discount:'Discount', community:'Community' };
 const act = t => ACT[t] || t;
 const main = $('#main');
 let ST = null, DATA = null, PAY = null, TAB = 'users', timer = null;
@@ -81,16 +81,17 @@ async function dashboard(){
 async function loadPay(){ try { PAY = await api('/api/admin?a=payments'); } catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } PAY = { error: e.message }; } }
 async function load(){
   if (PAYTABS.has(TAB)) await loadPay();
+  if (TAB==='community') await loadCom();
   try { DATA = await api('/api/admin?a=overview'); }
   catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
   render();
 }
 const PAYTABS=new Set(['payments','cancel']);
 function tabs(){ const t=el('div','tabs'); t.setAttribute('role','tablist');
-  for (const [k,label] of [['users','Users'],['activity','Latest activity'],['payments','Payments'],['cancel','Cancellations']]){ const b=el('button',TAB===k?'on':'',label); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(TAB===k));
-    b.onclick=async()=>{ if(TAB===k) return; TAB=k; if(PAYTABS.has(k)&&!PAY){ main.replaceChildren(tabs(), el('p','m','Loading from Paddle…')); await loadPay(); } render(); }; t.append(b); }
+  for (const [k,label] of [['users','Users'],['activity','Latest activity'],['payments','Payments'],['cancel','Cancellations'],['community','Community']]){ const b=el('button',TAB===k?'on':'',label); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(TAB===k));
+    b.onclick=async()=>{ if(TAB===k) return; TAB=k; if(k==='community'){ main.replaceChildren(tabs(), el('p','m','Loading the community…')); await loadCom(); } if(PAYTABS.has(k)&&!PAY){ main.replaceChildren(tabs(), el('p','m','Loading from Paddle…')); await loadPay(); } render(); }; t.append(b); }
   return t; }
-function render(){ if (TAB==='payments') return renderPay(); if (TAB==='cancel') return renderCancel();
+function render(){ if (TAB==='payments') return renderPay(); if (TAB==='cancel') return renderCancel(); if (TAB==='community') return renderCom();
   const D = DATA, now = Date.now(), day = 864e5;
   const frag = document.createDocumentFragment(); frag.append(tabs());
   if (!D.store) frag.append(el('div','warn','Activity is not being recorded yet: the database (Upstash Redis) is not connected. Connect it in Vercel → Storage, then redeploy.'));
@@ -233,6 +234,47 @@ function renderCancel(){
       (()=>{ const d=el('td'); if(P.env!=='sandbox') d.append(pLink('/subscriptions-v2/'+encodeURIComponent(x.subscriptionId),'Paddle')); return d; })());
     tr.onclick=()=>openUser(userByEmail(x.email)); b.append(tr); }
   frag.append(box); main.replaceChildren(frag);
+}
+
+/* ---------- community moderation ---------- */
+let COM=null;
+async function loadCom(){ try { COM = await api('/api/admin?a=community'); } catch(e){ COM = { error: e.message }; } }
+async function comAct(body, done){ try { await api('/api/admin?a=community',{method:'POST',body:JSON.stringify(body)}); await loadCom(); render(); if(done) done(); } catch(e){ alertBox(e.message); } }
+function alertBox(m){ const p=el('p','err',m); main.prepend(p); setTimeout(()=>p.remove(),5000); }
+function renderCom(){
+  const frag=document.createDocumentFragment(); frag.append(tabs()); const C=COM||{};
+  if(C.error){ frag.append(el('p','err','Could not load the community: '+C.error)); return main.replaceChildren(frag); }
+  const T=C.stats||{}; const stats=el('div','stats');
+  const stat=(k,v,s)=>{ const d=el('div','stat'); d.append(el('div','k',k), el('div','v',String(v??0))); if(s) d.append(el('div','s',s)); stats.append(d); };
+  stat('Members',T.members,'picked a username'); stat('Posts',T.posts,'not deleted'); stat('Posts today',T.posts_today,'last 24 hours');
+  stat('Open reports',T.open_reports,'waiting for review'); stat('Muted',T.muted,'cannot post, hidden from others');
+  frag.append(stats);
+  const btn=(label,fn,cls)=>{ const b=el('button','btn'+(cls?' '+cls:''),label); b.onclick=e=>{ e.stopPropagation(); b.disabled=true; fn(); }; return b; };
+  const table=(head,rows,empty,cols)=>{ const w=el('div','tw'), t=el('table'); t.innerHTML='<thead><tr>'+head+'</tr></thead>'; const b=el('tbody'); t.append(b); w.append(t);
+    if(!rows.length){ const tr=el('tr'), td=el('td','empty',empty); td.colSpan=cols; tr.append(td); b.append(tr); } return [w,b]; };
+  // reports
+  const rBox=el('section'); const rh=el('div','sechead'); rh.append(el('h3',null,'Reported posts'),el('span','sp'),el('span','m','Delete removes the post for everyone; Keep closes the reports.'));
+  const [rw,rb]=table('<th>Post</th><th>Author</th><th class="n">Reports</th><th>Reasons</th><th>Last report</th><th></th>',C.reports||[],'No open reports',6);
+  for(const r of C.reports||[]){ const tr=el('tr'); const body=el('td',null,r.body); body.style.maxWidth='420px'; body.style.whiteSpace='normal';
+    const act=el('td'); act.style.whiteSpace='nowrap'; act.append(btn('Delete',()=>comAct({postId:r.post_id,action:'delete'}),'r'),' ',btn('Keep',()=>comAct({postId:r.post_id,action:'dismiss'})),' ',btn(r.muted?'Unmute':'Mute author',()=>comAct({username:r.username,mute:!r.muted})));
+    tr.append(body, el('td',null,'@'+r.username), el('td','n',String(r.reports)), el('td','m',r.reasons||'–'), el('td','d',ago(Date.parse(r.last_at))), act); rb.append(tr); }
+  rBox.append(rh,rw); rBox.style.marginBottom='30px'; frag.append(rBox);
+  // recent posts
+  const pBox=el('section'); const ph=el('div','sechead'); ph.append(el('h3',null,'Latest posts'));
+  const [pw,pb]=table('<th>Time</th><th>Author</th><th>Post</th><th class="n">Likes</th><th>Status</th><th></th>',C.recent||[],'No posts yet',6);
+  for(const x of C.recent||[]){ const tr=el('tr'); const body=el('td',x.deleted_at?'d':null,(x.parent_id?'↳ ':'')+x.body); body.style.maxWidth='460px'; body.style.whiteSpace='normal';
+    const act=el('td'); if(!x.deleted_at) act.append(btn('Delete',()=>comAct({postId:x.id,action:'delete'}),'r'));
+    tr.append(el('td','d',ago(Date.parse(x.created_at))), el('td',x.muted?'r':null,'@'+x.username+(x.muted?' (muted)':'')), body, el('td','n',String(x.likes)), el('td',x.deleted_at?'r':'g',x.deleted_at?'Deleted':'Visible'), act);
+    tr.title=x.email; pb.append(tr); }
+  pBox.append(ph,pw); pBox.style.marginBottom='30px'; frag.append(pBox);
+  // members
+  const mBox=el('section'); const mh=el('div','sechead'); mh.append(el('h3',null,'Members'));
+  const [mw,mb]=table('<th>Username</th><th>Name</th><th>Email</th><th class="n">Posts</th><th class="n">Followers</th><th>Joined</th><th></th>',C.members||[],'Nobody has joined yet',7);
+  for(const m of C.members||[]){ const tr=el('tr','click'); tr.append(el('td',m.muted?'r':null,'@'+m.username+(m.muted?' (muted)':'')), el('td',null,m.display_name||'–'), el('td','m',m.email), el('td','n',String(m.posts)), el('td','n',String(m.followers)), el('td','d',day1(m.created_at)));
+    const act=el('td'); act.append(btn(m.muted?'Unmute':'Mute',()=>comAct({username:m.username,mute:!m.muted}),m.muted?'':'r')); tr.append(act);
+    tr.onclick=()=>openUser(userByEmail(m.email)); mb.append(tr); }
+  mBox.append(mh,mw); frag.append(mBox);
+  main.replaceChildren(frag);
 }
 
 /* ---------- one user ---------- */

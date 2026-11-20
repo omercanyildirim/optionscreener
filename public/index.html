@@ -352,6 +352,7 @@ body.gate-main .gate{left:56px}
   .amenu a,.amenu button{padding:11px 10px}
 }
 </style>
+<link rel="stylesheet" href="/css/community.css">
 </head>
 <body>
 <div class="wall" id="legal" hidden role="dialog" aria-modal="true" aria-labelledby="legalT">
@@ -405,6 +406,7 @@ body.gate-main .gate{left:56px}
     <button data-view="tracked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l7.5 4.2L12 12 4.5 7.7z"/><path d="M4.5 12L12 16.3 19.5 12M4.5 16.3L12 20.5l7.5-4.2"/></svg><span class="tip">My watchlist</span></button>
     <button data-view="stocks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 20V11M12 20V5M18 20v-7"/></svg><span class="tip">Stocks</span></button>
     <button data-view="charts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="M7 15l4-4 3 3 5-6"/></svg><span class="tip">Charts</span></button>
+    <button data-view="community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5.5h16v10.5H10l-4.5 3.5V16H4z"/><path d="M8 9.5h8M8 12.5h5" stroke-linecap="round"/></svg><span class="tip">Community</span></button>
     <span class="sp"></span>
     <button id="acctBtn" class="acct" aria-haspopup="menu" title="Account"><span class="avatar" id="avatar">?</span></button>
   </nav>
@@ -474,6 +476,16 @@ body.gate-main .gate{left:56px}
     </section>
 
 
+    <section class="view" id="v-community" aria-label="Community">
+      <div class="cm-grid"><div class="cm-main" id="cmMain"></div><aside class="cm-side" id="cmSide"></aside></div>
+      <div class="cm-dialog" id="cmReport" role="dialog" aria-modal="true" aria-labelledby="cmReportT" hidden>
+        <div class="cm-dbox"><h3 id="cmReportT">Report post by <span id="cmReportWho"></span></h3>
+          <label class="cm-field"><span>Reason</span><select id="cmReportReason"><option>Spam</option><option>Harassment or hate</option><option>Scam or pump-and-dump</option><option>Misleading information</option><option>Something else</option></select></label>
+          <div class="cm-factions"><button class="btn dark" id="cmReportSend">Send report</button><button class="btn" id="cmReportCancel">Cancel</button></div></div>
+      </div>
+      <div class="cm-toast" role="status" aria-live="polite"></div>
+    </section>
+
     <section class="view" id="v-charts">
       <div class="charts">
         <div class="chartbox"><h3 id="ivTitle">IV smile</h3><div class="cw"><canvas id="ivChart"></canvas></div></div>
@@ -514,6 +526,7 @@ body.gate-main .gate{left:56px}
 </aside>
 
 <script src="/js/app.js"></script>
+<script src="/js/community.js"></script>
 <script src="/js/dropdown.js"></script>
 </body>
 </html>

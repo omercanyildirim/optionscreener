@@ -584,9 +584,9 @@ function renderCharts(){
   const e=S.selExp?` · ${S.und} ${fExp(S.selExp)}`:''; $('#ivTitle').textContent='IV smile'+e; $('#oiTitle').textContent='Open interest'+e; $('#vlTitle').textContent='Volume'+e; }
 
 /* ---------- views + render loop ---------- */
-const VTITLE={flow:'Options flow',chain:'Option chain',screener:'Contract screener',tracked:'My watchlist',stocks:'Stocks',charts:'Charts'};
+const VTITLE={flow:'Options flow',chain:'Option chain',screener:'Contract screener',tracked:'My watchlist',stocks:'Stocks',charts:'Charts',community:'Community'};
 /* ---------- plan (Pro via Paddle) ---------- */
-const PRO_VIEWS=new Set(['flow','screener','charts']);
+const PRO_VIEWS=new Set(['flow','screener','charts','community']);
 const isPro = () => !CFG.billing || !CFG.billing.paywall || CFG.billing.plan==='pro';
 const locked = v => PRO_VIEWS.has(v) && !isPro();
 function paintLocks(){ document.querySelectorAll('.rail [data-view]').forEach(b=>b.classList.toggle('lock',locked(b.dataset.view)));
@@ -596,6 +596,7 @@ const GATE_TXT={
   flow:['Options flow is part of Pro','See large options trades as they print: sweeps, blocks and big-trade highlights across your watchlist and the most active stocks.'],
   screener:['The contract screener is part of Pro','Screen every contract across all expiries and strikes by volume, open interest, IV and more.'],
   charts:['Charts are part of Pro','IV smile, open interest, volume and flow premium charts for any symbol.'],
+  community:['The community is part of Pro','Talk options with other members: share the trades and flow you are watching, tag tickers, follow people and reply.'],
   insight:['Insights are part of Pro','Stock and contract insights with related news, one click away.'],
   upgrade:['Upgrade to Options Screener Pro','Unlimited symbols, the live options flow, the contract screener, charts and insights.'],
   limit:["You've used today's free symbols",n=>`The free plan includes ${n} symbols a day. Upgrade to Pro for unlimited options data, the live flow, the screener and charts.`]};
@@ -698,6 +699,7 @@ function view(v){ if(cur!==v) track('view',VTITLE[v]||v); cur=v; P.view=v; saveP
   if(locked(v)) openGate(v); else if(GATE&&GATE!=='limit') closeGate();
   document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v)); $('#vtitle').textContent=VTITLE[v];
   $('#app').classList.toggle('nofeed',v!=='flow'); $('#openFilters').style.display=v==='flow'?'':'none';
+  document.body.classList.toggle('v-community',v==='community'); if(v==='community'&&!locked(v)&&window.OSCommunity) OSCommunity.show();
   if(v==='screener') S.scrForce=true; if(v==='charts') S.lastCharts=0; if(v==='tracked') S.trkForce=true; if(v==='flow') S.flowDirty=true; if(v==='chain') renderUStats(); }
 document.querySelectorAll('.rail [data-view]').forEach(b=>b.onclick=()=>view(b.dataset.view));
 function flush(){ const now=performance.now();
@@ -1100,6 +1102,7 @@ function renderNews(sym,box,brief,d){
 }
 
 /* ---------- wiring ---------- */
+window.OSApp={ openSymbol(sym){ track('search',sym); view('chain'); load(sym); } };
 $('#searchForm').onsubmit=e=>{ e.preventDefault(); const v=$('#tk').value.trim().toUpperCase(); if(!v) return;
   // Search always opens the symbol (chain); flow filtering by ticker lives in the Filters drawer.
   if(!/^[A-Z][A-Z0-9.]{0,9}$/.test(v)){ note(`"${v}" is not a valid ticker.`,true); return; }
