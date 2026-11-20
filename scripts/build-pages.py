@@ -109,7 +109,7 @@ def home():
 <div class="wrap hero">
   <div>
     <h1>Options screener and live options flow</h1>
-    <p class="lede">See where the money is going in US options. Follow large trades, sweeps and blocks as they print, open any option chain with greeks and IV, and screen every contract by volume, open interest and implied volatility.</p>
+    <p class="lede">See US options activity as it prints. View large trades, sweeps and blocks as they print, open any option chain with greeks and IV, and screen every contract by volume, open interest and implied volatility.</p>
     <div class="cta"><a class="btn pri big" href="/login">{GLOGO}Start free with Google</a><a class="btn big" href="#pricing">See pricing</a>
       <span class="fine">Secure sign-in with Google: we never see or store your password. Free plan: 3 symbols a day, no card needed. Pro: $9.99 a month.</span></div>
   </div>
@@ -123,7 +123,7 @@ def home():
   <h2>Everything you need to read the options market</h2>
   <p class="intro">Built for traders who want the options tape, the chain and a screener in one place, without a terminal subscription.</p>
   <div class="feats">
-    <div class="feat"><h3>Live options flow</h3><p>Every large print across your watchlist and the most active stocks, tagged as sweep, block or split, with premium, side (ask or bid), size against open interest and repeat orders. Big-trade alerts flag $1M+ premium.</p><a href="/options-flow">How to read options flow</a></div>
+    <div class="feat"><h3>Live options flow</h3><p>Every large print across your watchlist and the most active stocks, tagged as sweep, block or split, with premium, side (ask or bid), size against open interest and repeat orders. Big-trade highlights mark $1M+ premium.</p><a href="/options-flow">How to read options flow</a></div>
     <div class="feat"><h3>Unusual options activity</h3><p>Spot contracts trading far above their open interest, aggressive buying at the ask and repeated orders in the same strike, the signs traders look for before a move.</p><a href="/unusual-options-activity">What makes activity unusual</a></div>
     <div class="feat"><h3>Option chains with greeks</h3><p>Calls and puts side by side for every expiry: bid, ask, last, volume, open interest, implied volatility and delta, updating while the market is open. Star any contract to watch it.</p><a href="/option-chain">How to read an option chain</a></div>
     <div class="feat"><h3>Contract screener</h3><p>Filter thousands of contracts at once by days to expiry, delta, volume, open interest, IV and bid-ask spread. Save your filters and load them on any device.</p><a href="/options-screener">How to screen options</a></div>
@@ -140,7 +140,7 @@ def home():
       <ul><li>3 symbols a day</li><li>Full option chains with greeks and IV</li><li>Stock quotes for every listed US stock</li><li>Watchlist and saved filters</li></ul>
       <a class="btn" href="/login">{GLOGO}Start free with Google</a></div>
     <div class="plan pro"><h3>Pro</h3><div class="price">$9.99</div><div class="per">per month, cancel anytime</div>
-      <ul><li>Unlimited symbols, every day</li><li>Live options flow with big-trade alerts</li><li>Contract screener across every expiry and strike</li><li>IV smile, open interest and volume charts</li><li>Stock and contract insights with news</li></ul>
+      <ul><li>Unlimited symbols, every day</li><li>Live options flow with big-trade highlights</li><li>Contract screener across every expiry and strike</li><li>IV smile, open interest and volume charts</li><li>Stock and contract insights with news</li></ul>
       <a class="btn pri" href="/login">Get Pro</a></div>
   </div>
   <p class="note" style="margin-top:18px">Secure checkout by Paddle, our reseller. Card, PayPal, Google Pay and Apple Pay. 14-day money-back guarantee.</p>
@@ -195,17 +195,17 @@ PAGES['options-flow'] = guide('/options-flow',
 <tr><td>Expiry and strike</td><td>Short-dated, out-of-the-money contracts are leveraged bets on a move soon; far-dated, in-the-money ones are often stock replacement or hedges.</td></tr>
 </tbody></table></div>
 <h2>Sweeps vs blocks</h2>
-<p>A <b>sweep</b> takes liquidity from several exchanges at once, paying up at each one. It signals urgency: the trader cared more about getting filled now than about price. Bullish call sweeps at the ask are the classic flow signal.</p>
+<p>A <b>sweep</b> takes liquidity from several exchanges at once, paying up at each one. It signals urgency: the trader cared more about getting filled now than about price. Call sweeps at the ask are the pattern flow watchers discuss most.</p>
 <p>A <b>block</b> is a single large trade, often negotiated off-screen and printed in one piece. Blocks can be directional, but they are also used for hedges and for closing or rolling positions, so the side (bid or ask) and the open interest matter more.</p>
-<h2>Bullish or bearish?</h2>
-<p>Calls bought at the ask and puts sold at the bid lean bullish; puts bought at the ask and calls sold at the bid lean bearish. Trades in the middle of the spread are ambiguous. A flow sentiment gauge simply adds up the premium on each side.</p>
+<h2>Reading trade direction</h2>
+<p>Calls bought at the ask and puts sold at the bid lean to the upside; puts bought at the ask and calls sold at the bid lean to the downside. Trades in the middle of the spread are ambiguous. A flow balance gauge simply adds up the premium on each side.</p>
 <p>Keep in mind that a single print never tells you the trader's full position. A large put purchase may hedge a stock position; a call sale may be part of a covered call. Look for repetition: the same contract bought again and again across the day is stronger than one big trade.</p>
 <h2>How to use options flow in Options Screener</h2>
 <ul><li>The flow table lists the latest prints for your watchlist and the 20 most active stocks, newest first, with premium, side, type, size, volume and open interest.</li>
 <li>Filters narrow it down by ticker, minimum premium, calls or puts, side, type, days to expiry and moneyness. Save filter sets and switch between them.</li>
 <li>The big-trades feed highlights $250K, $500K, $1M or $5M+ prints.</li>
 <li>Click any trade for the contract's details, the stock's move and related news.</li></ul>''',
- [('Is options flow a reliable signal?', 'Options flow shows what large traders are doing, not why. Many big trades are hedges or parts of spreads. It is most useful as context, combined with price action, open interest changes and repeated orders in the same contract.'),
+ [('Does options flow predict price moves?', 'Options flow shows what large traders are doing, not why. Many big trades are hedges or parts of spreads. It is most useful as context, combined with price action, open interest changes and repeated orders in the same contract.'),
   ('What does buying at the ask mean?', 'The trade printed at or above the ask price, so the buyer paid the full offer to get filled immediately. It suggests urgency and a buyer-initiated trade.'),
   ('Is options flow real time?', 'Exchange prints are published in real time to licensed feeds. On the data feed Options Screener currently uses, option trades can arrive about 15 minutes late; the app labels this on screen.')])
 
@@ -214,7 +214,7 @@ PAGES['unusual-options-activity'] = guide('/unusual-options-activity',
  'Unusual options activity: how to find it and what it means',
  'Unusual options activity explained: volume vs open interest, aggressive buying, short-dated out-of-the-money contracts, repeat orders, and a free scanner for US stocks.',
  "Unusual options activity is option trading that stands out from a contract's normal behaviour: far more volume than usual, more volume than open interest, or large aggressive orders in contracts that rarely trade. Traders watch it because informed money often moves through options first.",
- '''<h2>The classic signals</h2>
+ '''<h2>What traders look at</h2>
 <h3>1. Volume far above open interest</h3>
 <p>Open interest is the number of contracts still open from previous days. When today's volume is several times the open interest, new positions are being opened. A volume/OI ratio above 1 is the single most common unusual activity filter.</p>
 <h3>2. Volume far above average</h3>
@@ -226,7 +226,7 @@ PAGES['unusual-options-activity'] = guide('/unusual-options-activity',
 <h3>5. Repeat orders</h3>
 <p>The same contract bought again and again through the day, often in similar sizes, suggests one trader building a position.</p>
 <h2>A simple checklist</h2>
-<div class="tw"><table><thead><tr><th>Check</th><th>Stronger signal</th><th>Weaker signal</th></tr></thead><tbody>
+<div class="tw"><table><thead><tr><th>Check</th><th>More notable</th><th>Less notable</th></tr></thead><tbody>
 <tr><td>Volume / open interest</td><td>Above 2–3×</td><td>Below 1×</td></tr>
 <tr><td>Premium</td><td>$500K+ in one name</td><td>Small, scattered lots</td></tr>
 <tr><td>Side</td><td>At or above the ask</td><td>Mid-market</td></tr>
@@ -301,7 +301,7 @@ PAGES['option-chain'] = guide('/option-chain',
 <h3>The volatility smile</h3>
 <p>Plotting IV against strike usually gives a smile or a skew: out-of-the-money puts often carry higher IV than calls because investors pay for crash protection. A sudden rise in IV at one strike or expiry often comes before an event.</p>
 <h3>Put/call ratios</h3>
-<p>Dividing put volume (or open interest) by call volume gives a quick read on sentiment for that expiry.</p>
+<p>Dividing put volume (or open interest) by call volume gives a quick read on positioning for that expiry.</p>
 <h2>Option chains in Options Screener</h2>
 <ul><li>Full chains for every listed US stock and ETF with options, every expiry.</li>
 <li>Bid, ask, last, volume, open interest, IV and delta for calls and puts, updating during market hours.</li>

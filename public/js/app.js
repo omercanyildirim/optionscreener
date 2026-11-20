@@ -264,10 +264,10 @@ function renderFlowStats(){
   let cP=0,pP=0,cN=0,pN=0,bull=0,bear=0;
   for(const f of FILTERED){ if(f.cp==='C'){cP+=f.prem;cN++;} else {pP+=f.prem;pN++;} if(f.bull) bull+=f.prem; if(f.bear) bear+=f.prem; }
   const tot=cP+pP, dirTot=bull+bear, score=dirTot?(bull-bear)/dirTot:0;
-  const sent=score>.1?'Bullish':score<-.1?'Bearish':'Neutral', scol=score>.1?'var(--call)':score<-.1?'var(--put)':'var(--text)';
+  const sent=score>.1?'Upside-leaning':score<-.1?'Downside-leaning':'Balanced', scol=score>.1?'var(--call)':score<-.1?'var(--put)':'var(--text)';
   const pc=cP?pP/cP:null;
   $('#stats').innerHTML=
-    `<div class="card"><div class="k">Flow sentiment</div><div class="v" style="color:${scol}">${sent}</div><div class="meter"><b style="left:${((score+1)/2*100).toFixed(1)}%"></b></div><div class="s">${fMoney(bull)} bullish, ${fMoney(bear)} bearish</div></div>`+
+    `<div class="card"><div class="k">Flow balance</div><div class="v" style="color:${scol}">${sent}</div><div class="meter"><b style="left:${((score+1)/2*100).toFixed(1)}%"></b></div><div class="s">${fMoney(bull)} upside, ${fMoney(bear)} downside</div></div>`+
     `<div class="card"><div class="k">Put/call premium ratio</div><div class="v">${pc!=null?pc.toFixed(2):'–'}</div>${split(cP,pP)}<div class="s">${fInt(cN)} calls, ${fInt(pN)} puts</div></div>`+
     `<div class="card"><div class="k">Call premium</div><div class="v c-green">${fMoney(cP)}</div>${split(cP,0)}<div class="s">${tot?Math.round(cP/tot*100):0}% of total, ${fInt(cN)} trades</div></div>`+
     `<div class="card"><div class="k">Put premium</div><div class="v c-red">${fMoney(pP)}</div>${split(0,pP)}<div class="s">${tot?Math.round(pP/tot*100):0}% of total, ${fInt(pN)} trades</div></div>`;
@@ -344,7 +344,7 @@ const FSECTIONS=[
     {k:'cp',l:'Option type',type:'select',o:[['all','Call + Put'],['C','Call'],['P','Put']]},
     {k:'types',l:'Trade type',type:'checks',o:[['tSweep','Sweep'],['tSplit','Split'],['tBlock','Block'],['tOther','Other / multi-leg']]},
     {k:'side',l:'Execution side',type:'select',o:[['any','Any'],['ask','At or above ask'],['aboveAsk','Above ask'],['mid','Mid'],['bid','At or below bid'],['belowBid','Below bid']]},
-    {k:'dir',l:'Sentiment',type:'select',o:[['any','Any'],['bull','Bullish (calls bought / puts sold)'],['bear','Bearish (puts bought / calls sold)']]},
+    {k:'dir',l:'Direction',type:'select',o:[['any','Any'],['bull','Upside-leaning (calls bought / puts sold)'],['bear','Downside-leaning (puts bought / calls sold)']]},
     {k:'minSize',l:'Min size',type:'num'},
     {k:'minPrice',l:'Min price ($)',type:'num',step:'0.05'},
     {k:'prem',l:'Premium ($)',type:'range',a:'minPrem',b:'maxPrem'}]},
@@ -592,7 +592,7 @@ function paintLocks(){ document.querySelectorAll('.rail [data-view]').forEach(b=
   $('#acctBtn').classList.toggle('pro',!!(CFG.billing&&CFG.billing.plan==='pro')); }
 /* ---------- paywall dialog: $9.99 offer + Paddle checkout embedded on the right ---------- */
 const GATE_TXT={
-  flow:['Options flow is part of Pro','See large options trades as they print: sweeps, blocks and big-trade alerts across your watchlist and the most active stocks.'],
+  flow:['Options flow is part of Pro','See large options trades as they print: sweeps, blocks and big-trade highlights across your watchlist and the most active stocks.'],
   screener:['The contract screener is part of Pro','Screen every contract across all expiries and strikes by volume, open interest, IV and more.'],
   charts:['Charts are part of Pro','IV smile, open interest, volume and flow premium charts for any symbol.'],
   insight:['Insights are part of Pro','Stock and contract insights with related news, one click away.'],
@@ -964,7 +964,7 @@ function sideBar(label,fl){ const w=el('div','sdw'); const tot=fl.reduce((a,f)=>
   const bp=Math.round(buy/tot*100), sp=Math.round(sell/tot*100);
   w.appendChild(el('div','sdsum '+(bp-sp>=20?'c-green':sp-bp>=20?'c-red':''), bp-sp>=20?`Buyers aggressive: ${bp}% at or above the ask vs ${sp}% at or below the bid.`:sp-bp>=20?`Sellers aggressive: ${sp}% at or below the bid vs ${bp}% at or above the ask.`:`Balanced: ${bp}% at or above the ask, ${sp}% at or below the bid.`));
   return w; }
-// 3) Running net premium through the day: + for buyer-initiated (or bullish) trades, - for seller-initiated (or bearish).
+// 3) Running net premium through the day: + for buyer-initiated (or upside-leaning) trades, - for seller-initiated (or downside-leaning).
 function netFlowSvg(fl,sign){ const pts0=[...fl].sort((a,b)=>a.t-b.t); if(pts0.length<2) return null;
   let cum=0; const P=pts0.map(f=>{ cum+=sign(f)*f.prem; return [f.t,cum]; }); P.unshift([P[0][0]-1,0]);
   const W=480,H=120,pad=6, t0=P[0][0], t1=P[P.length-1][0]||t0+1, vs=P.map(p=>p[1]), lo=Math.min(0,...vs), hi=Math.max(0,...vs), span=hi-lo||1;
@@ -1006,15 +1006,15 @@ function renderStockInsight(body,sym,st,fl){
   const bk=bookSec(`${sym} bid / ask`); body.appendChild(bk.s);
   liveBook(insState,bk.box,()=>stockSnap(sym),async()=>{ const j=await massive('v2/snapshot/locale/us/markets/stocks/tickers',{tickers:sym}); (j.tickers||[]).forEach(ingestStock); });
   pressureSecs(body,insState,fl,{bars:[['Calls',fl.filter(f=>f.cp==='C')],['Puts',fl.filter(f=>f.cp==='P')]],
-    sign:f=>f.bull?1:f.bear?-1:0, netTitle:'Net bullish premium through the day',
-    netNote:'Running total of bullish premium (calls bought at the ask, puts sold at the bid) minus bearish premium (puts bought at the ask, calls sold at the bid).'});
+    sign:f=>f.bull?1:f.bear?-1:0, netTitle:'Net upside-leaning premium through the day',
+    netNote:'Running total of upside-leaning premium (calls bought at the ask, puts sold at the bid) minus downside-leaning premium (puts bought at the ask, calls sold at the bid).'});
   const ins=sec('Insights'); const L=[];
   const tot=cP+pP;
   if(fl.length){ L.push(`${fInt(fl.length)} option trades today totaling ${fMoney(tot)} in premium; ${Math.round(cP/tot*100)}% of it in calls.`);
     const d=bull+bear?(bull-bear)/(bull+bear):0;
-    L.push(d>.15?[`Flow leans bullish: calls bought at the ask and puts sold at the bid total ${fMoney(bull)}, versus ${fMoney(bear)} the other way.`,'g']:
-      d<-.15?[`Flow leans bearish: puts bought at the ask and calls sold at the bid total ${fMoney(bear)}, versus ${fMoney(bull)} the other way.`,'r']:
-      `Flow is balanced: ${fMoney(bull)} bullish vs ${fMoney(bear)} bearish.`);
+    L.push(d>.15?[`Flow leans to the upside: calls bought at the ask and puts sold at the bid total ${fMoney(bull)}, versus ${fMoney(bear)} the other way.`,'g']:
+      d<-.15?[`Flow leans to the downside: puts bought at the ask and calls sold at the bid total ${fMoney(bear)}, versus ${fMoney(bull)} the other way.`,'r']:
+      `Flow is balanced: ${fMoney(bull)} upside-leaning vs ${fMoney(bear)} downside-leaning.`);
     const big=fl.reduce((a,b)=>b.prem>a.prem?b:a);
     L.push(`Largest trade: ${fK(big.strike)}${big.cp} ${fExpN(big.exp)}, ${fMoney(big.prem)} (${big.type}, ${SIDE_TXT[big.side]||''}).`);
     if(unus) L.push(`${unus} trade${unus>1?'s were':' was'} larger than the contract's open interest, which can point to new positions being opened.`);
