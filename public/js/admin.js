@@ -80,16 +80,17 @@ async function dashboard(){
 }
 async function loadPay(){ try { PAY = await api('/api/admin?a=payments'); } catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } PAY = { error: e.message }; } }
 async function load(){
-  if (TAB==='payments') await loadPay();
+  if (PAYTABS.has(TAB)) await loadPay();
   try { DATA = await api('/api/admin?a=overview'); }
   catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
   render();
 }
+const PAYTABS=new Set(['payments','cancel']);
 function tabs(){ const t=el('div','tabs'); t.setAttribute('role','tablist');
-  for (const [k,label] of [['users','Users and activity'],['payments','Payments']]){ const b=el('button',TAB===k?'on':'',label); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(TAB===k));
-    b.onclick=async()=>{ if(TAB===k) return; TAB=k; if(k==='payments'&&!PAY){ main.replaceChildren(tabs(), el('p','m','Loading payments from Paddle…')); await loadPay(); } render(); }; t.append(b); }
+  for (const [k,label] of [['users','Users'],['activity','Latest activity'],['payments','Payments'],['cancel','Cancellations']]){ const b=el('button',TAB===k?'on':'',label); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(TAB===k));
+    b.onclick=async()=>{ if(TAB===k) return; TAB=k; if(PAYTABS.has(k)&&!PAY){ main.replaceChildren(tabs(), el('p','m','Loading from Paddle…')); await loadPay(); } render(); }; t.append(b); }
   return t; }
-function render(){ if (TAB==='payments') return renderPay();
+function render(){ if (TAB==='payments') return renderPay(); if (TAB==='cancel') return renderCancel();
   const D = DATA, now = Date.now(), day = 864e5;
   const frag = document.createDocumentFragment(); frag.append(tabs());
   if (!D.store) frag.append(el('div','warn','Activity is not being recorded yet: the database (Upstash Redis) is not connected. Connect it in Vercel → Storage, then redeploy.'));
@@ -102,10 +103,9 @@ function render(){ if (TAB==='payments') return renderPay();
   stat('Pro subscribers', users.filter(u=>u.plan==='Pro').length, 'active subscriptions');
   stat('Email opt-ins', users.filter(u=>u.marketing).length, 'agreed to product emails');
   stat('Actions today', ev.filter(e=>now-e.t<day).length+(ev.length>=500?'+':''), 'from the latest 500');
-  frag.append(stats);
-  if (D.site) frag.append(el('p','note',`Who can sign in: ${D.site.access} · Market data: ${D.site.provider} · Refreshes every 30 s`));
+  if (TAB==='users') { frag.append(stats); if (D.site) frag.append(el('p','note',`Who can sign in: ${D.site.access} · Market data: ${D.site.provider} · Refreshes every 30 s`)); }
 
-  const grid = el('div','grid');
+  const grid = el('div');
   // users
   const uBox = el('section'); const uh = el('div','sechead'); uh.append(el('h3',null,'Users'), el('span','sp'));
   const q = el('input'); q.placeholder='Search name or email'; q.style.width='220px';
@@ -138,7 +138,7 @@ function render(){ if (TAB==='payments') return renderPay();
       tr.append(t, el('td',null,nameOf(e.e)), el('td',null,act(e.type)), el('td','m',e.d||''));
       tr.onclick=()=>openUser(users.find(u=>u.email===e.e)||{email:e.e}); ab.append(tr); } };
   sel.onchange = paintEv; paintEv();
-  grid.append(uBox, aBox); frag.append(grid);
+  grid.append(TAB==='activity'?aBox:uBox); frag.append(grid);
   main.replaceChildren(frag);
 }
 
@@ -207,6 +207,32 @@ function renderPay(){
     tr.onclick=()=>openUser(userByEmail(x.email)); sb.append(tr); }
   pBox.style.marginBottom='30px'; frag.append(pBox, sBox);
   main.replaceChildren(frag);
+}
+
+/* ---------- cancellations (live from Paddle) ---------- */
+function renderCancel(){
+  const frag = document.createDocumentFragment(); frag.append(tabs()); const P = PAY || {};
+  if (P.error){ frag.append(el('p','err','Could not load from Paddle: '+P.error)); return main.replaceChildren(frag); }
+  if (!P.configured){ frag.append(el('p','m','Paddle is not connected.')); return main.replaceChildren(frag); }
+  const C = P.cancellations || [], T = P.totals || {};
+  const stats = el('div','stats');
+  const stat = (k,v,s) => { const d=el('div','stat'); d.append(el('div','k',k), el('div','v',String(v))); if(s) d.append(el('div','s',s)); stats.append(d); };
+  stat('Ending', C.filter(x=>x.state==='ending').length, 'canceled, still active until the date');
+  stat('Canceled', C.filter(x=>x.state==='canceled').length, 'subscription has ended');
+  stat('This month', T.canceledThisMonth||0, 'cancellations since the 1st');
+  stat('Monthly revenue lost', money(C.filter(x=>x.state==='ending').reduce((a,x)=>a+(x.amount||0),0)), 'from subscriptions still ending');
+  frag.append(stats);
+  if (P.env==='sandbox') frag.append(el('p','note','Sandbox (test) data.'));
+  const box = el('section'); const h = el('div','sechead'); h.append(el('h3',null,'Cancellations'), el('span','sp'), el('span','m','From Paddle, newest first'));
+  const w = el('div','tw'); const t = el('table'); t.innerHTML='<thead><tr><th>Customer</th><th>Status</th><th>Canceled on</th><th>Access ends</th><th>Subscribed since</th><th class="n">Payments</th><th class="n">Paid in total</th><th class="n">Price</th><th></th></tr></thead>';
+  const b = el('tbody'); t.append(b); w.append(t); box.append(h, w);
+  if(!C.length){ const tr=el('tr'), td=el('td','empty','No cancellations. When a customer cancels in the Paddle portal it shows here.'); td.colSpan=9; tr.append(td); b.append(tr); }
+  for (const x of C){ const tr=el('tr','click');
+    tr.append(el('td',null,x.email||x.customerId), el('td',x.state==='ending'?'a':'r',x.state==='ending'?'Ending':'Canceled'), el('td','d',day1(x.requestedAt)),
+      el('td','d',day1(x.endsAt)), el('td','d',day1(x.startedAt)), el('td','n',String(x.payments||0)), el('td','n',money(x.paidTotal,x.currency)), el('td','n m',`${money(x.amount,x.currency)}/${x.interval}`),
+      (()=>{ const d=el('td'); if(P.env!=='sandbox') d.append(pLink('/subscriptions-v2/'+encodeURIComponent(x.subscriptionId),'Paddle')); return d; })());
+    tr.onclick=()=>openUser(userByEmail(x.email)); b.append(tr); }
+  frag.append(box); main.replaceChildren(frag);
 }
 
 /* ---------- one user ---------- */

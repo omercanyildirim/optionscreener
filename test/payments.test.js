@@ -174,3 +174,19 @@ test('upcoming payments: renewals in date order; canceling subscriptions listed 
   assert.equal(j.totals.next7, 19.98); assert.equal(j.totals.next30, 29.97); assert.equal(j.totals.upcomingCount, 4);
   assert.deepEqual(j.ending.map(x => x.email), ['leaving@example.com']); assert.equal(j.totals.endingLost, 9.99);
 });
+
+test('cancellations: ending and canceled subscriptions with what each customer paid, newest first', async () => {
+  const { paymentsOverview } = await import('../lib/payments.js');
+  const day = n => new Date(Date.now() + n * 864e5).toISOString();
+  const item = { quantity: 1, price: { unit_price: { amount: '999', currency_code: 'USD' }, billing_cycle: { interval: 'month', frequency: 1 } } };
+  const txn = (id, sub, at) => ({ id, status: 'completed', subscription_id: sub, customer_id: 'c', billed_at: at, currency_code: 'USD', details: { totals: { total: '999', grand_total: '999', tax: '0', fee: '0', earnings: '999', currency_code: 'USD' } } });
+  paddle['/transactions?'] = { data: [txn('txn_1', 'sub_x', day(-40)), txn('txn_2', 'sub_x', day(-10)), txn('txn_3', 'sub_y', day(-60))], meta: { pagination: { has_more: false } } };
+  paddle['/subscriptions?'] = { data: [
+    { id: 'sub_x', status: 'active', customer_id: 'c1', custom_data: { email: 'ending@example.com' }, items: [item], updated_at: day(-1), scheduled_change: { action: 'cancel', effective_at: day(20) } },
+    { id: 'sub_y', status: 'canceled', customer_id: 'c2', custom_data: { email: 'gone@example.com' }, items: [item], canceled_at: day(-30) },
+    { id: 'sub_z', status: 'active', customer_id: 'c3', custom_data: { email: 'stays@example.com' }, items: [item], next_billed_at: day(5) },
+  ], meta: { pagination: { has_more: false } } };
+  const j = await paymentsOverview();
+  assert.deepEqual(j.cancellations.map(x => [x.email, x.state, x.payments, x.paidTotal]), [['ending@example.com', 'ending', 2, 19.98], ['gone@example.com', 'canceled', 1, 9.99]]);
+  assert.equal(j.cancellations[0].endsAt, day(20).slice(0, 10) + j.cancellations[0].endsAt.slice(10));
+});
