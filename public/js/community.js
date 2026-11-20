@@ -181,21 +181,51 @@
     return b;
   }
 
-  // Filter bar: $TICKER shows posts about a stock, @username shows a member. Clear filter goes back to the full feed.
+  // Search bar: searches post text (full-text, as you type), $tickers and @members. Clear goes back to the full feed.
   function filterBar() {
-    const active = ROUTE.kind === 'ticker' ? '$' + ROUTE.arg : ROUTE.kind === 'user' ? '@' + ROUTE.arg : '';
+    const active = ROUTE.kind === 'search' ? ROUTE.q : ROUTE.kind === 'ticker' ? '$' + ROUTE.arg : ROUTE.kind === 'user' ? '@' + ROUTE.arg : '';
     const f = h('form', 'cm-filter'); f.setAttribute('role', 'search');
-    const inp = h('input'); inp.placeholder = 'Filter by $ticker or @member'; inp.value = active; inp.setAttribute('aria-label', 'Filter posts'); inp.autocomplete = 'off'; inp.spellcheck = false;
-    const clear = h('button', 'btn', 'Clear filter'); clear.type = 'button'; clear.disabled = !active;
+    const wrap = h('div', 'cm-sbox');
+    const inp = h('input'); inp.type = 'search'; inp.placeholder = 'Search posts, $tickers or @members'; inp.value = active; inp.setAttribute('aria-label', 'Search the community'); inp.autocomplete = 'off'; inp.spellcheck = false;
+    inp.setAttribute('role', 'combobox'); inp.setAttribute('aria-expanded', 'false'); inp.setAttribute('aria-controls', 'cmSug');
+    const sug = h('div', 'cm-sug'); sug.id = 'cmSug'; sug.setAttribute('role', 'listbox'); sug.hidden = true;
+    const clear = h('button', 'btn', 'Clear'); clear.type = 'button'; clear.disabled = !active;
     clear.onclick = () => { HIST.length = 0; go({ kind: 'feed', scope: 'all' }, true); };
-    f.onsubmit = e => { e.preventDefault(); const v = inp.value.trim();
-      if (!v) return clear.onclick();
-      if (/^@?[A-Za-z0-9_]{3,20}$/.test(v) && v[0] === '@') return go({ kind: 'user', arg: v.slice(1).toLowerCase() });
-      if (/^\$?[A-Za-z]{1,5}(\.[A-Za-z])?$/.test(v)) return go({ kind: 'ticker', arg: v.replace(/^\$/, '').toUpperCase() });
-      if (/^[A-Za-z0-9_]{3,20}$/.test(v)) return go({ kind: 'user', arg: v.toLowerCase() });
-      toast('Type a ticker like $NVDA or a member like @name', true); };
-    const go1 = h('button', 'btn dark', 'Filter'); go1.type = 'submit';
-    f.append(inp, go1, clear); return f;
+    const run = v => { v = v.trim(); sug.hidden = true; if (!v) return clear.onclick();
+      if (/^@[A-Za-z0-9_]{3,20}$/.test(v)) return go({ kind: 'user', arg: v.slice(1).toLowerCase() });
+      if (/^\$[A-Za-z]{1,5}(\.[A-Za-z])?$/.test(v)) return go({ kind: 'ticker', arg: v.slice(1).toUpperCase() });
+      go({ kind: 'search', q: v }); };
+    let t = null, seq = 0, opts = [], sel = -1;
+    const paintSel = () => opts.forEach((o, i) => { o.classList.toggle('on', i === sel); o.setAttribute('aria-selected', String(i === sel)); });
+    const option = (cls, label, sub, fn, av) => { const o = h('button', 'cm-sopt ' + cls); o.type = 'button'; o.setAttribute('role', 'option'); if (av) o.append(av);
+      const tx = h('span'); tx.append(h('b', null, label)); if (sub) tx.append(h('small', null, sub)); o.append(tx); o.onmousedown = e => e.preventDefault(); o.onclick = fn; opts.push(o); sug.append(o); };
+    inp.oninput = () => { clearTimeout(t); const v = inp.value.trim(); clear.disabled = !v && !active; if (v.length < 2) { sug.hidden = true; return; }
+      t = setTimeout(async () => { const my = ++seq; let r; try { r = await api('search', { q: v }); } catch { return; } if (my !== seq) return;
+        sug.replaceChildren(); opts = []; sel = -1;
+        option('q', `Search posts for “${v}”`, r.posts.length ? `${r.posts.length}${r.posts.length >= 40 ? '+' : ''} matching posts` : 'No matching posts yet', () => run(v));
+        r.tickers.forEach(x => option('t', '$' + x, 'Posts about ' + x, () => go({ kind: 'ticker', arg: x })));
+        r.members.forEach(m => option('m', m.display_name || m.username, '@' + m.username + ' · ' + m.followers + ' followers', () => go({ kind: 'user', arg: m.username }), avatar(m)));
+        sug.hidden = false; inp.setAttribute('aria-expanded', 'true'); }, 220); };
+    inp.onkeydown = e => { if (sug.hidden || !opts.length) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); sel = (sel + 1) % opts.length; paintSel(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); sel = (sel - 1 + opts.length) % opts.length; paintSel(); }
+      else if (e.key === 'Enter' && sel >= 0) { e.preventDefault(); opts[sel].click(); }
+      else if (e.key === 'Escape') { sug.hidden = true; inp.setAttribute('aria-expanded', 'false'); } };
+    inp.onblur = () => setTimeout(() => { sug.hidden = true; inp.setAttribute('aria-expanded', 'false'); }, 120);
+    f.onsubmit = e => { e.preventDefault(); run(inp.value); };
+    const go1 = h('button', 'btn dark', 'Search'); go1.type = 'submit';
+    wrap.append(inp, sug); f.append(wrap, go1, clear); return f;
+  }
+  async function showSearch() {
+    const m = main(); m.replaceChildren(filterBar(), head('Search', `Results for “${ROUTE.q}”`, true));
+    const r = await api('search', { q: ROUTE.q });
+    if (r.members.length || r.tickers.length) {
+      const strip = h('div', 'cm-hits');
+      r.tickers.forEach(x => { const b = h('button', 'cm-hit'); b.append(h('b', null, '$' + x), h('small', null, 'Ticker')); b.onclick = () => go({ kind: 'ticker', arg: x }); strip.append(b); });
+      r.members.forEach(u => { const b = h('button', 'cm-hit'); b.append(avatar(u)); const tx = h('span'); tx.append(h('b', null, u.display_name || u.username), h('small', null, '@' + u.username)); b.append(tx); b.onclick = () => go({ kind: 'user', arg: u.username }); strip.append(b); });
+      m.append(strip);
+    }
+    m.append(list(r.posts, 'No posts match. Try fewer or different words.'));
   }
   async function showFeed() {
     const m = main(); m.replaceChildren();
@@ -295,6 +325,7 @@
       else if (ROUTE.kind === 'ticker') await showTicker();
       else if (ROUTE.kind === 'post') await showPost();
       else if (ROUTE.kind === 'user') await showUser();
+      else if (ROUTE.kind === 'search') await showSearch();
       else if (ROUTE.kind === 'edit') showEdit(!ME);
     } catch (er) {
       const m = main(); m.replaceChildren(head('Community', null, HIST.length > 0));

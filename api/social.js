@@ -2,6 +2,7 @@
 //   GET  ?a=me | ?a=check&u= | ?a=feed&scope=all|following|ticker|user&arg=&before= | ?a=post&id= | ?a=user&u=
 //   POST ?a=profile {username, displayName, bio} | ?a=post {body, parentId, mediaIds} | ?a=delete {id} | ?a=like {id, on}
 //        ?a=follow {username, on} | ?a=report {id, reason} | ?a=upload {data (base64), mime, width, height} -> {id}
+//   GET  ?a=search&q= -> {members, tickers, posts} (full-text)
 //   GET  ?a=media&id= -> the photo itself (only when its post is visible to the viewer)
 import { getSession, json } from '../lib/session.js';
 import { planFor, paywallOn } from '../lib/billing.js';
@@ -28,6 +29,7 @@ export async function GET(request) {
     if (a === 'check') return json(await S.usernameFree(q.get('u'), s.email));
     if (a === 'feed') return json(await S.feed(s.email, { scope: q.get('scope') || 'all', arg: q.get('arg') || '', before: q.get('before') }));
     if (a === 'post') return json(await S.thread(s.email, q.get('id')));
+    if (a === 'search') return json(await S.search(s.email, q.get('q')));
     if (a === 'media') {
       const m = await S.getMedia(s.email, q.get('id'));
       return new Response(m.bytes, { headers: { 'content-type': m.mime, 'cache-control': 'private, max-age=31536000, immutable', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; sandbox" } });

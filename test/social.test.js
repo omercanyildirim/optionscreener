@@ -181,3 +181,23 @@ test('photos: upload, attach to a post, who can see them, limits', { skip }, asy
   await call('/api/social?a=delete', 'a@example.com', { id: p.id });
   assert.equal((await media('b@example.com', m1.id)).status, 404);
 });
+
+test('search: words (any order, prefix while typing), $tickers, @members, hidden posts excluded', { skip }, async () => {
+  for (const [e, u, n] of [['a@example.com', 'alice', 'Alice Gamma'], ['b@example.com', 'bob', 'Bob'], ['c@example.com', 'alicia', 'Al']]) { await pro(e); await call('/api/social?a=profile', e, { username: u, displayName: n }); }
+  await call('/api/social?a=post', 'a@example.com', { body: 'Gamma squeeze building in $NVDA calls' });
+  await call('/api/social?a=post', 'b@example.com', { body: 'Puts on $AMD after the short report' });
+  const gone = (await call('/api/social?a=post', 'b@example.com', { body: 'Gamma gamma deleted' })).j.post;
+  await call('/api/social?a=delete', 'b@example.com', { id: gone.id });
+  const s = async q => (await call('/api/social?a=search&q=' + encodeURIComponent(q), 'c@example.com')).j;
+  assert.deepEqual((await s('squeeze gamma')).posts.map(p => p.username), ['alice']);
+  assert.deepEqual((await s('squ')).posts.map(p => p.username), ['alice'], 'prefix on the last word');
+  assert.deepEqual((await s('nvda')).posts.length, 1, 'ticker text is searchable as a word');
+  assert.deepEqual((await s('$AMD')).posts.map(p => p.username), ['bob']);
+  assert.deepEqual((await s('$AMD')).tickers, ['AMD']);
+  assert.equal((await s('gamma')).posts.length, 1, 'deleted posts are not found');
+  assert.deepEqual((await s('@ali')).members.map(m => m.username).sort(), ['alice', 'alicia']);
+  assert.deepEqual((await s('gamma')).members.map(m => m.username), ['alice'], 'display names match too');
+  assert.deepEqual(await s('   '), { members: [], tickers: [], posts: [] });
+  assert.equal((await s("x' & | ! ( ) :*")).posts.length, 0, 'odd characters are safe');
+  assert.ok(!JSON.stringify(await s('gamma')).includes('@example.com'));
+});
