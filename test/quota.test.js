@@ -38,7 +38,7 @@ function redis(args) {
 
 beforeEach(() => {
   R = {};
-  Object.assign(process.env, { SESSION_SECRET: SECRET, ALLOWED_EMAILS: '*', ADMIN_EMAILS: 'admin@example.com', KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't',
+  Object.assign(process.env, { PADDLE_TEST_EMAILS: 'user@example.com,pro@example.com', SESSION_SECRET: SECRET, ALLOWED_EMAILS: '*', ADMIN_EMAILS: 'admin@example.com', KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't',
     PADDLE_CLIENT_TOKEN: 'tok', PADDLE_PRICE_ID: 'pri_1', PAYWALL: 'true', MASSIVE_API_KEY: 'k', GOOGLE_CLIENT_ID: 'cid', GOOGLE_CLIENT_SECRET: 'cs' });
   delete process.env.FREE_LOOKS; delete process.env.ALPACA_KEY_ID; delete process.env.ALPACA_SECRET_KEY;
   globalThis.fetch = async (u, init) => {

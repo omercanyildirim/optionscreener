@@ -37,7 +37,7 @@ function redis(args) {
 
 beforeEach(() => {
   R = {};
-  Object.assign(process.env, { SESSION_SECRET: SECRET, ALLOWED_EMAILS: '*', ADMIN_EMAILS: 'admin@example.com', KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't',
+  Object.assign(process.env, { PADDLE_TEST_EMAILS: 'user@example.com,other@example.com', SESSION_SECRET: SECRET, ALLOWED_EMAILS: '*', ADMIN_EMAILS: 'admin@example.com', KV_REST_API_URL: 'https://kv.example', KV_REST_API_TOKEN: 't',
     PADDLE_ENV: 'sandbox', PADDLE_CLIENT_TOKEN: 'test_client_token', PADDLE_PRICE_ID: 'pri_123', PADDLE_WEBHOOK_SECRET: WH, PAYWALL: 'true', EXA_API_KEY: 'exa' });
   delete process.env.PADDLE_API_KEY;
   globalThis.fetch = async (u, init) => {
@@ -124,4 +124,18 @@ test('checkout sync: Pro only after Paddle confirms a paid transaction for this 
   j = await (await api.GET(await req('/api/billing?a=sync&txn=txn_01abcdefghijk'))).json();
   assert.equal(j.billing.plan, 'pro'); assert.equal(j.billing.nextBill, '2026-12-19T00:00:00Z');
   assert.equal((await api.GET(await req('/api/billing?a=sync&txn=bad'))).status, 400);
+});
+
+test('sandbox: test checkout and test-card Pro only for admins and listed testers; production for everyone', async () => {
+  const b = await import('../lib/billing.js');
+  process.env.PADDLE_ENV = 'sandbox'; process.env.PAYWALL = 'true'; process.env.PADDLE_TEST_EMAILS = 'tester@example.com';
+  R['os:sub:stranger@example.com'] = JSON.stringify({ status: 'active' });
+  R['os:sub:tester@example.com'] = JSON.stringify({ status: 'active' });
+  let i = await b.billingInfo('stranger@example.com');
+  assert.equal(i.paddle, null); assert.equal(i.checkout, 'soon'); assert.equal(i.plan, 'free');
+  i = await b.billingInfo('tester@example.com'); assert.equal(i.checkout, 'open'); assert.ok(i.paddle.token); assert.equal(i.plan, 'pro');
+  i = await b.billingInfo('admin@example.com'); assert.equal(i.checkout, 'open');
+  process.env.PADDLE_ENV = 'production';
+  i = await b.billingInfo('stranger@example.com'); assert.equal(i.checkout, 'open'); assert.equal(i.plan, 'pro');
+  process.env.PADDLE_ENV = 'sandbox';
 });

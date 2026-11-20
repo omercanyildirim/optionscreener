@@ -599,7 +599,7 @@ const GATE_TXT={
   upgrade:['Upgrade to Options Screener Pro','Unlimited symbols, the live options flow, the contract screener, charts and insights.'],
   limit:["You've used today's free symbols",n=>`The free plan includes ${n} symbols a day. Upgrade to Pro for unlimited options data, the live flow, the screener and charts.`]};
 let GATE=null, coOpen=false, paddleReady=null;
-function openGate(kind,limit){ const b=CFG.billing; if(!b||!b.paddle){ note('Payments are not set up yet.',true); return; }
+function openGate(kind,limit){ const b=CFG.billing; if(!b||(!b.paddle&&b.checkout!=='soon')){ note('Payments are not set up yet.',true); return; }
   const whole=kind==='limit'||kind==='upgrade'||kind==='insight', [t,l]=GATE_TXT[kind]||GATE_TXT.upgrade;
   $('#gateT').textContent=t; $('#gateLead').textContent=typeof l==='function'?l(limit||(CFG.free&&CFG.free.limit)||3):l;
   $('#gateX').hidden=kind==='limit';
@@ -616,6 +616,7 @@ function loadPaddle(){ if(paddleReady) return paddleReady; const b=CFG.billing.p
     sc.onload=()=>{ try{ if(b.env==='sandbox') Paddle.Environment.set('sandbox'); Paddle.Initialize({ token:b.token, eventCallback:onPaddle }); res(); }catch(e){ rej(e); } };
     document.head.appendChild(sc); }); return paddleReady; }
 async function mountCheckout(){ const st=$('#gateState'); $('.gbox').classList.remove('done'); if(coOpen) return;
+  if(!CFG.billing.paddle){ st.className='gstate'; st.textContent='Pro checkout opens soon. Until then, the free plan includes '+((CFG.free&&CFG.free.limit)||3)+' symbols a day.'; return; }
   st.className='gstate'; st.textContent='Loading secure checkout…';
   try{ await loadPaddle(); const b=CFG.billing.paddle;
     Paddle.Checkout.open({ items:[{priceId:b.priceId,quantity:1}], customData:b.customData,
