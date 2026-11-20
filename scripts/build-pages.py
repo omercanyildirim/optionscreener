@@ -69,7 +69,7 @@ def head(path, title, desc, ld, kind='website'):
 <header class="top"><div class="wrap">
   <a class="brand" href="/">{LOGO}{NAME}</a>
   <nav class="nav" aria-label="Guides">{nav(path)}<a href="/pricing">Pricing</a></nav>
-  <a class="btn pri" href="/login">{GLOGO}Sign in<span class="wg"> with Google</span></a>
+  <a class="btn pri" href="/login">{GLOGO}<span>Sign in<span class="wg"> with Google</span></span></a>
 </div></header>
 '''
 
