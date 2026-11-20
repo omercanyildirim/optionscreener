@@ -67,7 +67,8 @@ def head(path, title, desc, ld, kind='website'):
 GLIST = ''.join(f'<li><a href="{p}">{t}</a></li>' for p, t, _ in GUIDES)
 FOOT = f'''<footer class="foot"><div class="wrap cols">
   <div><a class="brand" href="/">{LOGO}{NAME}</a>
-    <p class="disc">Market data and tools for information only. Nothing on this site is investment advice. Options involve substantial risk and are not suitable for every investor.</p></div>
+    <p class="disc">Market data and tools for information only. Nothing on this site is investment advice. Options involve substantial risk and are not suitable for every investor.</p>
+    <p class="disc">Options Screener is the trading name of Ömer Can Yıldırım, an individual sole proprietor based in Türkiye. Contact: info@optionscreener.org</p></div>
   <div><h4>Guides</h4><ul>{GLIST}</ul></div>
   <div><h4>Company</h4><ul><li><a href="/pricing">Pricing</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/refund">Refund Policy</a></li><li><a href="/privacy#contact">Contact</a></li></ul></div>
 </div></footer>
