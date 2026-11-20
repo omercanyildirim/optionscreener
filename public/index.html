@@ -115,6 +115,20 @@ tr.grp:hover td{background:none}
 .row label{color:var(--muted);display:flex;align-items:center;gap:7px}
 .row input[type=number]{width:72px}
 .view{display:none} .view.on{display:block}
+.pchart{margin:-6px 0 20px;border-bottom:1px solid var(--line);padding-bottom:12px}
+.pc-head{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 12px}
+.pc-sym{border:0;background:none;color:var(--text);font:600 15px var(--font);padding:0;cursor:pointer}
+.pc-sym:hover{text-decoration:underline;text-underline-offset:3px}
+.pc-px{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.pc-chg{font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted)} .pc-chg.up{color:var(--call)} .pc-chg.dn{color:var(--put)}
+.pc-head .spacer{flex:1}
+.pc-head .seg{align-self:center} .pc-head .seg button{padding:3px 10px;font-size:12.5px}
+.pc-tog{align-self:center;border:1px solid var(--line2);background:none;color:var(--muted);border-radius:5px;width:28px;height:28px;display:grid;place-items:center;padding:0}
+.pc-tog:hover{color:var(--text)} .pc-tog svg{transition:transform .15s}
+.pchart.shut .pc-tog svg{transform:rotate(180deg)} .pchart.shut .pc-body{display:none} .pchart.shut{padding-bottom:10px}
+.pc-body{position:relative;height:150px;margin-top:8px}
+.pc-empty{position:absolute;inset:0;display:grid;place-items:center;margin:0;color:var(--muted);font-size:13px}
+@media (max-width:640px){ .pc-body{height:118px} .pc-px{font-size:19px} .pc-head .seg{order:5;width:100%;justify-content:space-between} .pc-head .seg button{flex:1} .pchart{margin-top:-4px} }
 .seg{display:inline-flex;border:1px solid var(--line2);border-radius:5px;padding:2px;gap:2px}
 .seg button{border:0;background:none;color:var(--muted);padding:4px 12px;border-radius:3px;font-size:13px;font-weight:500}
 .seg button.on{background:var(--hover);color:var(--text)}
@@ -404,6 +418,16 @@ body.gate-main .gate{left:56px}
       <button class="btn" id="clearAll">Clear all</button>
       <button class="btn dark" id="openFilters"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg>Filters <span class="badge" id="fcount" hidden></span></button>
     </div>
+    <section class="pchart" id="pchart" aria-label="Price chart">
+      <div class="pc-head">
+        <button class="pc-sym" id="pcSym" title="Stock details">–</button>
+        <span class="pc-px" id="pcPx"></span><span class="pc-chg" id="pcChg"></span>
+        <span class="spacer"></span>
+        <div class="seg" id="pcRange" role="group" aria-label="Chart range"><button data-r="1D">1D</button><button data-r="5D">5D</button><button data-r="1M">1M</button><button data-r="6M">6M</button><button data-r="1Y">1Y</button></div>
+        <button class="pc-tog" id="pcTog" aria-expanded="true" aria-controls="pcBody" title="Hide chart"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
+      </div>
+      <div class="pc-body" id="pcBody"><canvas id="pcCanvas" aria-label="Price chart" role="img"></canvas><p class="pc-empty" id="pcEmpty" hidden></p></div>
+    </section>
     <div id="msg"></div>
 
     <section class="view on" id="v-flow">

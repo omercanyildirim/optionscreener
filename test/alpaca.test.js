@@ -39,6 +39,10 @@ beforeEach(() => {
       if (syms.includes('RATE')) return new Response('{"message":"too many requests"}', { status: 429 });
       return ok(Object.fromEntries(syms.map(s => [s, STOCK])));
     }
+    if (p === '/v2/stocks/NVDA/bars') {
+      if (!url.searchParams.get('page_token')) return ok({ bars: [{ t: '2026-11-19T14:30:00Z', o: 1, h: 2, l: 0.5, c: 1.5, v: 100 }], next_page_token: 'b2' });
+      return ok({ bars: [{ t: '2026-11-19T14:35:00Z', o: 1.5, h: 2.5, l: 1.4, c: 2, v: 80 }], next_page_token: null });
+    }
     if (p === '/v2/options/contracts') return ok({ option_contracts: [{ symbol: 'SPY261218C00600000', open_interest: '4321', close_price: '4.25' }], next_page_token: null });
     if (p === '/v2/assets') return ok([
       { symbol: 'SPY', name: 'SPDR S&P 500', exchange: 'ARCA', tradable: true, attributes: ['has_options'] },
@@ -131,4 +135,16 @@ test('rewritten routes: /api/universe -> massive?fn=universe', async () => {
   const vj = JSON.parse((await import('node:fs')).readFileSync('vercel.json', 'utf8'));
   assert.ok(vj.rewrites.some(r => r.source === '/api/universe' && r.destination === '/api/massive?fn=universe'));
   assert.ok(vj.rewrites.some(r => r.source === '/api/track' && r.destination === '/api/userdata'));
+});
+
+test('price bars for the chart: Massive aggregates shape, all pages, only safe paths allowed', async () => {
+  const r = await massiveApi.GET(await req('/api/massive?path=' + encodeURIComponent('v2/aggs/ticker/NVDA/range/5/minute/2026-11-15/2026-11-19')));
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.deepEqual(j.results.map(b => b.c), [1.5, 2]); assert.equal(j.results[0].t, Date.parse('2026-11-19T14:30:00Z'));
+  const call = calls.find(c => c.url.pathname === '/v2/stocks/NVDA/bars');
+  assert.equal(call.url.searchParams.get('timeframe'), '5Min'); assert.equal(call.url.searchParams.get('feed'), 'iex'); assert.equal(call.url.searchParams.get('adjustment'), 'split');
+  for (const bad of ['v2/aggs/ticker/NVDA/range/5/second/2026-11-15/2026-11-19', 'v2/aggs/ticker/NVDA/range/5/minute/2026-11-15/x', 'v2/aggs/ticker/../range/1/day/2026-01-01/2026-02-01'])
+    assert.equal((await massiveApi.GET(await req('/api/massive?path=' + encodeURIComponent(bad)))).status, 403, bad);
+  assert.equal((await massiveApi.GET(await req('/api/massive?path=' + encodeURIComponent('v2/aggs/ticker/NVDA/range/90/minute/2026-11-15/2026-11-19')))).status, 400);
 });
