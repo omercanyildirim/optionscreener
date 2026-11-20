@@ -53,6 +53,9 @@ beforeEach(() => {
       return new Response(JSON.stringify({ result: redis(body) }));
     }
     if (u === 'https://api.resend.com/emails') { sent.push(JSON.parse(init.body)); return new Response(JSON.stringify({ id: 'em_' + sent.length })); }
+    { const m = u.match(/^https:\/\/sandbox-api\.paddle\.com\/(subscriptions|transactions)\?.*order_by=([a-z_]+)/); // Paddle's allowed sort fields
+      if (m && !({ subscriptions: ['id'], transactions: ['id', 'created_at', 'billed_at', 'updated_at'] })[m[1]].includes(m[2]))
+        return new Response(JSON.stringify({ error: { code: 'bad_request', detail: `ordering by '${m[2]}' not allowed` } }), { status: 400 }); }
     for (const [p, v] of Object.entries(paddle)) if (u.startsWith('https://sandbox-api.paddle.com' + p)) return new Response(JSON.stringify(v));
     return new Response('{}', { status: 404 });
   };
