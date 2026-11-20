@@ -2,12 +2,13 @@
 """Builds the public, indexable pages (home + guides), sitemap.xml and robots.txt.
 Run from the repo root:  python3 scripts/build-pages.py
 Every page gets: unique title and description, canonical URL, Open Graph / Twitter card, JSON-LD."""
-import json, html, datetime, pathlib
+import json, html, datetime, pathlib, hashlib
 
 SITE = 'https://optionscreener.org'
 NAME = 'Options Screener'
 TODAY = datetime.date.today().isoformat()
 OUT = pathlib.Path(__file__).resolve().parent.parent / 'public'
+ASSET_V = hashlib.md5((OUT / 'css/site.css').read_bytes() + (OUT / 'js/feats.js').read_bytes()).hexdigest()[:8]  # cache-busting
 
 LOGO = '<svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>'
 GUIDES = [
@@ -61,7 +62,7 @@ def head(path, title, desc, ld, kind='website'):
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/site.css?v={ASSET_V}">
 <script type="application/ld+json">{json.dumps(ld, separators=(',', ':'))}</script>
 </head>
 <body>
@@ -165,13 +166,11 @@ def home():
 </div>
 
 <section class="band"><div class="wrap">
-  <h2>Everything you need to read the options market</h2>
-  <p class="intro">Built for traders who want the options tape, the chain and a screener in one place, without a terminal subscription.</p>
   <div class="fc" aria-roledescription="carousel" aria-label="Features">
-    <div class="fc-nav"><button type="button" class="fc-b" data-d="-1" aria-label="Previous features"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button><button type="button" class="fc-b" data-d="1" aria-label="Next features"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button></div>
+    <div class="fc-head"><div><h2>Everything you need to read the options market</h2><p class="intro">The options tape, the chain and a screener in one place, without a terminal subscription.</p></div><div class="fc-nav"><button type="button" class="fc-b" data-d="-1" aria-label="Previous features"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button><button type="button" class="fc-b" data-d="1" aria-label="Next features"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button></div></div>
     <div class="fc-track" tabindex="0">
       <article class="fcard">
-        <div class="viz" aria-hidden="true"><div class="vrow"><i class="tg sw">Sweep</i><b>NVDA 150C</b><em class="c">$2.4M</em></div><div class="vrow"><i class="tg bl">Block</i><b>SPY 590P</b><em class="p">$1.1M</em></div><div class="vrow"><i class="tg sp">Split</i><b>TSLA 360C</b><em class="c">$640K</em></div></div>
+        <div class="viz" aria-hidden="true"><div class="vrow"><i class="tg sw">Sweep</i><b>NVDA 150C</b><em class="vc">$2.4M</em></div><div class="vrow"><i class="tg bl">Block</i><b>SPY 590P</b><em class="vp">$1.1M</em></div><div class="vrow"><i class="tg sp">Split</i><b>TSLA 360C</b><em class="vc">$640K</em></div></div>
         <h3>Live options flow</h3><p>Every large print across your watchlist and the most active stocks, tagged as sweep, block or split, with premium, side, size against open interest and repeat orders. $1M+ trades are highlighted.</p><a href="/options-flow">How to read options flow</a>
       </article>
       <article class="fcard">
@@ -179,7 +178,7 @@ def home():
         <h3>Unusual options activity</h3><p>Spot contracts trading far above their open interest, aggressive buying at the ask and repeated orders in the same strike, the signs traders look for before a move.</p><a href="/unusual-options-activity">What makes activity unusual</a>
       </article>
       <article class="fcard">
-        <div class="viz" aria-hidden="true"><div class="vch"><span class="h">Calls</span><span class="h k">Strike</span><span class="h">Puts</span><span class="c">4.20</span><span class="k">145</span><span class="p">1.85</span><span class="c">2.65</span><span class="k on">150</span><span class="p">3.30</span><span class="c">1.40</span><span class="k">155</span><span class="p">6.05</span></div></div>
+        <div class="viz" aria-hidden="true"><div class="vch"><span class="h">Calls</span><span class="h k">Strike</span><span class="h">Puts</span><span class="vc">4.20</span><span class="k">145</span><span class="vp">1.85</span><span class="vc">2.65</span><span class="k on">150</span><span class="vp">3.30</span><span class="vc">1.40</span><span class="k">155</span><span class="vp">6.05</span></div></div>
         <h3>Option chains with greeks</h3><p>Calls and puts side by side for every expiry: bid, ask, last, volume, open interest, implied volatility and delta, updating while the market is open. Star any contract to watch it.</p><a href="/option-chain">How to read an option chain</a>
       </article>
       <article class="fcard">
@@ -191,12 +190,12 @@ def home():
         <h3>Charts</h3><p>IV smile, open interest and volume by strike, and call versus put premium minute by minute.</p><a href="/implied-volatility">What implied volatility tells you</a>
       </article>
       <article class="fcard">
-        <div class="viz" aria-hidden="true"><div class="vrow"><b>AAPL</b><span>228.40</span><em class="c">+1.2%</em></div><div class="vrow"><b>AMD</b><span>141.05</span><em class="p">−0.8%</em></div><div class="vrow"><b>QQQ</b><span>512.77</span><em class="c">+0.4%</em></div></div>
+        <div class="viz" aria-hidden="true"><div class="vrow"><b>AAPL</b><span>228.40</span><em class="vc">+1.2%</em></div><div class="vrow"><b>AMD</b><span>141.05</span><em class="vp">−0.8%</em></div><div class="vrow"><b>QQQ</b><span>512.77</span><em class="vc">+0.4%</em></div></div>
         <h3>Every listed US stock</h3><p>Browse all listed US stocks and ETFs with price, change and volume, and open the chain of any symbol with options in one click.</p>
       </article>
     </div>
   </div>
-<script src="/js/feats.js" defer></script>
+<script src="/js/feats.js?v={ASSET_V}" defer></script>
 </div></section>
 
 <section class="band"><div class="wrap">

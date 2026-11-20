@@ -26,7 +26,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/site.css?v=137b489d">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://optionscreener.org/#org","name":"Options Screener","url":"https://optionscreener.org/","logo":"https://optionscreener.org/icon-512.png","sameAs":["https://x.com/optionscreener"],"email":"info@optionscreener.org"},{"@type":"WebSite","@id":"https://optionscreener.org/#website","name":"Options Screener","alternateName":["OptionScreener","optionscreener.org"],"url":"https://optionscreener.org/","publisher":{"@id":"https://optionscreener.org/#org"},"inLanguage":"en"},{"@type":"SoftwareApplication","@id":"https://optionscreener.org/#app","name":"Options Screener","url":"https://optionscreener.org/","applicationCategory":"FinanceApplication","operatingSystem":"Web browser","description":"Web app for US stock options: live options flow, option chains with greeks and IV, and a contract screener.","offers":[{"@type":"Offer","name":"Free","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"Pro","price":"9.99","priceCurrency":"USD","priceSpecification":{"@type":"UnitPriceSpecification","price":"9.99","priceCurrency":"USD","billingDuration":"P1M","unitText":"month"}}],"publisher":{"@id":"https://optionscreener.org/#org"}},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is Options Screener?","acceptedAnswer":{"@type":"Answer","text":"Options Screener is a web app for US stock and ETF options. It shows the live options flow (large trades, sweeps and blocks), full option chains with greeks, implied volatility and open interest, and a screener that filters every contract by volume, open interest, IV, delta and spread."}},{"@type":"Question","name":"Is Options Screener free?","acceptedAnswer":{"@type":"Answer","text":"Yes. The free plan lets you open up to 3 symbols a day with full option chains, stock quotes and your watchlist. Pro costs $9.99 a month and adds unlimited symbols, the live options flow, the contract screener, charts and stock insights. You can cancel at any time and there is a 14-day money-back guarantee."}},{"@type":"Question","name":"How current is the data?","acceptedAnswer":{"@type":"Answer","text":"Stock prices update during market hours. On the current data feed, option quotes are indicative and option trades can arrive about 15 minutes late. The app shows the time of the newest price at the top of the screen and labels delayed data."}},{"@type":"Question","name":"What is options flow?","acceptedAnswer":{"@type":"Answer","text":"Options flow is the stream of option trades as they print. Watching it shows where large amounts of money are going: which tickers, calls or puts, which strikes and expiries, and whether trades were bought at the ask or sold at the bid."}},{"@type":"Question","name":"What counts as unusual options activity?","acceptedAnswer":{"@type":"Answer","text":"A contract usually counts as unusual when its volume today is much larger than its open interest or its normal daily volume, especially when the trades are large, aggressive (at or above the ask) and in short-dated or out-of-the-money contracts."}},{"@type":"Question","name":"Which markets are covered?","acceptedAnswer":{"@type":"Answer","text":"Listed US stocks and ETFs and their options, including SPY, QQQ, IWM and single stocks such as NVDA, TSLA, AAPL and AMD."}},{"@type":"Question","name":"How do I cancel Pro?","acceptedAnswer":{"@type":"Answer","text":"Open the account menu in the app and choose Manage subscription and card. Pro stays active until the end of the period you paid for and is not renewed."}},{"@type":"Question","name":"Is this investment advice?","acceptedAnswer":{"@type":"Answer","text":"No. Options Screener provides market data and tools for information only. It is not a broker or investment adviser and does not recommend buying or selling any security."}}]}]}</script>
 </head>
 <body>
@@ -50,13 +50,11 @@
 </div>
 
 <section class="band"><div class="wrap">
-  <h2>Everything you need to read the options market</h2>
-  <p class="intro">Built for traders who want the options tape, the chain and a screener in one place, without a terminal subscription.</p>
   <div class="fc" aria-roledescription="carousel" aria-label="Features">
-    <div class="fc-nav"><button type="button" class="fc-b" data-d="-1" aria-label="Previous features"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button><button type="button" class="fc-b" data-d="1" aria-label="Next features"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button></div>
+    <div class="fc-head"><div><h2>Everything you need to read the options market</h2><p class="intro">The options tape, the chain and a screener in one place, without a terminal subscription.</p></div><div class="fc-nav"><button type="button" class="fc-b" data-d="-1" aria-label="Previous features"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button><button type="button" class="fc-b" data-d="1" aria-label="Next features"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg></button></div></div>
     <div class="fc-track" tabindex="0">
       <article class="fcard">
-        <div class="viz" aria-hidden="true"><div class="vrow"><i class="tg sw">Sweep</i><b>NVDA 150C</b><em class="c">$2.4M</em></div><div class="vrow"><i class="tg bl">Block</i><b>SPY 590P</b><em class="p">$1.1M</em></div><div class="vrow"><i class="tg sp">Split</i><b>TSLA 360C</b><em class="c">$640K</em></div></div>
+        <div class="viz" aria-hidden="true"><div class="vrow"><i class="tg sw">Sweep</i><b>NVDA 150C</b><em class="vc">$2.4M</em></div><div class="vrow"><i class="tg bl">Block</i><b>SPY 590P</b><em class="vp">$1.1M</em></div><div class="vrow"><i class="tg sp">Split</i><b>TSLA 360C</b><em class="vc">$640K</em></div></div>
         <h3>Live options flow</h3><p>Every large print across your watchlist and the most active stocks, tagged as sweep, block or split, with premium, side, size against open interest and repeat orders. $1M+ trades are highlighted.</p><a href="/options-flow">How to read options flow</a>
       </article>
       <article class="fcard">
@@ -64,7 +62,7 @@
         <h3>Unusual options activity</h3><p>Spot contracts trading far above their open interest, aggressive buying at the ask and repeated orders in the same strike, the signs traders look for before a move.</p><a href="/unusual-options-activity">What makes activity unusual</a>
       </article>
       <article class="fcard">
-        <div class="viz" aria-hidden="true"><div class="vch"><span class="h">Calls</span><span class="h k">Strike</span><span class="h">Puts</span><span class="c">4.20</span><span class="k">145</span><span class="p">1.85</span><span class="c">2.65</span><span class="k on">150</span><span class="p">3.30</span><span class="c">1.40</span><span class="k">155</span><span class="p">6.05</span></div></div>
+        <div class="viz" aria-hidden="true"><div class="vch"><span class="h">Calls</span><span class="h k">Strike</span><span class="h">Puts</span><span class="vc">4.20</span><span class="k">145</span><span class="vp">1.85</span><span class="vc">2.65</span><span class="k on">150</span><span class="vp">3.30</span><span class="vc">1.40</span><span class="k">155</span><span class="vp">6.05</span></div></div>
         <h3>Option chains with greeks</h3><p>Calls and puts side by side for every expiry: bid, ask, last, volume, open interest, implied volatility and delta, updating while the market is open. Star any contract to watch it.</p><a href="/option-chain">How to read an option chain</a>
       </article>
       <article class="fcard">
@@ -76,12 +74,12 @@
         <h3>Charts</h3><p>IV smile, open interest and volume by strike, and call versus put premium minute by minute.</p><a href="/implied-volatility">What implied volatility tells you</a>
       </article>
       <article class="fcard">
-        <div class="viz" aria-hidden="true"><div class="vrow"><b>AAPL</b><span>228.40</span><em class="c">+1.2%</em></div><div class="vrow"><b>AMD</b><span>141.05</span><em class="p">−0.8%</em></div><div class="vrow"><b>QQQ</b><span>512.77</span><em class="c">+0.4%</em></div></div>
+        <div class="viz" aria-hidden="true"><div class="vrow"><b>AAPL</b><span>228.40</span><em class="vc">+1.2%</em></div><div class="vrow"><b>AMD</b><span>141.05</span><em class="vp">−0.8%</em></div><div class="vrow"><b>QQQ</b><span>512.77</span><em class="vc">+0.4%</em></div></div>
         <h3>Every listed US stock</h3><p>Browse all listed US stocks and ETFs with price, change and volume, and open the chain of any symbol with options in one click.</p>
       </article>
     </div>
   </div>
-<script src="/js/feats.js" defer></script>
+<script src="/js/feats.js?v=137b489d" defer></script>
 </div></section>
 
 <section class="band"><div class="wrap">
