@@ -17,6 +17,8 @@ a{color:inherit}
 .btn:hover{border-color:#454b54;background:#1c2025}
 .btn.pri{background:var(--text);border-color:var(--text);color:var(--bg)} .btn.pri:hover{background:#fff;border-color:#fff}
 .btn.big{padding:13px 22px;font-size:15px}
+.glogo{width:18px;height:18px;flex:none} .btn.big .glogo{width:20px;height:20px}
+.btn:not(.pri) .glogo{background:#fff;border-radius:50%;padding:2px;box-sizing:content-box}
 /* hero */
 .hero{padding-top:88px;padding-bottom:56px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:56px;align-items:center}
 .hero h1{font-size:60px;line-height:1;letter-spacing:-.03em;font-weight:500;margin:0 0 22px;font-variation-settings:"wdth" 125}

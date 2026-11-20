@@ -17,6 +17,8 @@ GUIDES = [
     ('/option-chain', 'Option chain', 'Bid, ask, greeks and IV for every strike'),
 ]
 
+GLOGO = '<svg class="glogo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>'
+
 def nav(path):
     return ''.join(f'<a href="{p}"' + (' aria-current="page"' if p == path else '') + f'>{t}</a>' for p, t, _ in GUIDES)
 
@@ -58,7 +60,7 @@ def head(path, title, desc, ld, kind='website'):
 <header class="top"><div class="wrap">
   <a class="brand" href="/">{LOGO}{NAME}</a>
   <nav class="nav" aria-label="Guides">{nav(path)}<a href="/#pricing">Pricing</a></nav>
-  <a class="btn" href="/login">Sign in</a><a class="btn pri" href="/login">Start free</a>
+  <a class="btn" href="/login">Sign in</a><a class="btn pri" href="/login">{GLOGO}Start free</a>
 </div></header>
 '''
 
@@ -108,8 +110,8 @@ def home():
   <div>
     <h1>Options screener and live options flow</h1>
     <p class="lede">See where the money is going in US options. Follow large trades, sweeps and blocks as they print, open any option chain with greeks and IV, and screen every contract by volume, open interest and implied volatility.</p>
-    <div class="cta"><a class="btn pri big" href="/login">Start free with Google</a><a class="btn big" href="#pricing">See pricing</a>
-      <span class="fine">Free plan: 3 symbols a day, no card needed. Pro: $9.99 a month.</span></div>
+    <div class="cta"><a class="btn pri big" href="/login">{GLOGO}Start free with Google</a><a class="btn big" href="#pricing">See pricing</a>
+      <span class="fine">Secure sign-in with Google: we never see or store your password. Free plan: 3 symbols a day, no card needed. Pro: $9.99 a month.</span></div>
   </div>
   <div class="tape" role="img" aria-label="Example of the options flow table">
     <div class="cap"><b>Options flow</b><span>Example</span></div>
@@ -136,7 +138,7 @@ def home():
   <div class="plans">
     <div class="plan"><h3>Free</h3><div class="price">$0</div><div class="per">forever, no card needed</div>
       <ul><li>3 symbols a day</li><li>Full option chains with greeks and IV</li><li>Stock quotes for every listed US stock</li><li>Watchlist and saved filters</li></ul>
-      <a class="btn" href="/login">Start free</a></div>
+      <a class="btn" href="/login">{GLOGO}Start free with Google</a></div>
     <div class="plan pro"><h3>Pro</h3><div class="price">$9.99</div><div class="per">per month, cancel anytime</div>
       <ul><li>Unlimited symbols, every day</li><li>Live options flow with big-trade alerts</li><li>Contract screener across every expiry and strike</li><li>IV smile, open interest and volume charts</li><li>Stock and contract insights with news</li></ul>
       <a class="btn pri" href="/login">Get Pro</a></div>
@@ -167,7 +169,7 @@ def guide(path, title, h1, desc, lede, sections, faq=()):
 <p class="lede">{lede}</p>
 {sections}
 {fq}
-<div class="callout"><p>Try it on live data: open the options flow, any option chain and the screener in Options Screener. Free plan, no card needed; Pro is $9.99 a month.</p><a class="btn pri" href="/login">Start free with Google</a></div>
+<div class="callout"><p>Try it on live data: open the options flow, any option chain and the screener in Options Screener. Free plan, no card needed; Pro is $9.99 a month.</p><a class="btn pri" href="/login">{GLOGO}Start free with Google</a></div>
 <p class="note">For information only. Not investment advice. Options involve substantial risk.</p>
 <h2>More guides</h2><div class="related">{rel}</div>
 </article></main>
