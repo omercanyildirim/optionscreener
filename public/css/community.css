@@ -114,7 +114,7 @@ body.v-community #rate, body.v-community #asof, body.v-community .topbar .dd, bo
 @media (max-width: 640px) { .cm-hint { display: none; } .cm-acts { gap: 10px; } .cm-av { width: 36px; height: 36px; } }
 
 /* photos: composer previews */
-.cm-pick { margin-left: -8px; } .cm-pick:disabled { opacity: .35; cursor: default; background: none; }
+.cm-pick { margin-left: -8px; color: var(--block); font-weight: 500; } .cm-pick:hover { color: var(--block); } .cm-pick:disabled { opacity: .35; cursor: default; background: none; }
 .cm-pick svg { width: 19px; height: 19px; }
 .cm-compose.drop { outline: 2px dashed var(--focus); outline-offset: -4px; border-radius: 10px; }
 .cm-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }

@@ -112,7 +112,7 @@
     const thumbs = h('div', 'cm-thumbs'); const media = []; // {id, url, busy, el}
     const foot = h('div', 'cm-cfoot'), cnt = h('span', 'cm-count'), send = h('button', 'btn dark cm-send', parentId ? 'Reply' : 'Post');
     const file = h('input'); file.type = 'file'; file.accept = 'image/*'; file.multiple = true; file.hidden = true;
-    const pick = iconBtn('cm-act cm-pick', ICON.photo, 'Add photos'); pick.onclick = () => file.click();
+    const pick = iconBtn('cm-act cm-pick', ICON.photo, 'Add photos'); pick.append(h('span', null, 'Photo')); pick.onclick = () => file.click();
     const upd = () => { const n = ta.value.trim().length, ready = media.length && media.every(m => m.id); cnt.textContent = n > MAX - 60 ? String(MAX - n) : ''; cnt.classList.toggle('over', n > MAX);
       send.disabled = (!n && !ready) || n > MAX || media.some(m => !m.id); pick.disabled = media.length >= 4; thumbs.hidden = !media.length;
       ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 320) + 'px'; };
