@@ -254,8 +254,8 @@ async function openUser(u){
     dBox.append(el('p','m','Give this user a discount on Pro. It is applied automatically at their checkout and works only once.'));
     const row=el('div','crow');
     const type=el('select'); type.innerHTML='<option value="percentage">% off</option><option value="flat">$ off</option>'; type.setAttribute('aria-label','Discount type');
-    const amt=el('input'); amt.type='number'; amt.min='1'; amt.max='100'; amt.step='1'; amt.value='20'; amt.style.width='80px'; amt.setAttribute('aria-label','Amount');
-    type.onchange=()=>{ if(type.value==='flat'){ amt.max='9.98'; amt.step='0.5'; amt.min='0.5'; amt.value='5'; } else { amt.max='100'; amt.step='1'; amt.min='1'; amt.value='20'; } };
+    const amt=el('input'); amt.type='number'; amt.min='1'; amt.max='92'; amt.step='1'; amt.value='20'; amt.style.width='80px'; amt.setAttribute('aria-label','Amount');
+    type.onchange=()=>{ if(type.value==='flat'){ amt.max='9.29'; amt.step='0.01'; amt.min='0.5'; amt.value='5'; } else { amt.max='92'; amt.step='1'; amt.min='1'; amt.value='20'; } };
     const months=el('select'); months.innerHTML='<option value="0">First payment</option><option value="3">First 3 months</option><option value="6">First 6 months</option><option value="12">First 12 months</option><option value="">Every payment</option>'; months.setAttribute('aria-label','Applies to');
     const days=el('select'); days.innerHTML='<option value="7">Expires in 7 days</option><option value="30" selected>Expires in 30 days</option><option value="90">Expires in 90 days</option><option value="">No expiry</option>'; days.setAttribute('aria-label','Expiry');
     row.append(type, amt, months, days);

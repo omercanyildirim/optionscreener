@@ -36,7 +36,8 @@ test('flat discounts are sent in cents; bad input is refused', async () => {
   await disc.createDiscount('b@example.com', { type: 'flat', amount: 5, months: 0, days: null });
   const c = calls.find(x => x.u.endsWith('/discounts'));
   assert.equal(c.body.amount, '500'); assert.equal(c.body.currency_code, 'USD'); assert.equal(c.body.recur, false); assert.equal(c.body.expires_at, null);
-  await assert.rejects(disc.createDiscount('b@example.com', { type: 'percentage', amount: 150 }), /between 1 and 100/);
+  await assert.rejects(disc.createDiscount('b@example.com', { type: 'percentage', amount: 150 }), /between 1 and 92/);
+  await assert.rejects(disc.createDiscount('b@example.com', { type: 'flat', amount: 9.98 }), /0.70/);
   await assert.rejects(disc.createDiscount('b@example.com', { type: 'flat', amount: 9.99 }), /below|between/);
 });
 
