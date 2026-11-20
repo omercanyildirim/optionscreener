@@ -143,6 +143,8 @@ function render(){ if (TAB==='payments') return renderPay();
 }
 
 /* ---------- payments (live from Paddle) ---------- */
+const PADDLE_UI='https://vendors.paddle.com';
+const pLink=(path,label)=>{ const a=el('a','plink',label); a.href=PADDLE_UI+path; a.target='_blank'; a.rel='noopener'; a.title='Open in Paddle'; a.onclick=e=>e.stopPropagation(); return a; };
 const TXS = { completed:'Paid', paid:'Paid', past_due:'Past due', canceled:'Canceled', billed:'Billed' };
 const SUBS = { active:'Active', past_due:'Past due', canceled:'Canceled', paused:'Paused', trialing:'Trial' };
 function userByEmail(e){ return ((DATA&&DATA.users)||[]).find(u=>u.email===e) || { email:e }; }
@@ -151,6 +153,7 @@ function renderPay(){
   if (P.error){ frag.append(el('p','err','Could not load payments: '+P.error)); main.replaceChildren(frag); return; }
   if (!P.configured){ frag.append(el('div','warn','Payments cannot be shown: PADDLE_API_KEY is not set in Vercel.')); main.replaceChildren(frag); return; }
   if (P.env==='sandbox') frag.append(el('div','warn','Sandbox: these are test payments, not real money. Real payments appear here once the site switches to Paddle production.'));
+  else { const lv=el('div','live'); lv.append(el('b',null,'Live'), document.createTextNode(' Real payments from your Paddle account. ')); const a=el('a',null,'Open Paddle dashboard'); a.href=PADDLE_UI; a.target='_blank'; a.rel='noopener'; lv.append(a); frag.append(lv); }
   const T = P.totals, stats = el('div','stats');
   const stat = (k,v,s) => { const d=el('div','stat'); d.append(el('div','k',k), el('div','v',String(v))); if(s) d.append(el('div','s',s)); stats.append(d); };
   stat('Monthly recurring revenue', money(T.mrr), `${T.active} active subscription${T.active===1?'':'s'}`);
@@ -179,30 +182,30 @@ function renderPay(){
   // payments
   const pBox = el('section'); const ph = el('div','sechead'); ph.append(el('h3',null,'Payments'), el('span','sp'));
   const q = el('input'); q.placeholder='Search email or invoice'; q.style.width='220px'; ph.append(q);
-  const pw = el('div','tw'); const pt = el('table'); pt.innerHTML='<thead><tr><th>Date</th><th>Customer</th><th>Type</th><th class="n">Amount</th><th class="n">Tax</th><th class="n">Paddle fee</th><th class="n">Net</th><th>Method</th><th>Status</th><th>Invoice</th></tr></thead>';
+  const pw = el('div','tw'); const pt = el('table'); pt.innerHTML='<thead><tr><th>Date</th><th>Customer</th><th>Type</th><th class="n">Amount</th><th class="n">Tax</th><th class="n">Paddle fee</th><th class="n">Net</th><th>Method</th><th>Status</th><th>Invoice</th><th></th></tr></thead>';
   const pb = el('tbody'); pt.append(pb); pw.append(pt); pBox.append(ph, pw);
   const paint = () => { const f=q.value.trim().toLowerCase(); pb.replaceChildren();
     const list = P.transactions.filter(t=>!f||t.email.toLowerCase().includes(f)||(t.invoice||'').toLowerCase().includes(f));
-    if(!list.length){ const tr=el('tr'), td=el('td','empty','No payments yet'); td.colSpan=10; tr.append(td); pb.append(tr); return; }
+    if(!list.length){ const tr=el('tr'), td=el('td','empty','No payments yet'); td.colSpan=11; tr.append(td); pb.append(tr); return; }
     for (const t of list){ const tr=el('tr','click'); tr.title='Show customer';
       const c=el('td','u'); c.append(el('b',null,t.name||t.email||'–'), el('span',null,t.name?t.email:''));
       const st = t.refunded ? `Refunded ${money(t.refunded,t.currency)}` : (TXS[t.status]||t.status);
       const inv = el('td'); if (t.invoice && ['paid','completed'].includes(t.status)) { const a=el('a',null,t.invoice); a.href='/api/admin?a=invoice&txn='+encodeURIComponent(t.id); a.target='_blank'; a.rel='noopener'; a.onclick=e=>e.stopPropagation(); inv.append(a); } else inv.textContent='–';
       tr.append(el('td','d',fmt(Date.parse(t.at))), c, el('td','m',t.origin==='subscription_recurring'?'Renewal':'New'), el('td','n',money(t.total,t.currency)), el('td','n m',money(t.tax,t.currency)),
-        el('td','n m',money(t.fee,t.currency)), el('td','n g',money(t.earnings,t.currency)), el('td','m',t.method||'–'), el('td',t.refunded||t.status==='past_due'?'r':'g',st), inv);
+        el('td','n m',money(t.fee,t.currency)), el('td','n g',money(t.earnings,t.currency)), el('td','m',t.method||'–'), el('td',t.refunded||t.status==='past_due'?'r':'g',st), inv, (()=>{ const d=el('td'); if(P.env!=='sandbox') d.append(pLink('/transactions-v2/'+encodeURIComponent(t.id),'Paddle')); return d; })());
       tr.onclick=()=>openUser(userByEmail(t.email)); pb.append(tr); } };
   q.addEventListener('input', paint); paint();
   // subscriptions
   const sBox = el('section'); const sh = el('div','sechead'); sh.append(el('h3',null,'Subscriptions'));
-  const sw = el('div','tw'); const stb = el('table'); stb.innerHTML='<thead><tr><th>Customer</th><th>Status</th><th class="n">Price</th><th>Since</th><th>Next payment</th></tr></thead>';
+  const sw = el('div','tw'); const stb = el('table'); stb.innerHTML='<thead><tr><th>Customer</th><th>Status</th><th class="n">Price</th><th>Since</th><th>Next payment</th><th></th></tr></thead>';
   const sb = el('tbody'); stb.append(sb); sw.append(stb); sBox.append(sh, sw);
-  if(!P.subscriptions.length){ const tr=el('tr'), td=el('td','empty','No subscriptions yet'); td.colSpan=5; tr.append(td); sb.append(tr); }
+  if(!P.subscriptions.length){ const tr=el('tr'), td=el('td','empty','No subscriptions yet'); td.colSpan=6; tr.append(td); sb.append(tr); }
   for (const x of P.subscriptions){ const tr=el('tr','click');
     const st = x.cancelAt ? `Ends ${day1(x.cancelAt)}` : (SUBS[x.status]||x.status);
     tr.append(el('td',null,x.email||x.customerId), el('td',x.status==='active'&&!x.cancelAt?'g':x.status==='past_due'?'r':'m',st), el('td','n',`${money(x.amount,x.currency)}/${x.interval}`),
-      el('td','d',day1(x.startedAt)), el('td','d',x.status==='active'&&!x.cancelAt?day1(x.nextBill):'–'));
+      el('td','d',day1(x.startedAt)), el('td','d',x.status==='active'&&!x.cancelAt?day1(x.nextBill):'–'), (()=>{ const d=el('td'); if(P.env!=='sandbox') d.append(pLink('/subscriptions-v2/'+encodeURIComponent(x.id),'Paddle')); return d; })());
     tr.onclick=()=>openUser(userByEmail(x.email)); sb.append(tr); }
-  const grid = el('div','grid'); grid.append(pBox, sBox); frag.append(grid);
+  pBox.style.marginBottom='30px'; frag.append(pBox, sBox);
   main.replaceChildren(frag);
 }
 
