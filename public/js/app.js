@@ -434,8 +434,11 @@ function buildChain(scroll){
     S.chainRows.push(row); frag.appendChild(tr); }
   tb.appendChild(frag); $('#chainInfo').textContent=`${S.und} · ${ks.length} strikes`;
   S.lastItm=null; updateItm();
-  if(scroll){ const a=S.chainRows.find(r=>r.tr.classList.contains('atm')), w=$('#chainWrap'); if(a) w.scrollTop=Math.max(0,a.tr.offsetTop-w.clientHeight/2); }
+  if(scroll){ S.atmScroll=true; scrollAtm(); }
 }
+// Centre the at-the-money strike. If the chain is hidden (another view is open) it is done when the chain is shown.
+function scrollAtm(){ const w=$('#chainWrap'); if(!S.atmScroll||!w||!w.clientHeight) return; const a=S.chainRows.find(r=>r.tr.classList.contains('atm')); if(!a) return;
+  S.atmScroll=false; if(w.scrollHeight>w.clientHeight+4) w.scrollTop=Math.max(0,a.tr.offsetTop-w.clientHeight/2); else a.tr.scrollIntoView({block:'center'}); }
 function updateItm(){ const p=S.uPrice; if(!ok(p)||p===S.lastItm||!S.chainRows.length) return; S.lastItm=p;
   let best=null,bd=Infinity; for(const r of S.chainRows){ const d=Math.abs(r.k-p); if(d<bd){bd=d;best=r;} }
   for(const r of S.chainRows){ r.tr.classList.toggle('atm',r===best); r.c.forEach(td=>td.classList.toggle('itm',r.k<p)); r.p.forEach(td=>td.classList.toggle('itm',r.k>p)); } }
@@ -700,7 +703,8 @@ function view(v){ if(cur!==v) track('view',VTITLE[v]||v); cur=v; P.view=v; saveP
   document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v)); $('#vtitle').textContent=VTITLE[v];
   $('#app').classList.toggle('nofeed',v!=='flow'); $('#openFilters').style.display=v==='flow'?'':'none';
   document.body.classList.toggle('v-community',v==='community'); if(v==='community'&&!locked(v)&&window.OSCommunity) OSCommunity.show();
-  if(v==='screener') S.scrForce=true; if(v==='charts') S.lastCharts=0; if(v==='tracked') S.trkForce=true; if(v==='flow') S.flowDirty=true; if(v==='chain') renderUStats(); }
+  if(v==='screener') S.scrForce=true; if(v==='charts') S.lastCharts=0; if(v==='tracked') S.trkForce=true; if(v==='flow') S.flowDirty=true; if(v==='chain'){ renderUStats(); requestAnimationFrame(scrollAtm); }
+  if(S.flowNote){ if(v==='flow'&&!$('#msg').textContent) note(S.flowNote); else if(v!=='flow'&&$('#msg').textContent===S.flowNote) note(''); } }
 document.querySelectorAll('.rail [data-view]').forEach(b=>b.onclick=()=>view(b.dataset.view));
 function flush(){ const now=performance.now();
   for(const t of S.dirty){ const c=S.contracts.get(t)||S.trk.get(t); if(!c) continue;
@@ -879,12 +883,14 @@ async function load(und){
   und=(und||'').trim().toUpperCase(); if(!und) return;
   S.gen++; const gen=S.gen; S.timers.forEach(clearInterval); S.timers=[];
   S.und=und; P.und=und; saveP(); track('chain',und); $('#tk').value='';
-  PX.key=''; PX.bars=[]; pcLoad();
-  S.contracts.clear(); S.dirty.clear(); S.scrRows.clear(); $('#scrBody').innerHTML=''; S.scrTop=[]; S.selExp=null;
-  S.uPrice=null; S.uChg=null; S.uChgPct=null; S.delayed=null; S.optT=0;
+  // Reset everything tied to the previous symbol first, so the chart, the stats and the chain never show two symbols at once.
+  S.contracts.clear(); S.dirty.clear(); S.scrRows.clear(); $('#scrBody').innerHTML=''; S.scrTop=[]; S.selExp=null; S.chainRows=[]; S.cellMap.clear(); S.starMap.clear();
+  S.uPrice=null; S.uChg=null; S.uChgPct=null; S.delayed=null; S.optT=0; S.lastItm=null;
+  $('#chainBody').innerHTML=`<tr><td colspan="17" class="empty">Loading ${und}…</td></tr>`; $('#chainInfo').textContent=und; $('#expSel').innerHTML='';
+  if($('#scrInfo')) $('#scrInfo').textContent=und; renderUStats();
+  PX.key=''; PX.bars=[]; $('#pcPx').textContent=''; $('#pcChg').textContent=''; pcLoad();
   buildStocks(); S.trkForce=true;
   if(DEMO){ S.uPrice=DSPOT[und]||UNIV[und]||100+Math.random()*200; startDemoChain(); takePending(); buildExpSel(); buildChain(true); S.scrForce=true; buildStocks(); return; }
-  $('#chainBody').innerHTML='<tr><td colspan="17" class="empty">Loading…</td></tr>';
   try{
     try{ await fetchStocks(); }catch(e){ note('Could not load stock data: '+e.message,true); }
     if(!ok(S.uPrice)){ try{ const j=await massive(`v2/aggs/ticker/${und}/prev`); const b=j.results&&j.results[0]; if(b) S.uPrice=b.c; }catch(e){} }
@@ -1133,8 +1139,9 @@ async function init(){
   { const v0=P.view||'flow'; view(locked(v0)?'chain':v0); } // free users start on the free chain view
   if(DEMO){ setStatus('demo'); note('Showing sample data: trades, prices and volumes are simulated, not real market data.'); startDemoFlow(); }
   else { setStatus('loading');
-    if(CFG.provider==='alpaca'){ note('Flow shows the latest print of each contract for your watchlist and the 20 most active stocks. On the free Alpaca plan option trades arrive about 15 minutes late.'); refreshActive(); S.flowTimers.push(setInterval(refreshActive,300e3)); }
-    else note('Live flow is derived from volume changes in your watchlist\'s option chains (approximate; sweeps and splits cannot be told apart).');
+    if(CFG.provider==='alpaca'){ S.flowNote=('Flow shows the latest print of each contract for your watchlist and the 20 most active stocks. On the free Alpaca plan option trades arrive about 15 minutes late.'); refreshActive(); S.flowTimers.push(setInterval(refreshActive,300e3)); }
+    else S.flowNote=('Live flow is derived from volume changes in your watchlist\'s option chains (approximate; sweeps and splits cannot be told apart).');
+    if(cur==='flow') note(S.flowNote);
     S.flowTimers.push(setInterval(liveFlowTick,CFG.provider==='alpaca'?Math.max(4000,CFG.pollMs*1.5):CFG.pollMs)); }
   try{ if(sessionStorage.getItem('os_welcome')){ sessionStorage.removeItem('os_welcome'); note('Welcome to Pro. Everything is unlocked.'); } }catch(e){}
   if(!S.walled) load(P.und);
