@@ -7,6 +7,7 @@ import { txnRow, invoicePdf } from '../lib/payments.js';
 import { sendPaymentEmailOnce } from '../lib/mail.js';
 import { storeConfigured, cmd } from '../lib/store.js';
 import { logEvent } from '../lib/activity.js';
+import { markUsed } from '../lib/discounts.js';
 
 const action = request => new URL(request.url).searchParams.get('a') || '';
 
@@ -62,6 +63,7 @@ async function onPayment(d) {
   const t = txnRow(d), sub = await getSubscription(email);
   let name = ''; try { name = (await cmd(['HGET', `os:u:${email}`, 'givenName'])) || (await cmd(['HGET', `os:u:${email}`, 'name'])) || ''; } catch {}
   await logEvent(email, 'payment', `${t.total != null ? t.total.toFixed(2) : '?'} ${t.currency} ${t.invoice || d.id}`);
+  if (d.discount_id && await markUsed(email, d.discount_id)) await logEvent(email, 'discount', 'Discount used on ' + (t.invoice || d.id));
   const m = await sendPaymentEmailOnce(d.id, email, {
       name, amount: t.total, tax: t.tax, currency: t.currency, paidAt: t.at || new Date().toISOString(),
       nextBill: sub && sub.nextBill, invoice: t.invoice, method: t.method, renewal: d.origin === 'subscription_recurring',

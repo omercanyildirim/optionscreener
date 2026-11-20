@@ -8,6 +8,7 @@ import { logEvent, overview, userDetail } from '../lib/activity.js';
 import { alpacaConfigured } from '../lib/alpaca.js';
 import { paymentsOverview, invoiceUrl, liveCheck } from '../lib/payments.js';
 import { setComp } from '../lib/billing.js';
+import { getDiscount, createDiscount, removeDiscount, describe } from '../lib/discounts.js';
 
 const action = request => new URL(request.url).searchParams.get('a') || '';
 
@@ -18,6 +19,7 @@ export async function GET(request) {
   if (a === 'payments') return paymentsGet(request);
   if (a === 'invoice') return invoiceGet(request);
   if (a === 'livecheck') return liveCheckGet(request);
+  if (a === 'discount') return discountGet(request);
   return json({ error: 'not found' }, 404);
 }
 export async function POST(request) {
@@ -25,6 +27,7 @@ export async function POST(request) {
   if (a === 'setup') return setup(request);
   if (a === 'verify') return verifyPost(request);
   if (a === 'comp') return compPost(request);
+  if (a === 'discount') return discountPost(request);
   return json({ error: 'not found' }, 404);
 }
 export async function DELETE(request) {
@@ -123,6 +126,26 @@ async function invoiceGet(request) {
   } catch (e) { return json({ error: e.message }, e.status === 400 ? 400 : 502); }
 }
 // Give or remove free Pro for a user: { email, on, until?, note? }
+async function discountGet(request) {
+  if (!(await getVerifiedAdmin(request))) return json({ error: 'forbidden' }, 403);
+  const d = await getDiscount(new URL(request.url).searchParams.get('email'));
+  return json({ discount: d ? { ...d, label: describe(d) } : null });
+}
+async function discountPost(request) {
+  const admin = await getVerifiedAdmin(request);
+  if (!admin) return json({ error: 'forbidden' }, 403);
+  if (!storeConfigured()) return json({ error: 'Database is not connected' }, 503);
+  let b = {}; try { b = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+  const email = String(b.email || '').trim().toLowerCase();
+  try {
+    if (b.remove) { const old = await removeDiscount(email); if (old) await logEvent(email, 'discount', 'Discount removed: ' + old.code); return json({ ok: true, discount: null }); }
+    const months = b.months === null || b.months === '' || b.months === undefined ? null : Number(b.months);
+    const days = b.days === null || b.days === '' || b.days === undefined ? null : Number(b.days);
+    const d = await createDiscount(email, { type: b.type, amount: b.amount, months, days, note: b.note, by: admin.email || '' });
+    await logEvent(email, 'discount', `Discount ${d.code}: ${describe(d)}${d.note ? ' (' + d.note + ')' : ''}`);
+    return json({ ok: true, discount: { ...d, label: describe(d) } });
+  } catch (e) { return json({ error: e.message }, e.status || 500); }
+}
 async function compPost(request) {
   const admin = await getVerifiedAdmin(request);
   if (!admin) return json({ error: 'forbidden' }, 403);

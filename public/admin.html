@@ -45,6 +45,7 @@ main{padding:24px 28px 48px;max-width:1500px}
 .stat .s{color:var(--muted);font-size:12px;margin-top:4px}
 .note{color:var(--muted);font-size:13px;margin:-10px 0 22px}
 .live{border-left:2px solid var(--call);padding:8px 12px;font-size:13px;margin:0 0 22px;background:rgba(79,209,161,.06);color:var(--muted)} .live b{color:var(--call);margin-right:4px} .live a{color:var(--text)}
+.code1{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em;color:var(--text)}
 .plink{font-size:12px;color:var(--muted)} .plink:hover{color:var(--text)}
 .warn{border-left:2px solid var(--sweep);padding:8px 12px;color:var(--text);font-size:13px;margin:0 0 22px;background:rgba(227,191,107,.06)}
 h3{font-size:15px;font-weight:600;margin:0;display:flex;align-items:center;gap:10px}
@@ -63,7 +64,7 @@ tbody tr.click{cursor:pointer} tbody tr.click:hover td{background:var(--hover)}
 .tabs button{border:0;background:none;padding:10px 14px;font-weight:500;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs button:hover{color:var(--text)} .tabs button.on{color:var(--text);border-bottom-color:var(--text)}
 td a{color:var(--text)}
-.comp p{margin:0 0 10px;font-size:13.5px} .crow{display:flex;flex-wrap:wrap;gap:8px} .crow input[type=text],.crow input:not([type]){flex:1;min-width:160px}
+.comp p{margin:0 0 10px;font-size:13.5px} .crow{display:flex;flex-wrap:wrap;gap:8px} .crow+.crow{margin-top:8px} .crow input[type=text],.crow input:not([type]){flex:1;min-width:160px}
 .sec > p{margin:0 0 10px;font-size:13.5px}
 .sec table{margin-top:4px}
 .tag{font-size:12px;border:1px solid var(--line2);border-radius:4px;padding:1px 7px;color:var(--muted)}

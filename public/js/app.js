@@ -603,6 +603,7 @@ function openGate(kind,limit){ const b=CFG.billing; if(!b||(!b.paddle&&b.checkou
   const whole=kind==='limit'||kind==='upgrade'||kind==='insight', [t,l]=GATE_TXT[kind]||GATE_TXT.upgrade;
   $('#gateT').textContent=t; $('#gateLead').textContent=typeof l==='function'?l(limit||(CFG.free&&CFG.free.limit)||3):l;
   $('#gateX').hidden=kind==='limit';
+  { const d=b.discount, g=$('#gateDisc'); g.hidden=!d; g.textContent=d?`Your personal discount: ${d.label}. Applied automatically at checkout.`:''; }
   document.body.classList.toggle('gate-all',whole); document.body.classList.toggle('gate-main',!whole);
   $('#app').inert=whole; $('.main').inert=!whole; if(!whole) $('#feed').inert=true;
   $('#gate').hidden=false; closeAcct(); closeMenu(); if(GATE!==kind) track('view','Paywall: '+kind); GATE=kind; mountCheckout(); }
@@ -619,7 +620,7 @@ async function mountCheckout(){ const st=$('#gateState'); $('.gbox').classList.r
   if(!CFG.billing.paddle){ st.className='gstate'; st.textContent='Pro checkout opens soon. Until then, the free plan includes '+((CFG.free&&CFG.free.limit)||3)+' symbols a day.'; return; }
   st.className='gstate'; st.textContent='Loading secure checkout…';
   try{ await loadPaddle(); const b=CFG.billing.paddle;
-    Paddle.Checkout.open({ items:[{priceId:b.priceId,quantity:1}], customData:b.customData,
+    Paddle.Checkout.open({ items:[{priceId:b.priceId,quantity:1}], customData:b.customData, ...(b.discount?{discountId:b.discount.id}:{}),
       customer:{ email:b.customData.email, ...(b.country?{address:{countryCode:b.country}}:{}) },
       settings:{ displayMode:'inline', frameTarget:'pay-frame', frameInitialHeight:420, frameStyle:'width:100%;min-width:260px;background-color:transparent;border:none;',
         theme:'dark', locale:'en', variant:'one-page', allowLogout:false, showAddDiscounts:false } });

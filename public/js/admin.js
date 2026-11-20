@@ -243,6 +243,30 @@ async function openUser(u){
     try { const r = await api('/api/admin?a=comp',{method:'POST',body:JSON.stringify({email:u.email,on,until,note})}); u.comp=r.comp; u.plan=on?'Pro (free)':(u.sub&&['active','trialing','past_due'].includes(u.sub.status)?'Pro':'Free'); paintComp(r.comp); load(); }
     catch(e){ err.textContent=e.message; } }
   paintComp(u.comp); sp.append(compBox);
+  // personal discount (Paddle discount code, single use, applied automatically at this user's checkout)
+  const sd = sec('Discount'); const dBox = el('div','comp'); const dErr = el('div','err'); sd.append(dBox, dErr);
+  const paintDisc = d => { dBox.replaceChildren();
+    if (d) {
+      const p1 = el('p','g'); p1.append(document.createTextNode(`${d.label}. Code `), el('b','code1',d.code), document.createTextNode(d.expiresAt?`, expires ${day1(d.expiresAt)} if unused.`:', no expiry.'));
+      dBox.append(p1, el('p','m',`Applied automatically when this user opens checkout. Single use${d.note?` · ${d.note}`:''}.`));
+      const row=el('div','crow'); const cp=el('button','btn','Copy code'); cp.onclick=async()=>{ try{ await navigator.clipboard.writeText(d.code); cp.textContent='Copied'; }catch(e){} };
+      const rm=el('button','btn','Remove discount'); rm.onclick=()=>saveDisc({remove:true}); row.append(cp, rm); dBox.append(row); return; }
+    dBox.append(el('p','m','Give this user a discount on Pro. It is applied automatically at their checkout and works only once.'));
+    const row=el('div','crow');
+    const type=el('select'); type.innerHTML='<option value="percentage">% off</option><option value="flat">$ off</option>'; type.setAttribute('aria-label','Discount type');
+    const amt=el('input'); amt.type='number'; amt.min='1'; amt.max='100'; amt.step='1'; amt.value='20'; amt.style.width='80px'; amt.setAttribute('aria-label','Amount');
+    type.onchange=()=>{ if(type.value==='flat'){ amt.max='9.98'; amt.step='0.5'; amt.min='0.5'; amt.value='5'; } else { amt.max='100'; amt.step='1'; amt.min='1'; amt.value='20'; } };
+    const months=el('select'); months.innerHTML='<option value="0">First payment</option><option value="3">First 3 months</option><option value="6">First 6 months</option><option value="12">First 12 months</option><option value="">Every payment</option>'; months.setAttribute('aria-label','Applies to');
+    const days=el('select'); days.innerHTML='<option value="7">Expires in 7 days</option><option value="30" selected>Expires in 30 days</option><option value="90">Expires in 90 days</option><option value="">No expiry</option>'; days.setAttribute('aria-label','Expiry');
+    row.append(type, amt, months, days);
+    const row2=el('div','crow'); const nt=el('input'); nt.placeholder='Note (optional), e.g. early user'; nt.maxLength=200;
+    const go=el('button','btn pri','Create discount'); go.onclick=()=>{ go.disabled=true; saveDisc({type:type.value, amount:Number(amt.value), months:months.value===''?null:Number(months.value), days:days.value===''?null:Number(days.value), note:nt.value}).finally(()=>{go.disabled=false;}); };
+    row2.append(nt, go); dBox.append(row, row2); };
+  async function saveDisc(body){ dErr.textContent='';
+    try { const r = await api('/api/admin?a=discount',{method:'POST',body:JSON.stringify({email:u.email, ...body})}); paintDisc(r.discount); }
+    catch(e){ dErr.textContent=e.message; } }
+  dBox.append(el('p','m','Loading…'));
+  api('/api/admin?a=discount&email='+encodeURIComponent(u.email)).then(r=>paintDisc(r.discount)).catch(e=>{ dBox.replaceChildren(); dErr.textContent=e.message; });
   const sm = sec('Email updates'); sm.append(el('p',u.marketing?'g':'m', u.marketing?`Agreed to product emails on ${fmt(Date.parse(u.marketingAt))} (${u.marketingHow||'–'}).`:'Has not agreed to product emails. Payment and account emails are still sent.'));
   const spay = sec('Payments');
   const mine = PAY && PAY.transactions ? PAY.transactions.filter(t=>t.email===u.email) : null;
