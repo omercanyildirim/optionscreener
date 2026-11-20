@@ -22,7 +22,7 @@ a{color:inherit}
 /* hero */
 .hero{padding-top:88px;padding-bottom:56px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:56px;align-items:center}
 .hero h1{font-size:60px;line-height:1;letter-spacing:-.03em;font-weight:500;margin:0 0 22px;font-variation-settings:"wdth" 125}
-.hero .lede{font-size:19px;color:var(--body);margin:0 0 30px;max-width:540px}
+.hero .lede{font-size:19px;color:var(--body);margin:0 0 30px;max-width:600px}
 .cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .cta .fine{color:var(--muted);font-size:13px;flex-basis:100%;margin-top:4px}
 /* example tape */
@@ -37,8 +37,8 @@ a{color:inherit}
 .g{color:var(--call)} .r{color:var(--put)} .y{color:var(--sweep)} .b{color:var(--block)} .p{color:var(--split)} .m{color:var(--muted)}
 /* sections */
 section.band{padding:72px 0;border-top:1px solid var(--line)}
-.band h2{font-size:34px;line-height:1.1;letter-spacing:-.02em;font-weight:500;margin:0 0 14px;font-variation-settings:"wdth" 115;max-width:720px}
-.band .intro{color:var(--body);font-size:17px;max-width:680px;margin:0 0 40px}
+.band h2{font-size:34px;line-height:1.1;letter-spacing:-.02em;font-weight:500;margin:0 0 14px;font-variation-settings:"wdth" 115}
+.band .intro{color:var(--body);font-size:17px;max-width:900px;margin:0 0 40px}
 .fc{position:relative}
 .fc-nav{display:flex;justify-content:flex-end;gap:8px;margin:-6px 0 14px}
 .fc-b{width:38px;height:38px;border-radius:50%;border:1px solid var(--line2);background:transparent;color:var(--text);display:grid;place-items:center;cursor:pointer;transition:background .12s,border-color .12s,opacity .12s}
@@ -74,13 +74,13 @@ section.band{padding:72px 0;border-top:1px solid var(--line)}
 .plan li::before{content:"";position:absolute;left:3px;top:6px;width:10px;height:5px;border-left:1.6px solid var(--call);border-bottom:1.6px solid var(--call);transform:rotate(-45deg)}
 .plan .btn{margin-top:auto;align-self:stretch;min-height:48px;font-size:15px}
 /* faq */
-.faq{max-width:780px;border-top:1px solid var(--line)}
+.faq{border-top:1px solid var(--line)}
 .faq details{border-bottom:1px solid var(--line)}
 .faq summary{cursor:pointer;list-style:none;padding:18px 32px 18px 0;font-weight:500;font-size:16.5px;position:relative}
 .faq summary::-webkit-details-marker{display:none}
 .faq summary::after{content:"+";position:absolute;right:4px;top:15px;color:var(--muted);font-size:20px;font-weight:400}
 .faq details[open] summary::after{content:"–"}
-.faq details p{color:var(--body);margin:0 0 18px;max-width:700px}
+.faq details p{color:var(--body);margin:0 0 18px;max-width:960px}
 /* article (guides) */
 .article{max-width:760px;padding:64px 0 40px}
 .crumbs{font-size:13px;color:var(--muted);margin-bottom:18px} .crumbs a{color:var(--muted)}
