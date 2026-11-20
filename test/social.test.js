@@ -153,3 +153,31 @@ test('posting rate limit', { skip }, async () => {
     assert.equal((await call('/api/social?a=post', 'a@example.com', { body: 'three' })).status, 429);
   } finally { S.LIMITS.postsPerHour = old; }
 });
+
+test('photos: upload, attach to a post, who can see them, limits', { skip }, async () => {
+  for (const [e, u] of [['a@example.com', 'alice'], ['b@example.com', 'bob']]) { await pro(e); await call('/api/social?a=profile', e, { username: u }); }
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from('fake jpeg body '.repeat(20))]).toString('base64');
+  const up = async (email, extra = {}) => call('/api/social?a=upload', email, { data: jpeg, mime: 'image/jpeg', width: 800, height: 600, ...extra });
+  const m1 = (await up('a@example.com')).j, m2 = (await up('a@example.com')).j;
+  assert.match(m1.id, /^[a-f0-9]{24}$/);
+  assert.equal((await up('a@example.com', { mime: 'image/png' })).status, 400, 'content must match the type');
+  assert.equal((await up('a@example.com', { data: Buffer.from('<svg/>').toString('base64'), mime: 'image/svg+xml' })).status, 400);
+  // before posting only the owner can load it
+  const media = async (email, id) => (await api.GET(await req(`/api/social?a=media&id=${id}`, email)));
+  let r = await media('a@example.com', m1.id); assert.equal(r.status, 200); assert.equal(r.headers.get('content-type'), 'image/jpeg');
+  assert.deepEqual(Buffer.from(await r.arrayBuffer()).toString('base64'), jpeg);
+  assert.equal((await media('b@example.com', m1.id)).status, 404);
+  // someone else cannot attach my photo
+  assert.equal((await call('/api/social?a=post', 'b@example.com', { body: 'mine now', mediaIds: [m1.id] })).status, 400);
+  // photo-only post with two photos
+  const p = (await call('/api/social?a=post', 'a@example.com', { body: '', mediaIds: [m1.id, m2.id] })).j.post;
+  assert.deepEqual(p.media.map(x => x.id), [m1.id, m2.id]); assert.equal(p.media[0].w, 800);
+  assert.equal((await media('b@example.com', m1.id)).status, 200, 'visible once posted');
+  assert.equal((await call('/api/social?a=feed', 'b@example.com')).j.posts[0].media.length, 2);
+  assert.equal((await call('/api/social?a=post', 'a@example.com', { body: 'again', mediaIds: [m1.id] })).status, 400, 'a photo is used once');
+  assert.equal((await call('/api/social?a=post', 'a@example.com', { body: '' })).status, 400);
+  assert.equal((await call('/api/social?a=post', 'a@example.com', { body: 'x', mediaIds: ['a'.repeat(24), 'b'.repeat(24), 'c'.repeat(24), 'd'.repeat(24), 'e'.repeat(24)] })).status, 400);
+  // deleted post hides its photos
+  await call('/api/social?a=delete', 'a@example.com', { id: p.id });
+  assert.equal((await media('b@example.com', m1.id)).status, 404);
+});

@@ -43,6 +43,8 @@
     reply: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
     like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
     more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
+    photo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 15.5l-5-5-8 8.5"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
   };
   const iconBtn = (cls, svg, label) => { const b = h('button', cls); b.innerHTML = svg; b.setAttribute('aria-label', label); b.title = label; return b; };
@@ -59,7 +61,8 @@
     head.append(nm, un, dot, tm);
     body.append(head);
     if (p.reply_to && !focus) { const rt = h('div', 'cm-rt', 'Replying to '); const b = h('button', 'cm-tok', '@' + p.reply_to); b.onclick = e => { e.stopPropagation(); go({ kind: 'user', arg: p.reply_to }); }; rt.append(b); body.append(rt); }
-    const txt = h('p', 'cm-text'); txt.append(richText(p.body)); body.append(txt);
+    if (p.body) { const txt = h('p', 'cm-text'); txt.append(richText(p.body)); body.append(txt); }
+    if (p.media && p.media.length) body.append(photos(p.media));
     const acts = h('div', 'cm-acts');
     const rep = iconBtn('cm-act', ICON.reply, 'Reply'); rep.append(h('span', null, p.replies ? String(p.replies) : ''));
     rep.onclick = e => { e.stopPropagation(); go({ kind: 'post', id: p.id, reply: true }); };
@@ -78,7 +81,7 @@
     const item = (label, fn, danger) => { const b = h('button', danger ? 'danger' : '', label); b.setAttribute('role', 'menuitem'); b.onclick = e => { e.stopPropagation(); closeMenu(); fn(); }; m.append(b); };
     if (p.mine) item('Delete post', async () => { if (!confirmBox('Delete this post? This cannot be undone.')) return; try { await api('delete', {}, { id: p.id }); art.remove(); toast('Post deleted'); if (ROUTE.kind === 'post' && ROUTE.id === p.id) back(); } catch (er) { toast(er.message, true); } }, true);
     else item('Report post', () => reportBox(p));
-    item('Copy text', () => { navigator.clipboard && navigator.clipboard.writeText(p.body).then(() => toast('Copied')); });
+    if (p.body) item('Copy text', () => { navigator.clipboard && navigator.clipboard.writeText(p.body).then(() => toast('Copied')); });
     anchor.parentElement.append(m); setTimeout(() => document.addEventListener('click', closeMenu, { once: true }), 0);
   }
   const closeMenu = () => root.querySelectorAll('.cm-menu').forEach(m => m.remove());
@@ -90,20 +93,73 @@
   }
 
   /* ---------- composer ---------- */
+  // Photos are resized and re-encoded in the browser (max 1600 px, JPEG): smaller uploads, and EXIF/GPS data is dropped.
+  async function shrink(file) {
+    if (!/^image\//.test(file.type)) throw new Error('Choose a photo (JPEG, PNG, WebP or HEIC).');
+    let bmp; try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch { throw new Error('This photo format is not supported by your browser.'); }
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)), w = Math.max(1, Math.round(bmp.width * k)), hh = Math.max(1, Math.round(bmp.height * k));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = hh; const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, hh); cx.drawImage(bmp, 0, 0, w, hh); bmp.close && bmp.close();
+    let q = 0.86, blob;
+    do { blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', q)); q -= 0.12; } while (blob && blob.size > 1400 * 1024 && q > 0.4);
+    if (!blob || blob.size > 1500 * 1024) throw new Error('That photo is too large.');
+    const data = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
+    return { data, mime: 'image/jpeg', width: w, height: hh, url: URL.createObjectURL(blob) };
+  }
   function composer({ parentId = null, placeholder = "What's moving? Tag tickers like $NVDA", onDone, autofocus = false } = {}) {
     const box = h('div', 'cm-compose'); box.append(avatar(ME));
     const col = h('div', 'cm-ccol');
     const ta = h('textarea'); ta.placeholder = placeholder; ta.maxLength = MAX + 50; ta.rows = parentId ? 2 : 3; ta.setAttribute('aria-label', parentId ? 'Write a reply' : 'Write a post');
+    const thumbs = h('div', 'cm-thumbs'); const media = []; // {id, url, busy, el}
     const foot = h('div', 'cm-cfoot'), cnt = h('span', 'cm-count'), send = h('button', 'btn dark cm-send', parentId ? 'Reply' : 'Post');
-    const upd = () => { const n = ta.value.trim().length; cnt.textContent = n > MAX - 60 ? String(MAX - n) : ''; cnt.classList.toggle('over', n > MAX); send.disabled = !n || n > MAX;
+    const file = h('input'); file.type = 'file'; file.accept = 'image/*'; file.multiple = true; file.hidden = true;
+    const pick = iconBtn('cm-act cm-pick', ICON.photo, 'Add photos'); pick.onclick = () => file.click();
+    const upd = () => { const n = ta.value.trim().length, ready = media.length && media.every(m => m.id); cnt.textContent = n > MAX - 60 ? String(MAX - n) : ''; cnt.classList.toggle('over', n > MAX);
+      send.disabled = (!n && !ready) || n > MAX || media.some(m => !m.id); pick.disabled = media.length >= 4; thumbs.hidden = !media.length;
       ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 320) + 'px'; };
+    async function add(files) {
+      for (const f of [...files].slice(0, 4 - media.length)) {
+        const m = { id: null, url: '', el: h('div', 'cm-thumb busy') }; media.push(m); thumbs.append(m.el);
+        const x = iconBtn('cm-tx', ICON.x, 'Remove photo'); x.onclick = () => { media.splice(media.indexOf(m), 1); m.el.remove(); if (m.url) URL.revokeObjectURL(m.url); upd(); };
+        m.el.append(x); upd();
+        try { const r = await shrink(f); m.url = r.url; const img = h('img'); img.src = r.url; img.alt = ''; m.el.prepend(img);
+          const u = await api('upload', {}, { data: r.data, mime: r.mime, width: r.width, height: r.height }); m.id = u.id; m.el.classList.remove('busy'); }
+        catch (er) { toast(er.message, true); x.click(); }
+        upd();
+      }
+      if (files.length > 4) toast('Up to 4 photos per post');
+    }
+    file.onchange = () => { add(file.files); file.value = ''; };
+    ta.addEventListener('paste', e => { const fs = [...(e.clipboardData && e.clipboardData.files || [])].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); add(fs); } });
+    box.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); box.classList.add('drop'); } });
+    box.addEventListener('dragleave', () => box.classList.remove('drop'));
+    box.addEventListener('drop', e => { e.preventDefault(); box.classList.remove('drop'); add([...e.dataTransfer.files].filter(f => /^image\//.test(f.type))); });
     ta.oninput = upd; ta.onkeydown = e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !send.disabled) send.click(); };
     send.onclick = async () => { send.disabled = true;
-      try { const r = await api('post', {}, { body: ta.value, parentId }); ta.value = ''; upd(); onDone && onDone(r.post); toast(parentId ? 'Reply posted' : 'Posted'); }
+      try { const r = await api('post', {}, { body: ta.value, parentId, mediaIds: media.map(m => m.id) }); ta.value = '';
+        media.splice(0).forEach(m => { if (m.url) URL.revokeObjectURL(m.url); }); thumbs.replaceChildren(); upd(); onDone && onDone(r.post); toast(parentId ? 'Reply posted' : 'Posted'); }
       catch (er) { toast(er.message, true); upd(); } };
-    foot.append(h('span', 'cm-hint', 'Ctrl + Enter to post'), h('span', 'sp'), cnt, send); col.append(ta, foot); box.append(col); upd();
+    foot.append(pick, file, h('span', 'cm-hint', 'Ctrl + Enter to post'), h('span', 'sp'), cnt, send); col.append(ta, thumbs, foot); box.append(col); upd();
     if (autofocus) setTimeout(() => ta.focus(), 30);
     return box;
+  }
+  // Photo grid in a post: 1 photo keeps its shape (up to a height), 2-4 photos share a grid.
+  function photos(list) {
+    const g = h('div', 'cm-photos n' + list.length);
+    list.forEach((m, i) => { const b = h('button', 'cm-ph'); b.setAttribute('aria-label', `Open photo ${i + 1} of ${list.length}`);
+      const img = h('img'); img.src = '/api/social?a=media&id=' + m.id; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
+      if (list.length === 1) b.style.aspectRatio = `${m.w} / ${m.h}`;
+      b.append(img); b.onclick = e => { e.stopPropagation(); lightbox(list, i); }; g.append(b); });
+    return g;
+  }
+  function lightbox(list, i) {
+    const d = h('div', 'cm-lb'); d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Photo');
+    const img = h('img'); const close = iconBtn('cm-lbx', ICON.x, 'Close');
+    const prev = iconBtn('cm-lbn prev', ICON.back, 'Previous photo'), next = iconBtn('cm-lbn next', ICON.back, 'Next photo');
+    const show = k => { i = (k + list.length) % list.length; img.src = '/api/social?a=media&id=' + list[i].id; prev.hidden = next.hidden = list.length < 2; };
+    const done = () => { d.remove(); document.removeEventListener('keydown', key); };
+    const key = e => { if (e.key === 'Escape') done(); if (e.key === 'ArrowRight') show(i + 1); if (e.key === 'ArrowLeft') show(i - 1); };
+    prev.onclick = e => { e.stopPropagation(); show(i - 1); }; next.onclick = e => { e.stopPropagation(); show(i + 1); }; close.onclick = done; d.onclick = e => { if (e.target === d) done(); };
+    d.append(img, prev, next, close); document.body.append(d); document.addEventListener('keydown', key); show(i); close.focus();
   }
 
   /* ---------- screens ---------- */

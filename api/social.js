@@ -1,7 +1,8 @@
 // Community API for Pro members. GET reads, POST writes. Every call needs a signed-in Pro member.
 //   GET  ?a=me | ?a=check&u= | ?a=feed&scope=all|following|ticker|user&arg=&before= | ?a=post&id= | ?a=user&u=
-//   POST ?a=profile {username, displayName, bio} | ?a=post {body, parentId} | ?a=delete {id} | ?a=like {id, on}
-//        ?a=follow {username, on} | ?a=report {id, reason}
+//   POST ?a=profile {username, displayName, bio} | ?a=post {body, parentId, mediaIds} | ?a=delete {id} | ?a=like {id, on}
+//        ?a=follow {username, on} | ?a=report {id, reason} | ?a=upload {data (base64), mime, width, height} -> {id}
+//   GET  ?a=media&id= -> the photo itself (only when its post is visible to the viewer)
 import { getSession, json } from '../lib/session.js';
 import { planFor, paywallOn } from '../lib/billing.js';
 import { storeConfigured, cmd } from '../lib/store.js';
@@ -27,6 +28,10 @@ export async function GET(request) {
     if (a === 'check') return json(await S.usernameFree(q.get('u'), s.email));
     if (a === 'feed') return json(await S.feed(s.email, { scope: q.get('scope') || 'all', arg: q.get('arg') || '', before: q.get('before') }));
     if (a === 'post') return json(await S.thread(s.email, q.get('id')));
+    if (a === 'media') {
+      const m = await S.getMedia(s.email, q.get('id'));
+      return new Response(m.bytes, { headers: { 'content-type': m.mime, 'cache-control': 'private, max-age=31536000, immutable', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; sandbox" } });
+    }
     if (a === 'user') {
       const profile = await S.getProfile(s.email, q.get('u'));
       return json({ profile, ...(await S.feed(s.email, { scope: 'user', arg: profile.username, before: q.get('before') })) });
@@ -49,10 +54,11 @@ export async function POST(request) {
       return json({ me });
     }
     if (a === 'post') {
-      const post = await S.createPost(s.email, { body: b.body, parentId: b.parentId || null });
-      await logEvent(s.email, 'community', `${post.parent_id ? 'Replied' : 'Posted'}: ${post.body.slice(0, 80)}`);
+      const post = await S.createPost(s.email, { body: b.body, parentId: b.parentId || null, mediaIds: b.mediaIds || [] });
+      await logEvent(s.email, 'community', `${post.parent_id ? 'Replied' : 'Posted'}: ${post.body.slice(0, 80)}${post.media.length ? ` [${post.media.length} photo${post.media.length > 1 ? 's' : ''}]` : ''}`);
       return json({ post });
     }
+    if (a === 'upload') return json(await S.uploadMedia(s.email, { data: b.data, mime: b.mime, width: b.width, height: b.height }));
     if (a === 'delete') return json(await S.deletePost(s.email, b.id));
     if (a === 'like') return json(await S.like(s.email, b.id, !!b.on));
     if (a === 'follow') return json({ profile: await S.follow(s.email, b.username, !!b.on) });
