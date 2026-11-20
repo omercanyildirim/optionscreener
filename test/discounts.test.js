@@ -14,7 +14,7 @@ beforeEach(() => {
   globalThis.fetch = async (u, init = {}) => { u = String(u);
     if (u.startsWith('https://kv.example')) { const b = JSON.parse(init.body); return new Response(JSON.stringify(u.endsWith('/pipeline') ? b.map(c => ({ result: redis(c) })) : { result: redis(b) })); }
     calls.push({ u, method: init.method, body: init.body ? JSON.parse(init.body) : null, auth: init.headers && init.headers.authorization });
-    if (u.endsWith('/discounts') && init.method === 'POST') return new Response(JSON.stringify({ data: { id: 'dsc_01abc', code: JSON.parse(init.body).code } }));
+    if (u.endsWith('/discounts') && init.method === 'POST') { if (!/^[A-Za-z0-9]{1,32}$/.test(JSON.parse(init.body).code)) return new Response(JSON.stringify({ error: { detail: 'Invalid request.', errors: [{ field: 'code', message: 'letters and numbers only' }] } }), { status: 400 }); return new Response(JSON.stringify({ data: { id: 'dsc_01abc', code: JSON.parse(init.body).code } }));}
     return new Response(JSON.stringify({ data: {} }));
   };
 });
@@ -25,7 +25,7 @@ test('admin creates a single-use, price-restricted Paddle discount for one user;
   assert.equal(c.auth, 'Bearer pdl_live_apikey_k');
   assert.equal(c.body.type, 'percentage'); assert.equal(c.body.amount, '20'); assert.equal(c.body.usage_limit, 1);
   assert.deepEqual(c.body.restrict_to, ['pri_live']); assert.equal(c.body.recur, true); assert.equal(c.body.maximum_recurring_intervals, 3);
-  assert.equal(c.body.enabled_for_checkout, true); assert.match(c.body.code, /^OS20-[A-Z2-9]{6}$/); assert.ok(c.body.expires_at);
+  assert.equal(c.body.enabled_for_checkout, true); assert.match(c.body.code, /^OS20[A-Z2-9]{6}$/); assert.ok(c.body.expires_at);
   assert.equal(disc.describe(d), '20% off the first 3 months');
   const info = await billing.billingInfo('ayse@example.com');
   assert.equal(info.paddle.discount.id, 'dsc_01abc'); assert.equal(info.paddle.discount.label, '20% off the first 3 months');
