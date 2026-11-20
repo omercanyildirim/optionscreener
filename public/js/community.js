@@ -181,11 +181,27 @@
     return b;
   }
 
+  // Filter bar: $TICKER shows posts about a stock, @username shows a member. Clear filter goes back to the full feed.
+  function filterBar() {
+    const active = ROUTE.kind === 'ticker' ? '$' + ROUTE.arg : ROUTE.kind === 'user' ? '@' + ROUTE.arg : '';
+    const f = h('form', 'cm-filter'); f.setAttribute('role', 'search');
+    const inp = h('input'); inp.placeholder = 'Filter by $ticker or @member'; inp.value = active; inp.setAttribute('aria-label', 'Filter posts'); inp.autocomplete = 'off'; inp.spellcheck = false;
+    const clear = h('button', 'btn', 'Clear filter'); clear.type = 'button'; clear.disabled = !active;
+    clear.onclick = () => { HIST.length = 0; go({ kind: 'feed', scope: 'all' }, true); };
+    f.onsubmit = e => { e.preventDefault(); const v = inp.value.trim();
+      if (!v) return clear.onclick();
+      if (/^@?[A-Za-z0-9_]{3,20}$/.test(v) && v[0] === '@') return go({ kind: 'user', arg: v.slice(1).toLowerCase() });
+      if (/^\$?[A-Za-z]{1,5}(\.[A-Za-z])?$/.test(v)) return go({ kind: 'ticker', arg: v.replace(/^\$/, '').toUpperCase() });
+      if (/^[A-Za-z0-9_]{3,20}$/.test(v)) return go({ kind: 'user', arg: v.toLowerCase() });
+      toast('Type a ticker like $NVDA or a member like @name', true); };
+    const go1 = h('button', 'btn dark', 'Filter'); go1.type = 'submit';
+    f.append(inp, go1, clear); return f;
+  }
   async function showFeed() {
     const m = main(); m.replaceChildren();
     const tabs = h('div', 'cm-tabs'); tabs.setAttribute('role', 'tablist');
     for (const [k, label] of [['all', 'Everyone'], ['following', 'Following']]) { const b = h('button', ROUTE.scope === k ? 'on' : '', label); b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(ROUTE.scope === k)); b.onclick = () => go({ kind: 'feed', scope: k }, true); tabs.append(b); }
-    m.append(tabs, composer({ onDone: p => { const l = $c('.cm-list'); const e = $c('.cm-list .cm-empty'); if (e) e.remove(); l.prepend(postEl(p)); } }));
+    m.append(filterBar(), tabs, composer({ onDone: p => { const l = $c('.cm-list'); const e = $c('.cm-list .cm-empty'); if (e) e.remove(); l.prepend(postEl(p)); } }));
     const holder = h('div'); m.append(holder); holder.append(h('p', 'cm-load', 'Loading…'));
     const r = await api('feed', { scope: ROUTE.scope }); NEXT = r.next;
     const l = list(r.posts, ROUTE.scope === 'following' ? 'Posts from members you follow show here. Find people in Everyone and follow them.' : 'No posts yet. Start the conversation.');
@@ -196,7 +212,7 @@
     const m = main(); m.replaceChildren(); const t = ROUTE.arg;
     const hd = head('$' + t, 'Posts that mention ' + t, true);
     const open = h('button', 'btn', 'Open ' + t + ' chain'); open.onclick = () => window.OSApp && window.OSApp.openSymbol(t); hd.append(h('span', 'sp'), open);
-    m.append(hd, composer({ placeholder: `Share your view on $${t}`, onDone: p => { if (p.tickers.includes(t)) $c('.cm-list').prepend(postEl(p)); } }));
+    m.append(filterBar(), hd, composer({ placeholder: `Share your view on $${t}`, onDone: p => { if (p.tickers.includes(t)) $c('.cm-list').prepend(postEl(p)); } }));
     const r = await api('feed', { scope: 'ticker', arg: t }); NEXT = r.next;
     const l = list(r.posts, `No posts about $${t} yet.`);
     const more = moreBtn(async () => { const x = await api('feed', { scope: 'ticker', arg: t, before: NEXT }); x.posts.forEach(p => l.append(postEl(p))); NEXT = x.next; more.hidden = !NEXT; });
@@ -212,7 +228,7 @@
     m.append(list(r.replies, 'No replies yet.'));
   }
   async function showUser() {
-    const m = main(); m.replaceChildren(head('Profile', null, true));
+    const m = main(); m.replaceChildren(filterBar(), head('Profile', null, true));
     const r = await api('user', { u: ROUTE.arg }); const p = r.profile; NEXT = r.next;
     const card = h('section', 'cm-prof');
     const top = h('div', 'cm-ptop'); top.append(avatar(p, true));

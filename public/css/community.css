@@ -145,3 +145,9 @@ body.v-community #rate, body.v-community #asof, body.v-community .topbar .dd, bo
 .cm-lbn { top: 50%; transform: translateY(-50%); } .cm-lbn.prev { left: 14px; } .cm-lbn.next { right: 14px; } .cm-lbn.next svg { transform: scaleX(-1); }
 @media (max-width: 640px) { .cm-thumb { width: 84px; height: 84px; } .cm-lb { padding: 56px 8px; } .cm-lbn { top: auto; bottom: 14px; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .cm-thumb.busy::after { animation: none; } }
+
+/* filter bar */
+.cm-filter { display: flex; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+.cm-filter input { flex: 1; min-width: 0; padding: 8px 11px; font-size: 14px; }
+.cm-filter .btn:disabled { opacity: .4; cursor: default; background: none; }
+@media (max-width: 640px) { .cm-filter { padding: 12px 4px; flex-wrap: wrap; } .cm-filter input { flex-basis: 100%; } .cm-filter .btn { flex: 1; } }
