@@ -17,6 +17,14 @@ GUIDES = [
     ('/option-chain', 'Option chain', 'Bid, ask, greeks and IV for every strike'),
 ]
 
+LEARN = [
+    ('/0dte-options', '0DTE options', 'Same-day expiry options and why volume is so high'),
+    ('/put-call-ratio', 'Put/call ratio', 'What the ratio measures and how to read it'),
+    ('/open-interest-vs-volume', 'Open interest vs volume', 'Two numbers every option chain shows'),
+    ('/implied-volatility', 'Implied volatility', 'IV, the IV smile and how it moves'),
+]
+ALL_GUIDES = GUIDES + LEARN
+
 GLOGO = '<svg class="glogo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>'
 
 def nav(path):
@@ -64,7 +72,7 @@ def head(path, title, desc, ld, kind='website'):
 </div></header>
 '''
 
-GLIST = ''.join(f'<li><a href="{p}">{t}</a></li>' for p, t, _ in GUIDES)
+GLIST = ''.join(f'<li><a href="{p}">{t}</a></li>' for p, t, _ in ALL_GUIDES)
 FOOT = f'''<footer class="foot"><div class="wrap cols">
   <div><a class="brand" href="/">{LOGO}{NAME}</a>
     <p class="disc">Market data and tools for information only. Nothing on this site is investment advice. Options involve substantial risk and are not suitable for every investor.</p>
@@ -191,7 +199,7 @@ def guide(path, title, h1, desc, lede, sections, faq=()):
               'datePublished': '2026-11-19', 'dateModified': TODAY, 'author': {'@id': SITE + '/#org'}, 'publisher': {'@id': SITE + '/#org'}, 'image': SITE + '/og.png'},
              {'@type': 'BreadcrumbList', 'itemListElement': [{'@type': 'ListItem', 'position': 1, 'name': NAME, 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': h1, 'item': url}]},
              ORG] + ([faq_ld(faq)] if faq else [])
-    rel = ''.join(f'<a href="{p}"><b>{t}</b><span>{s}</span></a>' for p, t, s in GUIDES if p != path)
+    rel = ''.join(f'<a href="{p}"><b>{t}</b><span>{s}</span></a>' for p, t, s in ALL_GUIDES if p != path)
     fq = f'<h2>Questions</h2><div class="faq">{faq_html(faq)}</div>' if faq else ''
     body = f'''<main class="wrap"><article class="article">
 <div class="crumbs"><a href="/">{NAME}</a> / {html.escape(h1)}</div>
@@ -341,8 +349,89 @@ PAGES['option-chain'] = guide('/option-chain',
  [('Why is the last price different from the bid and ask?', 'The last price is the most recent trade, which may have happened minutes or hours ago. The bid and ask show the current market.'),
   ('What is the difference between volume and open interest?', 'Volume counts contracts traded today. Open interest counts contracts that remain open from previous days and is updated once a day.')])
 
+
+PAGES['0dte-options'] = guide('/0dte-options',
+ '0DTE Options Explained: Same-Day Expiry Options on SPY, QQQ and More',
+ '0DTE options explained',
+ '0DTE options expire the same day they trade. Learn how they work, why SPY and QQQ 0DTE volume is so high, and the risks. Free 0DTE chains for US stocks.',
+ '0DTE stands for zero days to expiration: options that expire at the end of the trading day they are traded. They now make up a large share of S&P 500 options volume, and they behave very differently from options with weeks or months left.',
+ """<h2>Which options have 0DTE expiries</h2>
+<p>Index products such as SPX and the SPY and QQQ ETFs list expiries every weekday, so there is a 0DTE contract every trading day. Many large stocks have weekly options that expire on Fridays, which makes Friday their 0DTE day. Monthly options expire on the third Friday of the month (monthly expiration, or OPEX).</p>
+<h2>How 0DTE options behave</h2>
+<ul><li><b>Time decay is fastest at the end.</b> With hours left, an option's time value can fall close to zero by the close. Out-of-the-money 0DTE contracts often expire worthless.</li>
+<li><b>Gamma is very high near the strike.</b> Small moves in the stock change the option's delta quickly, so prices can swing by large percentages within minutes.</li>
+<li><b>Prices are low in dollars.</b> A far out-of-the-money 0DTE contract can cost a few cents, which is one reason volume counts are so high.</li>
+<li><b>Implied volatility can look extreme.</b> With so little time left, small price changes translate into large IV numbers.</li></ul>
+<h2>Reading 0DTE activity</h2>
+<p>Because 0DTE contracts trade in huge size every day, raw volume says less than it does for longer-dated options. Compare volume with open interest (0DTE open interest is often small at the open), check whether trades print at the bid or the ask, and look at how the call and put premium balance changes through the session.</p>
+<h2>In Options Screener</h2>
+<ul><li>In the option chain, pick today's expiry to see every 0DTE strike with bid, ask, volume and open interest.</li>
+<li>In the contract screener, set days to expiry to 0 to list today's contracts across the chain, sorted by volume.</li>
+<li>The options flow shows large 0DTE prints as they happen.</li></ul>""",
+ [('What does 0DTE mean?', 'Zero days to expiration: the option expires at the end of the same trading day.'),
+  ('Are 0DTE options risky?', 'Yes. Prices can move by large percentages in minutes and many contracts expire worthless. This page explains how they work and is not a recommendation to trade them.'),
+  ('Which tickers have 0DTE options every day?', 'Index products such as SPX, and the SPY and QQQ ETFs, have expiries every weekday. Most stocks only have weekly expiries on Fridays.')])
+
+PAGES['put-call-ratio'] = guide('/put-call-ratio',
+ 'Put/Call Ratio Explained: Volume, Open Interest and Premium',
+ 'Put/call ratio explained',
+ 'The put/call ratio compares put and call activity by volume, open interest or premium. Learn how it is calculated and read it for any US stock or ETF.',
+ 'The put/call ratio divides put activity by call activity. A ratio above 1 means more puts than calls traded; below 1 means more calls. It is one of the most quoted numbers in options, and there are three different versions of it.',
+ """<h2>Three ways to calculate it</h2>
+<div class="tw"><table><thead><tr><th>Version</th><th>Formula</th><th>What it shows</th></tr></thead><tbody>
+<tr><td>Volume</td><td>Put volume / call volume today</td><td>Today's trading activity</td></tr>
+<tr><td>Open interest</td><td>Put OI / call OI</td><td>Positions still open from previous days</td></tr>
+<tr><td>Premium</td><td>Put premium / call premium</td><td>Where the money went, weighting expensive contracts more</td></tr></tbody></table></div>
+<h2>Reading it in context</h2>
+<p>There is no universal "normal" level. Index ETFs such as SPY usually have more put activity than single stocks, because institutions buy puts to hedge portfolios. Compare a ticker's ratio with its own recent history rather than with other tickers.</p>
+<p>A high put/call ratio does not mean traders expect a fall: puts are bought as hedges, sold for income and used in spreads. Volume-based ratios also count both buyers and sellers, so they do not tell you which side opened the trade. Looking at whether trades printed at the bid or the ask helps separate buying from selling.</p>
+<h2>In Options Screener</h2>
+<ul><li>The option chain shows the put/call ratio by volume and by open interest for the selected expiry.</li>
+<li>The options flow shows call and put premium side by side, with the put/call premium ratio for your filters.</li></ul>""",
+ [('What is a good put/call ratio?', 'There is no single good level. Compare a ticker with its own history; index ETFs typically run higher than single stocks because of hedging.'),
+  ('Does a high put/call ratio mean the market will fall?', 'No. Puts are used for hedging, income and spreads as well as for bearish bets, so the ratio describes activity, not intent.')])
+
+PAGES['open-interest-vs-volume'] = guide('/open-interest-vs-volume',
+ 'Open Interest vs Volume in Options: What Each Number Means',
+ 'Open interest vs volume',
+ 'Volume counts contracts traded today; open interest counts contracts still open. Learn the difference, why it matters and how to compare them in options.',
+ 'Every option chain shows two activity numbers side by side: volume and open interest. They sound similar but measure different things, and comparing them is one of the simplest ways to spot new positioning.',
+ """<h2>The difference</h2>
+<ul><li><b>Volume</b> is the number of contracts traded today. It resets to zero every morning and updates through the day.</li>
+<li><b>Open interest (OI)</b> is the number of contracts that are still open, counted after the previous day's close. It updates once a day.</li></ul>
+<p>Every trade adds to volume. Open interest only changes when a trade opens or closes a position: if a new buyer and a new seller trade, OI rises by the size of the trade; if both sides are closing, OI falls; if one side opens and the other closes, OI stays the same.</p>
+<h2>Why compare them</h2>
+<p>When today's volume in a contract is much larger than its open interest, most of that volume must be new trading rather than existing positions changing hands. This volume-to-open-interest ratio is one of the main checks behind "unusual options activity" screens. Tomorrow's open interest then shows how much of today's volume stayed open.</p>
+<h2>Liquidity</h2>
+<p>High volume and high open interest usually come with tighter bid-ask spreads, so it costs less to get in and out. Contracts with little of either can have wide spreads and stale last prices.</p>
+<h2>In Options Screener</h2>
+<ul><li>The option chain shows volume and open interest for every strike.</li>
+<li>The contract screener has minimum volume and open interest filters, a volume/OI column and an "unusual volume" filter.</li></ul>""",
+ [('Why is open interest the same all day?', 'Exchanges publish open interest once a day, based on the previous close. Volume updates live.'),
+  ('Can volume be higher than open interest?', 'Yes. When volume is much higher than open interest, the contract is seeing a lot of new trading that day.')])
+
+PAGES['implied-volatility'] = guide('/implied-volatility',
+ 'Implied Volatility (IV) Explained: IV Smile, Skew and Earnings',
+ 'Implied volatility explained',
+ 'Implied volatility is the volatility priced into an option. Learn what IV means, why it changes around earnings, and how to read the IV smile across strikes.',
+ 'Implied volatility (IV) is the volatility that, put into an option pricing model, gives the option\u2019s current market price. It is the market\u2019s price for uncertainty: higher IV means more expensive options for the same strike and expiry.',
+ """<h2>Reading the number</h2>
+<p>IV is quoted as an annual percentage. A rough rule converts it to an expected one-standard-deviation move: divide IV by the square root of 252 for one trading day, or by about 3.5 for one month. A stock with 40% IV is priced for daily moves of roughly 2.5%.</p>
+<h2>Why IV changes</h2>
+<ul><li><b>Events.</b> IV usually rises before earnings and other scheduled news, then drops once the news is out (often called IV crush).</li>
+<li><b>Market stress.</b> When markets fall quickly, demand for puts pushes IV up across the board.</li>
+<li><b>Supply and demand.</b> Heavy buying of a particular strike can lift its IV relative to its neighbours.</li></ul>
+<h2>The IV smile and skew</h2>
+<p>Plotting IV across strikes for one expiry gives a curve. For most stocks and indexes, out-of-the-money puts carry higher IV than out-of-the-money calls (put skew), because of steady demand for downside protection. A symmetric curve with higher IV at both ends is called a smile.</p>
+<h2>In Options Screener</h2>
+<ul><li>The option chain shows IV for every call and put.</li>
+<li>The charts view plots the IV smile for the selected expiry.</li>
+<li>The contract screener filters by IV range.</li></ul>""",
+ [('Is high implied volatility good or bad?', 'Neither. High IV means options are more expensive, which matters differently to buyers and sellers.'),
+  ('What is IV crush?', 'The drop in implied volatility after an expected event such as earnings, once the uncertainty is resolved.')])
+
 def sitemap():
-    urls = [('/', '1.0', 'daily'), ('/pricing', '0.6', 'monthly')] + [(p, '0.8', 'weekly') for p, _, _ in GUIDES] + [('/terms', '0.2', 'yearly'), ('/privacy', '0.2', 'yearly'), ('/refund', '0.2', 'yearly')]
+    urls = [('/', '1.0', 'daily'), ('/pricing', '0.6', 'monthly')] + [(p, '0.8', 'weekly') for p, _, _ in ALL_GUIDES] + [('/terms', '0.2', 'yearly'), ('/privacy', '0.2', 'yearly'), ('/refund', '0.2', 'yearly')]
     items = ''.join(f'<url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod><changefreq>{f}</changefreq><priority>{p}</priority></url>' for u, p, f in urls)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>\n'
 
