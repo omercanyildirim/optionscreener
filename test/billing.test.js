@@ -136,6 +136,20 @@ test('sandbox: test checkout and test-card Pro only for admins and listed tester
   i = await b.billingInfo('tester@example.com'); assert.equal(i.checkout, 'open'); assert.ok(i.paddle.token); assert.equal(i.plan, 'pro');
   i = await b.billingInfo('admin@example.com'); assert.equal(i.checkout, 'open');
   process.env.PADDLE_ENV = 'production';
+  R['os:sub:stranger@example.com'] = JSON.stringify({ status: 'active', env: 'production' });
   i = await b.billingInfo('stranger@example.com'); assert.equal(i.checkout, 'open'); assert.equal(i.plan, 'pro');
+  process.env.PADDLE_ENV = 'sandbox';
+});
+
+test('after go-live, test-card (sandbox) subscriptions no longer unlock Pro; live ones do', async () => {
+  const b = await import('../lib/billing.js');
+  process.env.PAYWALL = 'true';
+  R['os:sub:old@example.com'] = JSON.stringify({ status: 'active' });                    // stored before launch, untagged = sandbox
+  R['os:sub:tagged@example.com'] = JSON.stringify({ status: 'active', env: 'sandbox' });
+  R['os:sub:paid@example.com'] = JSON.stringify({ status: 'active', env: 'production' });
+  process.env.PADDLE_ENV = 'production';
+  assert.equal((await b.planFor('old@example.com')).plan, 'free');
+  assert.equal((await b.planFor('tagged@example.com')).plan, 'free');
+  assert.equal((await b.planFor('paid@example.com')).plan, 'pro');
   process.env.PADDLE_ENV = 'sandbox';
 });
