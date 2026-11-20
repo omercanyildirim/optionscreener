@@ -4,7 +4,7 @@
 import { getSession, json } from './lib/session.js';
 
 export const config = {
-  matcher: ['/((?!api/auth/|api/paddle-webhook|login|js/login\\.js|privacy|terms|refund|pricing|unsubscribe|home|options-flow|options-screener|option-chain|unusual-options-activity|0dte-options|put-call-ratio|open-interest-vs-volume|implied-volatility|css/|og\\.png|icon-|apple-touch-icon|site\\.webmanifest|sitemap\\.xml|favicon|robots\\.txt|[0-9a-f]{32}\\.txt|\\.well-known/).*)'],
+  matcher: ['/((?!api/auth/|api/paddle-webhook|login|js/login\\.js|js/feats\\.js|privacy|terms|refund|pricing|unsubscribe|home|options-flow|options-screener|option-chain|unusual-options-activity|0dte-options|put-call-ratio|open-interest-vs-volume|implied-volatility|css/|og\\.png|icon-|apple-touch-icon|site\\.webmanifest|sitemap\\.xml|favicon|robots\\.txt|[0-9a-f]{32}\\.txt|\\.well-known/).*)'],
 };
 
 // Probes for files and admin panels this site does not have (also blocked at the edge by the Vercel Firewall).
