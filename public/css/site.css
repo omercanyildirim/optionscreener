@@ -146,7 +146,7 @@ section.band{padding:72px 0;border-top:1px solid var(--line)}
 }
 @media (max-width:520px){
   .wrap{padding-left:16px;padding-right:16px}
-  .top .btn:not(.pri){display:none}
+  .top .btn:not(.pri){display:none} .top .wg{display:none}
   .hero h1{font-size:34px}
   .tape th:nth-child(3),.tape td:nth-child(3){display:none}
   .tape th,.tape td{padding:9px 10px}
