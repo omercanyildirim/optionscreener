@@ -623,7 +623,7 @@ async function mountCheckout(){ const st=$('#gateState'); $('.gbox').classList.r
     Paddle.Checkout.open({ items:[{priceId:b.priceId,quantity:1}], customData:b.customData, ...(b.discount?{discountId:b.discount.id}:{}),
       customer:{ email:b.customData.email, ...(b.country?{address:{countryCode:b.country}}:{}) },
       settings:{ displayMode:'inline', frameTarget:'pay-frame', frameInitialHeight:420, frameStyle:'width:100%;min-width:260px;background-color:transparent;border:none;',
-        theme:'dark', locale:'en', variant:'one-page', allowLogout:false, showAddDiscounts:true } });
+        theme:'dark', locale:'en', variant:'one-page', allowLogout:false, showAddDiscounts:false } });
     coOpen=true; }
   catch(e){ st.className='gstate err'; st.textContent='Checkout could not load: '+e.message+'. Try again in a moment.'; } }
 function onPaddle(e){ if(!e||!e.name) return; const d=e.data||{}, st=$('#gateState');
