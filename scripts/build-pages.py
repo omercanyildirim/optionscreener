@@ -227,17 +227,31 @@ def guide(path, title, h1, desc, lede, sections, faq=()):
              {'@type': 'BreadcrumbList', 'itemListElement': [{'@type': 'ListItem', 'position': 1, 'name': NAME, 'item': SITE + '/'}, {'@type': 'ListItem', 'position': 2, 'name': h1, 'item': url}]},
              ORG] + ([faq_ld(faq)] if faq else [])
     rel = ''.join(f'<a href="{p}"><b>{t}</b><span>{s}</span></a>' for p, t, s in ALL_GUIDES if p != path)
-    fq = f'<h2>Questions</h2><div class="faq">{faq_html(faq)}</div>' if faq else ''
-    body = f'''<main class="wrap"><article class="article">
-<div class="crumbs"><a href="/">{NAME}</a> / {html.escape(h1)}</div>
+    import re as _re
+    toc, n = [], [0]
+    def _id(m):
+        n[0] += 1; t = _re.sub('<[^>]+>', '', m.group(1)); slug = _re.sub('[^a-z0-9]+', '-', t.lower()).strip('-') or f's{n[0]}'
+        toc.append((slug, t)); return f'<h2 id="{slug}">{m.group(1)}</h2>'
+    sections = _re.sub(r'<h2>(.*?)</h2>', _id, sections)
+    if faq: toc.append(('questions', 'Questions'))
+    fq = f'<h2 id="questions">Questions</h2><div class="faq">{faq_html(faq)}</div>' if faq else ''
+    tocl = ''.join(f'<a href="#{i}">{t}</a>' for i, t in toc)
+    body = f'''<main class="wrap guide">
+<header class="g-head"><div class="crumbs"><a href="/">{NAME}</a> / {html.escape(h1)}</div>
 <h1>{html.escape(h1)}</h1>
-<p class="lede">{lede}</p>
+<p class="lede">{lede}</p></header>
+<div class="g-grid">
+<article class="article g-body">
 {sections}
 {fq}
 <div class="callout"><p>Try it on live data: open the options flow, any option chain and the screener in Options Screener. Free plan, no card needed; Pro is $9.99 a month.</p><a class="btn pri" href="/login">{GLOGO}Start free with Google</a></div>
 <p class="note">For information only. Not investment advice. Options involve substantial risk.</p>
-<h2>More guides</h2><div class="related">{rel}</div>
-</article></main>
+</article>
+<aside class="g-side"><nav class="toc" aria-label="On this page"><b>On this page</b>{tocl}</nav>
+<div class="g-cta"><p>See this on live data. Free plan, no card needed.</p><a class="btn pri" href="/login">{GLOGO}Start free</a></div></aside>
+</div>
+<section class="g-more"><h2>More guides</h2><div class="related">{rel}</div></section>
+</main>
 '''
     return head(path, title, desc, {'@context': 'https://schema.org', '@graph': graph}, 'article') + body + FOOT
 

@@ -15,7 +15,7 @@
 :root{--bg:#121417;--line:#23272d;--text:#e4e6e9;--muted:#878d96;--dim:#565c64}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 "Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-main{max-width:720px;margin:0 auto;padding:40px 16px 72px}
+main{max-width:980px;margin:0 auto;padding:48px clamp(16px,4vw,40px) 72px}
 nav{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;margin-bottom:40px}
 nav a{color:var(--muted);text-decoration:none} nav a:hover,nav a[aria-current]{color:var(--text)}
 nav .home{margin-right:auto;color:var(--text);font-weight:600}

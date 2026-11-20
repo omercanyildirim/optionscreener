@@ -26,7 +26,7 @@
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/site.css?v=137b489d">
+<link rel="stylesheet" href="/css/site.css?v=22320168">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"How to read an option chain","description":"Learn to read an option chain: calls and puts, strikes, bid and ask, volume, open interest, implied volatility and delta. Free option chains for US stocks.","url":"https://optionscreener.org/option-chain","mainEntityOfPage":"https://optionscreener.org/option-chain","inLanguage":"en","datePublished":"2026-11-19","dateModified":"2026-11-20","author":{"@id":"https://optionscreener.org/#org"},"publisher":{"@id":"https://optionscreener.org/#org"},"image":"https://optionscreener.org/og.png"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Options Screener","item":"https://optionscreener.org/"},{"@type":"ListItem","position":2,"name":"How to read an option chain","item":"https://optionscreener.org/option-chain"}]},{"@type":"Organization","@id":"https://optionscreener.org/#org","name":"Options Screener","url":"https://optionscreener.org/","logo":"https://optionscreener.org/icon-512.png","sameAs":["https://x.com/optionscreener"],"email":"info@optionscreener.org"},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Why is the last price different from the bid and ask?","acceptedAnswer":{"@type":"Answer","text":"The last price is the most recent trade, which may have happened minutes or hours ago. The bid and ask show the current market."}},{"@type":"Question","name":"What is the difference between volume and open interest?","acceptedAnswer":{"@type":"Answer","text":"Volume counts contracts traded today. Open interest counts contracts that remain open from previous days and is updated once a day."}}]}]}</script>
 </head>
 <body>
@@ -35,13 +35,15 @@
   <nav class="nav" aria-label="Guides"><a href="/options-flow">Options flow</a><a href="/unusual-options-activity">Unusual options activity</a><a href="/options-screener">Options screener</a><a href="/option-chain" aria-current="page">Option chain</a><a href="/pricing">Pricing</a></nav>
   <a class="btn" href="/login">Sign in</a><a class="btn pri" href="/login"><svg class="glogo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Start free</a>
 </div></header>
-<main class="wrap"><article class="article">
-<div class="crumbs"><a href="/">Options Screener</a> / How to read an option chain</div>
+<main class="wrap guide">
+<header class="g-head"><div class="crumbs"><a href="/">Options Screener</a> / How to read an option chain</div>
 <h1>How to read an option chain</h1>
-<p class="lede">An option chain lists every call and put for a stock, grouped by expiry and ordered by strike. Once you know what each column means, the chain tells you how the market prices risk, where traders are positioned and how liquid each contract is.</p>
-<h2>Layout</h2>
+<p class="lede">An option chain lists every call and put for a stock, grouped by expiry and ordered by strike. Once you know what each column means, the chain tells you how the market prices risk, where traders are positioned and how liquid each contract is.</p></header>
+<div class="g-grid">
+<article class="article g-body">
+<h2 id="layout">Layout</h2>
 <p>Most chains show calls on the left and puts on the right, with the strike prices down the middle. You choose one expiry at a time. Strikes near the current stock price are <b>at the money</b>; calls below and puts above the stock price are <b>in the money</b>.</p>
-<h2>The columns</h2>
+<h2 id="the-columns">The columns</h2>
 <div class="tw"><table><thead><tr><th>Column</th><th>Meaning</th></tr></thead><tbody>
 <tr><td>Bid / Ask</td><td>The best price buyers are paying and sellers are asking. You usually buy near the ask and sell near the bid.</td></tr>
 <tr><td>Last</td><td>The price of the most recent trade. It may be stale for contracts that rarely trade; the bid and ask are more current.</td></tr>
@@ -50,7 +52,7 @@
 <tr><td>Implied volatility (IV)</td><td>The volatility the option price implies, as an annual percentage. Higher IV means more expensive options.</td></tr>
 <tr><td>Delta (Δ)</td><td>How much the option price moves for a $1 move in the stock, and a rough probability of finishing in the money.</td></tr>
 </tbody></table></div>
-<h2>What to look for</h2>
+<h2 id="what-to-look-for">What to look for</h2>
 <h3>Liquidity</h3>
 <p>Narrow bid-ask spreads, high volume and high open interest mean you can get in and out at fair prices. Index ETFs like SPY and QQQ have the most liquid chains.</p>
 <h3>Positioning</h3>
@@ -59,17 +61,21 @@
 <p>Plotting IV against strike usually gives a smile or a skew: out-of-the-money puts often carry higher IV than calls because investors pay for crash protection. A sudden rise in IV at one strike or expiry often comes before an event.</p>
 <h3>Put/call ratios</h3>
 <p>Dividing put volume (or open interest) by call volume gives a quick read on positioning for that expiry.</p>
-<h2>Option chains in Options Screener</h2>
+<h2 id="option-chains-in-options-screener">Option chains in Options Screener</h2>
 <ul><li>Full chains for every listed US stock and ETF with options, every expiry.</li>
 <li>Bid, ask, last, volume, open interest, IV and delta for calls and puts, updating during market hours.</li>
 <li>Put/call volume and open interest ratios and at-the-money IV at the top.</li>
 <li>Star any contract to watch it; click any cell for contract details and news.</li>
 <li>Free plan: up to 3 symbols a day.</li></ul>
-<h2>Questions</h2><div class="faq"><details><summary>Why is the last price different from the bid and ask?</summary><p>The last price is the most recent trade, which may have happened minutes or hours ago. The bid and ask show the current market.</p></details><details><summary>What is the difference between volume and open interest?</summary><p>Volume counts contracts traded today. Open interest counts contracts that remain open from previous days and is updated once a day.</p></details></div>
+<h2 id="questions">Questions</h2><div class="faq"><details><summary>Why is the last price different from the bid and ask?</summary><p>The last price is the most recent trade, which may have happened minutes or hours ago. The bid and ask show the current market.</p></details><details><summary>What is the difference between volume and open interest?</summary><p>Volume counts contracts traded today. Open interest counts contracts that remain open from previous days and is updated once a day.</p></details></div>
 <div class="callout"><p>Try it on live data: open the options flow, any option chain and the screener in Options Screener. Free plan, no card needed; Pro is $9.99 a month.</p><a class="btn pri" href="/login"><svg class="glogo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Start free with Google</a></div>
 <p class="note">For information only. Not investment advice. Options involve substantial risk.</p>
-<h2>More guides</h2><div class="related"><a href="/options-flow"><b>Options flow</b><span>Read the tape: sweeps, blocks and big premium</span></a><a href="/unusual-options-activity"><b>Unusual options activity</b><span>When volume runs ahead of open interest</span></a><a href="/options-screener"><b>Options screener</b><span>Filter every contract by volume, OI and IV</span></a><a href="/0dte-options"><b>0DTE options</b><span>Same-day expiry options and why volume is so high</span></a><a href="/put-call-ratio"><b>Put/call ratio</b><span>What the ratio measures and how to read it</span></a><a href="/open-interest-vs-volume"><b>Open interest vs volume</b><span>Two numbers every option chain shows</span></a><a href="/implied-volatility"><b>Implied volatility</b><span>IV, the IV smile and how it moves</span></a></div>
-</article></main>
+</article>
+<aside class="g-side"><nav class="toc" aria-label="On this page"><b>On this page</b><a href="#layout">Layout</a><a href="#the-columns">The columns</a><a href="#what-to-look-for">What to look for</a><a href="#option-chains-in-options-screener">Option chains in Options Screener</a><a href="#questions">Questions</a></nav>
+<div class="g-cta"><p>See this on live data. Free plan, no card needed.</p><a class="btn pri" href="/login"><svg class="glogo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Start free</a></div></aside>
+</div>
+<section class="g-more"><h2>More guides</h2><div class="related"><a href="/options-flow"><b>Options flow</b><span>Read the tape: sweeps, blocks and big premium</span></a><a href="/unusual-options-activity"><b>Unusual options activity</b><span>When volume runs ahead of open interest</span></a><a href="/options-screener"><b>Options screener</b><span>Filter every contract by volume, OI and IV</span></a><a href="/0dte-options"><b>0DTE options</b><span>Same-day expiry options and why volume is so high</span></a><a href="/put-call-ratio"><b>Put/call ratio</b><span>What the ratio measures and how to read it</span></a><a href="/open-interest-vs-volume"><b>Open interest vs volume</b><span>Two numbers every option chain shows</span></a><a href="/implied-volatility"><b>Implied volatility</b><span>IV, the IV smile and how it moves</span></a></div></section>
+</main>
 <footer class="foot"><div class="wrap cols">
   <div><a class="brand" href="/"><svg viewBox="0 0 26 26" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18.5c3.5 0 4.5-11 10-11s6.5 11 10 11"/><path d="M3 22.5h20" stroke-opacity=".35"/></svg>Options Screener</a>
     <p class="disc">Market data and tools for information only. Nothing on this site is investment advice. Options involve substantial risk and are not suitable for every investor.</p>
