@@ -8,13 +8,17 @@ import { sendPaymentEmailOnce } from '../lib/mail.js';
 import { storeConfigured, cmd } from '../lib/store.js';
 import { logEvent } from '../lib/activity.js';
 import { markUsed } from '../lib/discounts.js';
+import { sendPaymentFailed, recordSend } from '../lib/comms.js';
+import { dbConfigured } from '../lib/db.js';
 
 const action = request => new URL(request.url).searchParams.get('a') || '';
 
 export async function GET(request) {
   const s = await getSession(request);
-  if (!s) return json({ error: 'unauthorized' }, 401);
   const a = action(request);
+  // The "Update card" link in emails: sign in first, then come back here.
+  if (!s && a === 'portal') return new Response(null, { status: 302, headers: { location: '/login?next=' + encodeURIComponent('/api/billing?a=portal'), 'cache-control': 'no-store' } });
+  if (!s) return json({ error: 'unauthorized' }, 401);
   if (a === 'status') return json(await billingInfo(s.email, request.headers.get('x-vercel-ip-country') || ''));
   // ?a=sync&txn=txn_...: confirm a just-finished checkout with Paddle, then return the plan.
   if (a === 'sync') {
@@ -53,7 +57,12 @@ export async function POST(request) {
   }
   const r = await handleEvent(evt);
   if (r.email) await logEvent(r.email, 'settings_saved', `subscription ${r.status}`);
-  return json({ ok: true, ...r });
+  // A renewal payment failed: Paddle moves the subscription to past_due and retries. Tell the customer once per billing period.
+  if (r.email && r.status === 'past_due' && r.prevStatus !== 'past_due' && dbConfigured()) {
+    try { const m = await sendPaymentFailed(r.email, r.subId, r.nextBill || new Date().toISOString()); if (m.sent) await logEvent(r.email, 'payment', 'Payment failed: email sent'); }
+    catch (e) { return json({ error: 'email failed: ' + e.message }, 500); } // Paddle retries; the dedupe key was freed
+  }
+  return json({ ok: true, ...r, prevStatus: undefined });
 }
 
 // A payment went through (first payment or monthly renewal): note it and email the customer.
@@ -68,5 +77,7 @@ async function onPayment(d) {
       name, amount: t.total, tax: t.tax, currency: t.currency, paidAt: t.at || new Date().toISOString(),
       nextBill: sub && sub.nextBill, invoice: t.invoice, method: t.method, renewal: d.origin === 'subscription_recurring',
     }, () => invoicePdf(d.id, t.invoice));
+  if (m.id) await recordSend(email, { kind: d.origin === 'subscription_recurring' ? 'payment_renewal' : 'payment_first', category: 'account',
+    subject: d.origin === 'subscription_recurring' ? 'Your Options Screener payment was received' : 'Welcome to Options Screener Pro: payment received', dedupe: 'txn:' + d.id, providerId: m.id });
   return { payment: d.id, email, mail: m.id ? 'sent' : m.skipped || 'skipped', invoice: !!m.invoice };
 }

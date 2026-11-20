@@ -2,6 +2,9 @@ import { sign, verify, readCookie, cookie, isAllowed, STATE_COOKIE, SESSION_COOK
 import { appOrigin, safeNext } from './login.js';
 import { logEvent, saveProfile } from '../../lib/activity.js';
 import { recordConsent, setMarketing, LEGAL_VERSION } from '../../lib/legal.js';
+import { sendWelcome } from '../../lib/comms.js';
+import { dbConfigured } from '../../lib/db.js';
+import { storeConfigured, cmd } from '../../lib/store.js';
 
 function decodeJwtPayload(jwt) {
   const part = jwt.split('.')[1];
@@ -63,7 +66,14 @@ export async function GET(request) {
   });
   const ip = (h('x-forwarded-for').split(',')[0] || h('x-real-ip')).trim();
   if (st.consent === LEGAL_VERSION) await recordConsent(email, { ip, how: 'sign-in' });
-  if (st.mkt) { try { await setMarketing(email, true, { ip, how: 'sign-in checkbox' }); } catch { /* never block sign-in */ } }
+  if (st.mkt) { try { await setMarketing(email, true, { ip, how: 'sign-in checkbox', ua: h('user-agent') }); } catch { /* never block sign-in */ } }
+  // A brand-new account gets the welcome email once (first seen in the last 10 minutes). Never blocks sign-in.
+  if (dbConfigured() && storeConfigured()) {
+    try {
+      const first = +(await cmd(['HGET', `os:u:${email}`, 'first'])) || 0;
+      if (first && Date.now() - first < 10 * 60 * 1000) await Promise.race([sendWelcome(email), new Promise(r => setTimeout(r, 4000))]);
+    } catch { /* the email can fail; sign-in goes on */ }
+  }
   await logEvent(email, 'login', (request.headers.get('user-agent') || '').slice(0, 120), { name: c.name || '', country: request.headers.get('x-vercel-ip-country') || '' });
   const headers = new Headers({ location: safeNext(st.next), 'cache-control': 'no-store' });
   headers.append('set-cookie', cookie(SESSION_COOKIE, session, SESSION_MAX_AGE));

@@ -82,16 +82,17 @@ async function loadPay(){ try { PAY = await api('/api/admin?a=payments'); } catc
 async function load(){
   if (PAYTABS.has(TAB)) await loadPay();
   if (TAB==='community') await loadCom();
+  if (TAB==='mail') { if (DIRTY) return; await loadMail(); }
   try { DATA = await api('/api/admin?a=overview'); }
   catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } main.replaceChildren(el('p','err','Could not load: '+e.message)); return; }
   render();
 }
 const PAYTABS=new Set(['payments','cancel']);
 function tabs(){ const t=el('div','tabs'); t.setAttribute('role','tablist');
-  for (const [k,label] of [['users','Users'],['activity','Latest activity'],['payments','Payments'],['cancel','Cancellations'],['community','Community']]){ const b=el('button',TAB===k?'on':'',label); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(TAB===k));
-    b.onclick=async()=>{ if(TAB===k) return; TAB=k; if(k==='community'){ main.replaceChildren(tabs(), el('p','m','Loading the community…')); await loadCom(); } if(PAYTABS.has(k)&&!PAY){ main.replaceChildren(tabs(), el('p','m','Loading from Paddle…')); await loadPay(); } render(); }; t.append(b); }
+  for (const [k,label] of [['users','Users'],['activity','Latest activity'],['payments','Payments'],['cancel','Cancellations'],['community','Community'],['mail','Emails']]){ const b=el('button',TAB===k?'on':'',label); b.setAttribute('role','tab'); b.setAttribute('aria-selected',String(TAB===k));
+    b.onclick=async()=>{ if(TAB===k) return; TAB=k; if(k==='community'){ main.replaceChildren(tabs(), el('p','m','Loading the community…')); await loadCom(); } if(k==='mail'){ main.replaceChildren(tabs(), el('p','m','Loading emails…')); await loadMail(); } if(PAYTABS.has(k)&&!PAY){ main.replaceChildren(tabs(), el('p','m','Loading from Paddle…')); await loadPay(); } render(); }; t.append(b); }
   return t; }
-function render(){ if (TAB==='payments') return renderPay(); if (TAB==='cancel') return renderCancel(); if (TAB==='community') return renderCom();
+function render(){ if (TAB==='payments') return renderPay(); if (TAB==='cancel') return renderCancel(); if (TAB==='community') return renderCom(); if (TAB==='mail') return renderMail();
   const D = DATA, now = Date.now(), day = 864e5;
   const frag = document.createDocumentFragment(); frag.append(tabs());
   if (!D.store) frag.append(el('div','warn','Activity is not being recorded yet: the database (Upstash Redis) is not connected. Connect it in Vercel → Storage, then redeploy.'));
@@ -277,6 +278,70 @@ function renderCom(){
   main.replaceChildren(frag);
 }
 
+/* ---------- emails ---------- */
+let MAIL=null, EDITING=false, DIRTY=false;
+const MKCAT={news:'Market news',checkin:'Check-ins'};
+const MKKIND={welcome:'Welcome',payment_failed:'Payment failed',payment_first:'First payment received',payment_renewal:'Monthly payment received',checkin:'Check-in',news:'Market news',news_test:'Test email'};
+async function loadMail(){ try { MAIL = await api('/api/admin?a=mail'); } catch(e){ if(e.status===403){ clearInterval(timer); start(); return; } MAIL = { error: e.message }; } }
+async function mailAct(body){ const r = await api('/api/admin?a=mail',{method:'POST',body:JSON.stringify(body)}); await loadMail(); return r; }
+function renderMail(){
+  const frag=document.createDocumentFragment(); frag.append(tabs()); const M=MAIL||{};
+  if(M.error){ frag.append(el('p','err','Could not load emails: '+M.error)); return main.replaceChildren(frag); }
+  const C=M.config||{}, T=M.stats||{}, A=M.audience||{}, K=M.checkins||{};
+  if(!C.mail) frag.append(el('div','warn','Email sending is not configured (RESEND_API_KEY and MAIL_FROM in Vercel).'));
+  if(!C.postal) frag.append(el('div','warn','Market news and check-ins are paused: add MAIL_POSTAL_ADDRESS in Vercel. US law (CAN-SPAM) requires a postal address in every marketing email; a P.O. box or virtual mailbox is fine. Welcome and payment emails are not affected.'));
+  if(!C.iys) frag.append(el('div','warn',`Market news and check-ins skip users in Türkiye (${A.tr||0} now) until you register as a sender in IYS (iys.org.tr), then set IYS_REGISTERED=true in Vercel.`));
+  if(!C.bounces) frag.append(el('p','note','Bounces and spam complaints are not tracked yet: add a webhook in Resend for email.bounced and email.complained to https://optionscreener.org/api/mail-events and put its signing secret in RESEND_WEBHOOK_SECRET.'));
+  const stats=el('div','stats'); const stat=(k,v,s)=>{ const d=el('div','stat'); d.append(el('div','k',k), el('div','v',String(v??0))); if(s) d.append(el('div','s',s)); stats.append(d); };
+  stat('Market news',T.news,'agreed to get it'); stat('Check-ins',T.checkin,'agreed to get them'); stat('Sent',T.sent30,'last 30 days');
+  stat('Failed',T.failed30,'last 30 days'); stat('Stopped',T.suppressed,'unsubscribed, bounced or complained'); stat('Consent records',T.consent_events,'agreements and withdrawals');
+  frag.append(stats);
+  const sec=(title,note)=>{ const b=el('section'); const h=el('div','sechead'); h.append(el('h3',null,title),el('span','sp')); if(note) h.append(el('span','m',note)); b.append(h); b.style.marginBottom='30px'; frag.append(b); return b; };
+  // check-ins
+  const ck=sec('Automatic check-ins',`At most every ${K.everyDays||90} days, ${K.max||4} times per person, no discount`);
+  ck.append(el('p','m','Sent each day at 15:00 UTC to people who agreed to check-ins and either cancelled Pro or have not opened the site for 90 days. People on Pro never get one.'));
+  const crow=el('div','crow'); const tg=el('button','btn'+(K.on?'':' pri'),K.on?'Turn off':'Turn on'); tg.onclick=async()=>{ tg.disabled=true; try{ await mailAct({action:'checkins',on:!K.on}); renderMail(); }catch(e){ alertBox(e.message); tg.disabled=false; } };
+  crow.append(el('span',K.on?'g':'r',K.on?'On':'Off'), tg, el('span','m',`${K.due||0} due now${!C.postal?' (paused until the postal address is set)':''}`)); ck.append(crow);
+  // composer
+  const cs=sec('Market news email','Goes only to people who agreed to market news');
+  const draft=(M.campaigns||[]).find(c=>c.id===EDITING)||null;
+  const subj=el('input'); subj.placeholder='Subject, e.g. NVDA call flow ahead of earnings'; subj.maxLength=140; subj.style.width='100%'; subj.value=draft?draft.subject:'';
+  const body=el('textarea'); body.rows=10; body.style.width='100%'; body.style.marginTop='8px'; body.placeholder='Write the email. A blank line starts a new paragraph; lines starting with "- " become a list; links work as typed.'; body.value=draft?draft.body:'';
+  body.style.font='inherit'; body.style.padding='10px'; body.style.border='1px solid var(--line)'; body.style.borderRadius='8px'; body.style.background='transparent'; body.style.color='inherit';
+  const msg=el('p','m',''); const row=el('div','crow'); row.style.marginTop='10px';
+  const save=async()=>{ const r=await mailAct({action:'save',id:EDITING||null,subject:subj.value,body:body.value}); EDITING=r.campaign.id; return r.campaign; };
+  const bSave=el('button','btn','Save draft'), bTest=el('button','btn','Send test to me'), bSend=el('button','btn pri',`Send to ${A.send||0} people`), bNew=el('button','btn','New email');
+  let armed=false;
+  bSave.onclick=async()=>{ try{ await save(); renderMail(); }catch(e){ msg.className='err'; msg.textContent=e.message; } };
+  bTest.onclick=async()=>{ bTest.disabled=true; try{ await save(); const r=await mailAct({action:'test',id:EDITING}); renderMail(); alertBox('Test sent to '+r.to); }catch(e){ msg.className='err'; msg.textContent=e.message; bTest.disabled=false; } };
+  bSend.onclick=async()=>{ if(!armed){ armed=true; bSend.textContent=`Click again to send to ${A.send||0} people`; msg.className='m'; msg.textContent='This cannot be undone. Send a test to yourself first.'; return; }
+    bSend.disabled=true; try{ await save(); const r=await mailAct({action:'send',id:EDITING}); EDITING=false; renderMail(); alertBox(`Sent to ${r.campaign.sent} people${r.campaign.failed?`, ${r.campaign.failed} failed`:''}${r.campaign.skipped?`, ${r.campaign.skipped} skipped`:''}.`); }catch(e){ msg.className='err'; msg.textContent=e.message; bSend.disabled=false; armed=false; bSend.textContent=`Send to ${A.send||0} people`; } };
+  bNew.onclick=()=>{ EDITING=false; renderMail(); };
+  if(!C.postal||!C.mail||!A.send) bSend.disabled=true;
+  row.append(bSave,bTest,bSend); if(EDITING) row.append(bNew);
+  subj.oninput=body.oninput=()=>{ DIRTY=true; };
+  DIRTY=false;
+  cs.append(el('p','m',EDITING?'Editing a draft':'New email'), subj, body, row, msg);
+  // campaigns
+  const cp=sec('Sent and draft emails');
+  const tw=el('div','tw'), t=el('table'); t.innerHTML='<thead><tr><th>Subject</th><th>Status</th><th class="n">Sent</th><th class="n">Failed</th><th class="n">Skipped</th><th>When</th><th></th></tr></thead>'; const tb=el('tbody'); t.append(tb); tw.append(t);
+  const camps=M.campaigns||[]; if(!camps.length){ const tr=el('tr'), td=el('td','empty','No emails yet'); td.colSpan=7; tr.append(td); tb.append(tr); }
+  for(const c of camps){ const tr=el('tr'); const act=el('td');
+    if(c.status==='draft'){ const e=el('button','btn','Edit'); e.onclick=()=>{ EDITING=c.id; renderMail(); scrollTo({top:0,behavior:'smooth'}); }; const d=el('button','btn r','Delete'); d.onclick=async()=>{ d.disabled=true; try{ await mailAct({action:'delete',id:c.id}); if(EDITING===c.id) EDITING=false; renderMail(); }catch(x){ alertBox(x.message); } }; act.append(e,' ',d); }
+    tr.append(el('td',null,c.subject), el('td',c.status==='sent'?'g':'m',c.status==='sent'?'Sent':c.status==='sending'?'Sending':'Draft'), el('td','n',String(c.sent)), el('td','n',String(c.failed)), el('td','n',String(c.skipped)), el('td','d',fmt(Date.parse(c.sent_at||c.updated_at||c.created_at))), act); tb.append(tr); }
+  cp.append(tw);
+  // log
+  const lg=sec('Every email','Newest first, last 100');
+  const lw=el('div','tw'), lt=el('table'); lt.innerHTML='<thead><tr><th>When</th><th>To</th><th>Type</th><th>Subject</th><th>Status</th></tr></thead>'; const lb=el('tbody'); lt.append(lb); lw.append(lt);
+  const rec=M.recent||[]; if(!rec.length){ const tr=el('tr'), td=el('td','empty','Nothing sent yet'); td.colSpan=5; tr.append(td); lb.append(tr); }
+  for(const x of rec){ const tr=el('tr'); tr.append(el('td','d',fmt(Date.parse(x.at))), el('td','m',x.email), el('td',null,MKKIND[x.kind]||x.kind), el('td',null,x.subject||'–'), el('td',x.status==='sent'?'g':x.status==='failed'?'r':'m',x.status+(x.error?' · '+x.error:''))); lb.append(tr); }
+  lg.append(lw);
+  if((M.suppressions||[]).length){ const sp=sec('Stopped addresses','No marketing email goes here; bounced and complained get nothing at all');
+    const w=el('div','tw'), st=el('table'); st.innerHTML='<thead><tr><th>Email</th><th>Why</th><th>When</th></tr></thead>'; const sb=el('tbody'); st.append(sb); w.append(st);
+    for(const x of M.suppressions){ const tr=el('tr'); tr.append(el('td',null,x.email), el('td',x.reason==='unsubscribed'?'m':'r',x.reason), el('td','d',fmt(Date.parse(x.at)))); sb.append(tr); } sp.append(w); }
+  main.replaceChildren(frag);
+}
+
 /* ---------- one user ---------- */
 const ov=$('#ov'), dr=$('#drawer');
 function closeUser(){ dr.classList.remove('on'); ov.classList.remove('on'); }
@@ -335,7 +400,16 @@ async function openUser(u){
     catch(e){ dErr.textContent=e.message; } }
   dBox.append(el('p','m','Loading…'));
   api('/api/admin?a=discount&email='+encodeURIComponent(u.email)).then(r=>paintDisc(r.discount)).catch(e=>{ dBox.replaceChildren(); dErr.textContent=e.message; });
-  const sm = sec('Email updates'); sm.append(el('p',u.marketing?'g':'m', u.marketing?`Agreed to product emails on ${fmt(Date.parse(u.marketingAt))} (${u.marketingHow||'–'}).`:'Has not agreed to product emails. Payment and account emails are still sent.'));
+  const sm = sec('Emails'); sm.append(el('p','m','Loading…'));
+  api('/api/admin?a=mail&email='+encodeURIComponent(u.email)).then(m=>{ sm.replaceChildren(el('h4',null,'Emails'));
+    const P=m.prefs||{}; sm.append(el('p',P.suppressed&&P.suppressed!=='unsubscribed'?'r':'m', `Market news: ${P.news?'Yes':'No'} · Check-ins: ${P.checkin?'Yes':'No'}${P.suppressed?` · Stopped: ${P.suppressed}`:''}. Account and payment emails are always sent${P.suppressed&&P.suppressed!=='unsubscribed'?' (except to bounced or complaining addresses)':''}.`));
+    if((m.consents||[]).length){ const t=el('table'); t.innerHTML='<thead><tr><th>When</th><th>Email type</th><th>Choice</th><th>Where</th><th>IP</th></tr></thead>'; const tb=el('tbody');
+      for(const c of m.consents){ const tr=el('tr'); tr.append(el('td','d',fmt(Date.parse(c.at))), el('td',null,MKCAT[c.category]||c.category), el('td',c.granted?'g':'r',c.granted?'Agreed':'Withdrew'), el('td','m',c.source||'–'), el('td','m',c.ip||'–')); tr.title='Wording version '+(c.text_version||'–'); tb.append(tr); }
+      t.append(tb); sm.append(t); }
+    if((m.sends||[]).length){ const t=el('table'); t.innerHTML='<thead><tr><th>When</th><th>Email</th><th>Status</th></tr></thead>'; const tb=el('tbody');
+      for(const x of m.sends){ const tr=el('tr'); tr.append(el('td','d',fmt(Date.parse(x.at))), el('td',null,x.subject||MKKIND[x.kind]||x.kind), el('td',x.status==='sent'?'g':x.status==='failed'?'r':'m',x.status+(x.error?' · '+x.error:''))); tb.append(tr); }
+      t.append(tb); t.style.marginTop='10px'; sm.append(t); } else sm.append(el('p','m','No emails sent yet.'));
+  }).catch(e=>{ sm.replaceChildren(el('h4',null,'Emails'), el('p','m',`Agreed to product emails: ${u.marketing?'Yes':'No'} (${e.message})`)); });
   const spay = sec('Payments');
   const mine = PAY && PAY.transactions ? PAY.transactions.filter(t=>t.email===u.email) : null;
   if (!mine) { const b=el('button','btn','Load payments from Paddle'); b.onclick=async()=>{ b.disabled=true; await loadPay(); openUser(u); }; spay.append(b); }

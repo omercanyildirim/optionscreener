@@ -120,6 +120,20 @@
     {
       "source": "/unsubscribe",
       "destination": "/api/userdata?a=unsub"
+    },
+    {
+      "source": "/email-preferences",
+      "destination": "/api/userdata?a=prefs"
+    },
+    {
+      "source": "/api/mail-events",
+      "destination": "/api/userdata?a=mailhook"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/userdata?a=cron",
+      "schedule": "0 15 * * *"
     }
   ]
 }

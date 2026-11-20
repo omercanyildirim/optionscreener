@@ -4,7 +4,7 @@
 import { getSession, json } from './lib/session.js';
 
 export const config = {
-  matcher: ['/((?!api/auth/|api/paddle-webhook|login|js/login\\.js|js/feats\\.js|privacy|terms|refund|pricing|unsubscribe|home|options-flow|options-screener|option-chain|unusual-options-activity|0dte-options|put-call-ratio|open-interest-vs-volume|implied-volatility|css/|og\\.png|icon-|apple-touch-icon|site\\.webmanifest|sitemap\\.xml|favicon|robots\\.txt|[0-9a-f]{32}\\.txt|\\.well-known/).*)'],
+  matcher: ['/((?!api/auth/|api/paddle-webhook|login|js/login\\.js|js/feats\\.js|privacy|terms|refund|pricing|unsubscribe|email-preferences|api/mail-events|home|options-flow|options-screener|option-chain|unusual-options-activity|0dte-options|put-call-ratio|open-interest-vs-volume|implied-volatility|css/|og\\.png|icon-|apple-touch-icon|site\\.webmanifest|sitemap\\.xml|favicon|robots\\.txt|[0-9a-f]{32}\\.txt|\\.well-known/).*)'],
 };
 
 // Probes for files and admin panels this site does not have (also blocked at the edge by the Vercel Firewall).
@@ -26,6 +26,10 @@ export default async function middleware(request) {
   const session = await getSession(request, process.env);
   if (session) return; // continue to the page / function
 
+  // The daily scheduled run (check-in emails). It needs no session and runs at most once every 20 hours.
+  if (request.method === 'GET' && url.pathname === '/api/userdata' && url.searchParams.get('a') === 'cron') return;
+  // "Update card" links in emails: sign in, then continue to the billing portal.
+  if (request.method === 'GET' && url.pathname === '/api/billing' && url.searchParams.get('a') === 'portal') return Response.redirect(new URL('/login?next=' + encodeURIComponent('/api/billing?a=portal'), url), 302);
   if (url.pathname.startsWith('/api/')) return json({ error: 'unauthorized' }, 401);
   // Visitors and crawlers get the public home page at "/" (same URL, so it can rank as the site's home page).
   if (url.pathname === '/') return new Response(null, { headers: { 'x-middleware-rewrite': new URL('/home', url).toString() } });

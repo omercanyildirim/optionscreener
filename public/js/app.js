@@ -666,10 +666,11 @@ function openAcct(){ closeAcct(); const b=CFG.billing||{}; amenu=el('div','amenu
   if(b.canManage){ const m=el('a',null,'Manage subscription and card'); m.href='/api/billing?a=portal'; m.target='_blank'; m.rel='noopener'; amenu.append(m); }
   amenu.append(el('hr'));
   const mk=el('button','sw'); mk.append(el('span',null,'Email updates'), el('i',CFG.marketing?'on':'',CFG.marketing?'On':'Off'));
-  mk.title='Product updates and offers by email. Payment and account emails are always sent.';
+  mk.title='Market news, product updates and check-ins by email. Account and payment emails are always sent.';
   mk.onclick=async()=>{ const on=!CFG.marketing; try{ const r=await fetch('/api/userdata?a=marketing&on='+(on?1:0),{method:'PUT',credentials:'same-origin'}); if(!r.ok) throw new Error();
-      CFG.marketing=on; note(on?'You will receive product updates by email.':'Product emails are turned off.'); }catch(e){ note('Could not save your email preference.',true); } closeAcct(); };
+      CFG.marketing=on; note(on?'You will get market news and check-ins by email.':'Market news and check-ins are turned off.'); }catch(e){ note('Could not save your email preference.',true); } closeAcct(); };
   amenu.append(mk);
+  const ep=el('a',null,'Email preferences'); ep.href='/email-preferences'; amenu.append(ep);
   const dl=el('a',null,'Download my data'); dl.href='/api/userdata?a=export'; dl.setAttribute('download',''); amenu.append(dl);
   const del=el('button',null,'Delete account'); del.onclick=deleteAccount; amenu.append(del);
   const o=el('a',null,'Sign out'); o.href='/api/auth/logout'; amenu.append(o);

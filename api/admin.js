@@ -10,6 +10,8 @@ import { paymentsOverview, invoiceUrl, liveCheck } from '../lib/payments.js';
 import { setComp } from '../lib/billing.js';
 import { getDiscount, createDiscount, removeDiscount, describe } from '../lib/discounts.js';
 import { adminOverview as communityOverview, resolveReports, setMuted } from '../lib/social.js';
+import { mailOverview, userMail, saveCampaign, deleteCampaign, sendTest, sendCampaign, setCheckins } from '../lib/comms.js';
+import { planFor } from '../lib/billing.js';
 
 const action = request => new URL(request.url).searchParams.get('a') || '';
 
@@ -22,6 +24,7 @@ export async function GET(request) {
   if (a === 'livecheck') return liveCheckGet(request);
   if (a === 'discount') return discountGet(request);
   if (a === 'community') return communityGet(request);
+  if (a === 'mail') return mailGet(request);
   return json({ error: 'not found' }, 404);
 }
 export async function POST(request) {
@@ -31,6 +34,7 @@ export async function POST(request) {
   if (a === 'comp') return compPost(request);
   if (a === 'discount') return discountPost(request);
   if (a === 'community') return communityPost(request);
+  if (a === 'mail') return mailPost(request);
   return json({ error: 'not found' }, 404);
 }
 export async function DELETE(request) {
@@ -175,4 +179,24 @@ async function compPost(request) {
   const c = await setComp(email, !!b.on, { by: admin.email || '', note: b.note, until: b.until || null });
   await logEvent(email, 'comp', b.on ? `Free Pro given${c.until ? ' until ' + c.until.slice(0, 10) : ''}${c.note ? ' (' + c.note + ')' : ''}` : 'Free Pro removed');
   return json({ ok: true, comp: c });
+}
+
+// Emails: consent counts, campaigns (news), automatic check-ins, everything sent. ?email= gives one user's email history.
+async function mailGet(request) {
+  if (!(await getVerifiedAdmin(request))) return json({ error: 'forbidden' }, 403);
+  const email = new URL(request.url).searchParams.get('email');
+  try { return json(email ? await userMail(email) : await mailOverview(planFor)); } catch (e) { return json({ error: e.message }, e.status || 500); }
+}
+async function mailPost(request) {
+  const admin = await getVerifiedAdmin(request);
+  if (!admin) return json({ error: 'forbidden' }, 403);
+  let b = {}; try { b = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+  try {
+    if (b.action === 'save') return json({ campaign: await saveCampaign({ id: b.id, subject: b.subject, body: b.body }, admin.email || '') });
+    if (b.action === 'delete') return json(await deleteCampaign(b.id));
+    if (b.action === 'test') return json(await sendTest(b.id, admin.email));
+    if (b.action === 'send') { const c = await sendCampaign(b.id, admin.email || ''); return json({ campaign: c }); }
+    if (b.action === 'checkins') return json({ on: await setCheckins(!!b.on) });
+    return json({ error: 'Nothing to do' }, 400);
+  } catch (e) { return json({ error: e.message }, e.status || 500); }
 }
